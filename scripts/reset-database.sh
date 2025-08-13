@@ -1,33 +1,31 @@
 #!/bin/bash
 
-# Reset script for Product Price Tracker database
-set -e
+echo "🔄 Resetting PricePulse databases..."
 
-echo "🔄 Resetting Product Price Tracker Database"
-echo "==========================================="
-
-# Stop and remove containers with volumes
-echo "🛑 Stopping and removing database containers..."
+# Stop and remove all containers and volumes
+echo "🛑 Stopping and removing containers..."
 docker-compose down -v
 
-# Remove any orphaned containers
-docker-compose rm -f
+# Start fresh databases
+echo "🐘 Starting fresh databases..."
+docker-compose up -d postgres postgres-test redis pgadmin
 
-echo "🧹 Cleaning up Docker volumes..."
-docker volume prune -f
+# Wait for databases to be ready
+echo "⏳ Waiting for databases to be ready..."
+sleep 10
 
-# Start fresh containers
-echo "🚀 Starting fresh database containers..."
-docker-compose up -d postgres postgres-test redis
-
-# Wait for services to be ready
-echo "⏳ Waiting for services to start..."
-sleep 15
+# Regenerate and push database schema
+echo "🗄️ Regenerating database schema..."
+cd backend
+npm run db:generate
+npm run db:push
+cd ..
 
 echo "✅ Database reset complete!"
 echo ""
-echo "🔧 Next steps:"
-echo "  1. cd backend"
-echo "  2. npm run db:generate"
-echo "  3. npm run db:push"
-echo "  4. npm run db:seed"
+echo "🌐 Access your services:"
+echo "   Frontend: http://localhost:5173"
+echo "   Backend API: http://localhost:3001"
+echo "   PostgreSQL: localhost:5432"
+echo "   Redis: localhost:6379"
+echo "   pgAdmin: http://localhost:8080 (admin@pricepulse.com / admin123)"

@@ -1,0 +1,1 @@
+ALTER TABLE "advertisements" ALTER COLUMN "keywords" DROP DEFAULT;

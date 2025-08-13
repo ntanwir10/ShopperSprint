@@ -1,27 +1,49 @@
 {
-  "name": "product-price-tracker",
+  "name": "pricepulse",
   "version": "1.0.0",
-  "description": "A full-stack web application that enables users to search for products across multiple online sources and compare prices in real-time",
-  "private": true,
+  "description": "PricePulse - A comprehensive full-stack web application for tracking and comparing product prices across multiple online sources",
+  "main": "index.js",
   "scripts": {
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "setup": "npm run install:all && npm run env:setup && npm run db:setup",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
     "dev:frontend": "cd frontend && npm run dev",
     "dev:backend": "cd backend && npm run dev",
-    "build": "npm run build:frontend && npm run build:backend",
+    "dev:docker": "cd backend && npm run dev:docker",
+    "dev:neon": "cd backend && npm run dev:neon",
+    "build": "npm run build:backend && npm run build:frontend",
     "build:frontend": "cd frontend && npm run build",
     "build:backend": "cd backend && npm run build",
-    "test": "npm run test:frontend && npm run test:backend",
-    "test:frontend": "cd frontend && npm test",
-    "test:backend": "cd backend && npm test",
-    "lint": "npm run lint:frontend && npm run lint:backend",
-    "lint:frontend": "cd frontend && npm run lint",
-    "lint:backend": "cd backend && npm run lint || true",
-    "install:all": "cd frontend && npm install && cd ../backend && npm install"
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:frontend": "cd frontend && npm run test",
+    "test:backend": "cd backend && npm run test",
+    "db:setup": "npm run db:start && sleep 5 && npm run db:migrate && npm run db:seed",
+    "db:start": "docker-compose up -d postgres redis",
+    "db:stop": "docker-compose down",
+    "db:stop:clean": "docker-compose down -v",
+    "db:migrate": "cd backend && npm run db:migrate",
+    "db:seed": "cd backend && npm run db:seed",
+    "db:reset": "./scripts/reset-database.sh",
+    "env:setup": "./scripts/setup-env.sh",
+    "env:dev": "./scripts/switch-env.sh dev",
+    "env:prod": "./scripts/switch-env.sh prod",
+    "env:status": "./scripts/switch-env.sh status",
+    "env:help": "./scripts/switch-env.sh help"
   },
+  "keywords": [
+    "pricepulse",
+    "e-commerce",
+    "price-comparison",
+    "web-scraping",
+    "react",
+    "nodejs",
+    "typescript",
+    "postgresql",
+    "redis"
+  ],
+  "author": "ntanwir",
+  "license": "MIT",
   "devDependencies": {
-    "concurrently": "^9.1.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+    "concurrently": "^8.2.2"
   }
 }

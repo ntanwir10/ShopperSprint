@@ -1,214 +1,175 @@
-import { PrismaClient } from "@prisma/client";
-import { Source } from "../types/index";
-import { SourceRepository } from "./interfaces";
+import { eq, desc } from "drizzle-orm";
+import { getDb } from "../database/connection";
+import { sources } from "../database/schema";
+import { Source } from "../validation/schemas";
 
-export class PrismaSourceRepository implements SourceRepository {
-  constructor(private prisma: PrismaClient) {}
+export class SourceRepository {
+  // Get all active sources
+  async getActiveSources(): Promise<Source[]> {
+    const db = getDb();
+    const results = await db
+      .select()
+      .from(sources)
+      .where(eq(sources.isActive, true))
+      .orderBy(desc(sources.lastSuccessfulScrape));
 
+    const sourcesList: Source[] = [];
+    for (const source of results) {
+      if (source) {
+        sourcesList.push({
+          id: source.id,
+          name: source.name,
+          category: source.category,
+          isActive: source.isActive,
+          lastSuccessfulScrape: source.lastSuccessfulScrape?.toISOString(),
+          errorCount: source.errorCount,
+          averageResponseTime: source.averageResponseTime || undefined,
+          configuration: source.configuration as Record<string, any>,
+        });
+      }
+    }
+    return sourcesList;
+  }
+
+  // Get source by ID
   async findById(id: string): Promise<Source | null> {
-    const source = await this.prisma.source.findUnique({
-      where: { id },
-    });
+    const db = getDb();
+    const result = await db
+      .select()
+      .from(sources)
+      .where(eq(sources.id, id))
+      .limit(1);
+
+    if (result.length === 0) return null;
+
+    const source = result[0];
     if (!source) return null;
-    
+
     return {
-      ...source,
-      category: source.category as 'popular' | 'alternative',
-      configuration: source.configuration as any,
-      lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
+      id: source.id,
+      name: source.name,
+      category: source.category,
+      isActive: source.isActive,
+      lastSuccessfulScrape: source.lastSuccessfulScrape?.toISOString(),
+      errorCount: source.errorCount,
       averageResponseTime: source.averageResponseTime || undefined,
+      configuration: source.configuration as Record<string, any>,
     };
   }
 
-  async findAll(): Promise<Source[]> {
-    const sources = await this.prisma.source.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    
-    return sources.map(source => ({
-      ...source,
-      category: source.category as 'popular' | 'alternative',
-      configuration: source.configuration as any,
-      lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-      averageResponseTime: source.averageResponseTime || undefined,
-    }));
+  // Update source health metrics
+  async updateHealthMetrics(
+    id: string,
+    isSuccess: boolean,
+    responseTime?: number
+  ) {
+    const db = getDb();
+    const updates: any = {
+      updatedAt: new Date(),
+    };
+
+    if (isSuccess) {
+      updates.lastSuccessfulScrape = new Date();
+      updates.errorCount = 0;
+    } else {
+      const currentSource = await this.findById(id);
+      updates.errorCount = (currentSource?.errorCount || 0) + 1;
+    }
+
+    if (responseTime !== undefined) {
+      // Calculate running average
+      const currentSource = await this.findById(id);
+      if (currentSource?.averageResponseTime) {
+        updates.averageResponseTime = Math.round(
+          (currentSource.averageResponseTime + responseTime) / 2
+        );
+      } else {
+        updates.averageResponseTime = responseTime;
+      }
+    }
+
+    await db.update(sources).set(updates).where(eq(sources.id, id));
   }
 
+  // Create a new source
   async create(
-    data: Omit<Source, "id" | "createdAt" | "updatedAt">
+    source: Omit<
+      Source,
+      "id" | "lastSuccessfulScrape" | "errorCount" | "averageResponseTime"
+    >
   ): Promise<Source> {
-    const source = await this.prisma.source.create({
-      data,
-    });
-    
+    const db = getDb();
+    const [result] = await db
+      .insert(sources)
+      .values({
+        name: source.name,
+        category: source.category,
+        isActive: source.isActive,
+        configuration: source.configuration,
+      })
+      .returning();
+
+    if (!result) {
+      throw new Error("Failed to create source");
+    }
+
     return {
-      ...source,
-      category: source.category as 'popular' | 'alternative',
-      configuration: source.configuration as any,
-      lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-      averageResponseTime: source.averageResponseTime || undefined,
+      id: result.id,
+      name: result.name,
+      category: result.category,
+      isActive: result.isActive,
+      lastSuccessfulScrape: result.lastSuccessfulScrape?.toISOString(),
+      errorCount: result.errorCount,
+      averageResponseTime: result.averageResponseTime || undefined,
+      configuration: result.configuration as Record<string, any>,
     };
   }
 
+  // Update source
   async update(
     id: string,
-    data: Partial<Omit<Source, "id" | "createdAt" | "updatedAt">>
+    updates: Partial<
+      Omit<
+        Source,
+        "id" | "lastSuccessfulScrape" | "errorCount" | "averageResponseTime"
+      >
+    >
   ): Promise<Source | null> {
-    try {
-      const source = await this.prisma.source.update({
-        where: { id },
-        data,
-      });
-      
-      return {
-        ...source,
-        category: source.category as 'popular' | 'alternative',
-        configuration: source.configuration as any,
-        lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-        averageResponseTime: source.averageResponseTime || undefined,
-      };
-    } catch (error) {
-      return null;
-    }
-  }
+    const db = getDb();
+    const updateData: any = {
+      updatedAt: new Date(),
+    };
 
-  async delete(id: string): Promise<boolean> {
-    try {
-      await this.prisma.source.delete({
-        where: { id },
-      });
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
+    if (updates.name !== undefined) updateData.name = updates.name;
+    if (updates.category !== undefined) updateData.category = updates.category;
+    if (updates.isActive !== undefined) updateData.isActive = updates.isActive;
+    if (updates.configuration !== undefined)
+      updateData.configuration = updates.configuration;
 
-  async findByCategory(category: string): Promise<Source[]> {
-    const sources = await this.prisma.source.findMany({
-      where: { category: category as any },
-      orderBy: { name: "asc" },
-    });
-    
-    return sources.map(source => ({
-      ...source,
-      category: source.category as 'popular' | 'alternative',
-      configuration: source.configuration as any,
-      lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-      averageResponseTime: source.averageResponseTime || undefined,
-    }));
-  }
+    const [result] = await db
+      .update(sources)
+      .set(updateData)
+      .where(eq(sources.id, id))
+      .returning();
 
-  async findActive(): Promise<Source[]> {
-    const sources = await this.prisma.source.findMany({
-      where: { isActive: true },
-      orderBy: { name: "asc" },
-    });
-    
-    return sources.map(source => ({
-      ...source,
-      category: source.category as 'popular' | 'alternative',
-      configuration: source.configuration as any,
-      lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-      averageResponseTime: source.averageResponseTime || undefined,
-    }));
-  }
+    if (!result) return null;
 
-  async findByName(name: string): Promise<Source | null> {
-    const source = await this.prisma.source.findUnique({
-      where: { name },
-    });
-    
-    if (!source) return null;
-    
     return {
-      ...source,
-      category: source.category as 'popular' | 'alternative',
-      configuration: source.configuration as any,
-      lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-      averageResponseTime: source.averageResponseTime || undefined,
+      id: result.id,
+      name: result.name,
+      category: result.category,
+      isActive: result.isActive,
+      lastSuccessfulScrape: result.lastSuccessfulScrape?.toISOString(),
+      errorCount: result.errorCount,
+      averageResponseTime: result.averageResponseTime || undefined,
+      configuration: result.configuration as Record<string, any>,
     };
   }
 
-  async updateLastSuccessfulScrape(id: string): Promise<Source | null> {
-    try {
-      const source = await this.prisma.source.update({
-        where: { id },
-        data: { lastSuccessfulScrape: new Date() },
-      });
-      
-      return {
-        ...source,
-        category: source.category as 'popular' | 'alternative',
-        configuration: source.configuration as any,
-        lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-        averageResponseTime: source.averageResponseTime || undefined,
-      };
-    } catch (error) {
-      return null;
-    }
-  }
-
-  async incrementErrorCount(id: string): Promise<Source | null> {
-    try {
-      const source = await this.prisma.source.update({
-        where: { id },
-        data: {
-          errorCount: {
-            increment: 1,
-          },
-        },
-      });
-      
-      return {
-        ...source,
-        category: source.category as 'popular' | 'alternative',
-        configuration: source.configuration as any,
-        lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-        averageResponseTime: source.averageResponseTime || undefined,
-      };
-    } catch (error) {
-      return null;
-    }
-  }
-
-  async resetErrorCount(id: string): Promise<Source | null> {
-    try {
-      const source = await this.prisma.source.update({
-        where: { id },
-        data: { errorCount: 0 },
-      });
-      
-      return {
-        ...source,
-        category: source.category as 'popular' | 'alternative',
-        configuration: source.configuration as any,
-        lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-        averageResponseTime: source.averageResponseTime || undefined,
-      };
-    } catch (error) {
-      return null;
-    }
-  }
-
-  async updateAverageResponseTime(
-    id: string,
-    responseTime: number
-  ): Promise<Source | null> {
-    try {
-      const source = await this.prisma.source.update({
-        where: { id },
-        data: { averageResponseTime: responseTime },
-      });
-      
-      return {
-        ...source,
-        category: source.category as 'popular' | 'alternative',
-        configuration: source.configuration as any,
-        lastSuccessfulScrape: source.lastSuccessfulScrape || undefined,
-        averageResponseTime: source.averageResponseTime || undefined,
-      };
-    } catch (error) {
-      return null;
-    }
+  // Delete source
+  async delete(id: string): Promise<boolean> {
+    const db = getDb();
+    await db.delete(sources).where(eq(sources.id, id));
+    return true; // Assume success if no error thrown
   }
 }

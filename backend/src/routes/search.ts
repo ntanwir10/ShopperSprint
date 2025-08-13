@@ -1,233 +1,159 @@
-import express, { Request, Response } from "express";
-import { z } from "zod";
-import { asyncHandler } from "../middleware";
-import { searchRequestSchema, refreshPricesRequestSchema } from "../types/api.js";
+import { Router, Request, Response } from "express";
+import { SearchService } from "../services/searchService";
+import { SourceRepository } from "../repositories/sourceRepository";
+import { getRedis } from "../database/connection";
+import {
+  searchRequestSchema,
+  searchResponseSchema,
+} from "../validation/schemas";
 
-const router = express.Router();
+const router = Router();
+const sourceRepository = new SourceRepository();
+const searchService = new SearchService(sourceRepository);
 
-// This will be injected by the route setup
-let searchService: any;
-
-// Middleware to inject search service
-export const injectSearchService = (service: any) => {
-  searchService = service;
-};
-
-// POST /api/search - Search for products across sources
-router.post(
-  "/",
-  asyncHandler(async (req: Request, res: Response) => {
+// POST /api/search
+router.post("/", async (req: Request, res: Response) => {
+  try {
     // Validate request body
-    const validationResult = searchRequestSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        error: {
-          message: "Invalid request data",
-          details: validationResult.error.issues,
+    const validatedData = searchRequestSchema.parse(req.body);
+
+    // Extract filters and sorting from query parameters
+    const filters = {
+      minPrice: req.query["minPrice"]
+        ? parseInt(req.query["minPrice"] as string)
+        : undefined,
+      maxPrice: req.query["maxPrice"]
+        ? parseInt(req.query["maxPrice"] as string)
+        : undefined,
+      availability: req.query["availability"] as
+        | "in_stock"
+        | "out_of_stock"
+        | "limited"
+        | "unknown"
+        | undefined,
+      minRating: req.query["minRating"]
+        ? parseFloat(req.query["minRating"] as string)
+        : undefined,
+      sources: req.query["sources"]
+        ? (req.query["sources"] as string).split(",")
+        : undefined,
+      category: req.query["category"] as string | undefined,
+    };
+
+    const sort =
+      req.query["sort"] && req.query["direction"]
+        ? {
+            field: req.query["sort"] as
+              | "price"
+              | "rating"
+              | "reviewCount"
+              | "lastScraped",
+            direction: req.query["direction"] as "asc" | "desc",
+          }
+        : undefined;
+
+    // Check cache first (include filters and sorting in cache key)
+    const cacheKey = `search:${validatedData.query}:${
+      validatedData.sources?.join(",") || "all"
+    }:${JSON.stringify(filters)}:${JSON.stringify(sort)}`;
+
+    const redis = getRedis();
+    const cachedResult = await redis.get(cacheKey);
+
+    if (cachedResult) {
+      const parsed = JSON.parse(cachedResult);
+      console.log("Cache hit for search query:", validatedData.query);
+      return res.json({
+        ...parsed,
+        metadata: {
+          ...parsed.metadata,
+          cacheHit: true,
         },
       });
     }
 
-    const { query, sources, maxResults } = validationResult.data;
+    // Perform search with filters and sorting
+    const startTime = Date.now();
+    const searchResult = await searchService.search({
+      ...validatedData,
+      filters: filters as any,
+      ...(sort && { sort }),
+    });
+    const searchDuration = Date.now() - startTime;
 
-    try {
-      if (!searchService) {
-        throw new Error("Search service not initialized");
-      }
+    // Prepare response
+    const response = {
+      searchId: searchResult.searchId,
+      results: searchResult.results,
+      metadata: {
+        totalSources: searchResult.metadata.totalSources,
+        successfulSources: searchResult.metadata.successfulSources,
+        searchDuration,
+        cacheHit: false,
+      },
+    };
 
-      const results = await searchService.searchProducts({
-        query,
-        sources,
-        maxResults,
-      });
-
-      return res.status(200).json(results);
-    } catch (error) {
-      console.error("Search error:", error);
-      
-      // Handle specific error types
-      if (error instanceof Error) {
-        if (error.message.includes("rate limit")) {
-          return res.status(429).json({
-            error: {
-              message: "Rate limit exceeded. Please try again later.",
-              code: "RATE_LIMIT_EXCEEDED",
-            },
-          });
-        }
-        
-        if (error.message.includes("service not initialized")) {
-          return res.status(503).json({
-            error: {
-              message: "Search service temporarily unavailable",
-              code: "SERVICE_UNAVAILABLE",
-            },
-          });
-        }
-      }
-
-      return res.status(500).json({
-        error: {
-          message: "Internal server error during search",
-          code: "INTERNAL_ERROR",
-        },
-      });
-    }
-  })
-);
-
-// GET /api/search/:id - Get search results by ID
-router.get(
-  "/:id",
-  asyncHandler(async (req: Request, res: Response) => {
-    const { id } = req.params;
-
-    try {
-      if (!searchService) {
-        throw new Error("Search service not initialized");
-      }
-
-      const results = await searchService.getSearchResults(id);
-      
-      if (!results) {
-        return res.status(404).json({
-          error: {
-            message: "Search results not found",
-            code: "NOT_FOUND",
-          },
-        });
-      }
-
-      return res.status(200).json(results);
-    } catch (error) {
-      console.error("Search retrieval error:", error);
-      
-      if (error instanceof Error) {
-        if (error.message.includes("service not initialized")) {
-          return res.status(503).json({
-            error: {
-              message: "Search service temporarily unavailable",
-              code: "SERVICE_UNAVAILABLE",
-            },
-          });
-        }
-      }
-
-      return res.status(500).json({
-        error: {
-          message: "Internal server error retrieving search results",
-          code: "INTERNAL_ERROR",
-        },
-      });
-    }
-  })
-);
-
-// POST /api/search/refresh-prices - Refresh prices for specific products
-router.post(
-  "/refresh-prices",
-  asyncHandler(async (req: Request, res: Response) => {
-    // Validate request body
-    const validationResult = refreshPricesRequestSchema.safeParse(req.body);
-    if (!validationResult.success) {
-      return res.status(400).json({
-        error: {
-          message: "Invalid request data",
-          details: validationResult.error.issues,
-        },
-      });
+    // Cache the result for 15 minutes
+    if (redis) {
+      await redis.setEx(cacheKey, 900, JSON.stringify(response));
     }
 
-    const { searchId, productIds } = validationResult.data;
+    // Validate response
+    const validatedResponse = searchResponseSchema.parse(response);
 
-    try {
-      if (!searchService) {
-        throw new Error("Search service not initialized");
-      }
+    return res.json(validatedResponse);
+  } catch (error) {
+    console.error("Search error:", error);
+    return res.status(500).json({
+      error: "SearchError",
+      message: "Failed to perform search",
+      statusCode: 500,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
-      const jobId = await searchService.refreshPrices(searchId, productIds);
+// GET /api/search/filters
+router.get("/filters", async (_req: Request, res: Response) => {
+  try {
+    // Return available filter options
+    const filters = {
+      availability: ["in_stock", "out_of_stock", "limited", "unknown"],
+      sortFields: ["price", "rating", "reviewCount", "lastScraped"],
+      sortDirections: ["asc", "desc"],
+    };
 
-      return res.status(200).json({
-        jobId,
-        estimatedCompletion: new Date(Date.now() + 30000).toISOString(), // 30 seconds estimate
-        productsToRefresh: productIds.length,
-      });
-    } catch (error) {
-      console.error("Price refresh error:", error);
-      
-      if (error instanceof Error) {
-        if (error.message.includes("Search not found")) {
-          return res.status(404).json({
-            error: {
-              message: "Search not found",
-              code: "NOT_FOUND",
-            },
-          });
-        }
-        
-        if (error.message.includes("service not initialized")) {
-          return res.status(503).json({
-            error: {
-              message: "Search service temporarily unavailable",
-              code: "SERVICE_UNAVAILABLE",
-            },
-          });
-        }
-      }
+    return res.json(filters);
+  } catch (error) {
+    console.error("Filters error:", error);
+    return res.status(500).json({
+      error: "FiltersError",
+      message: "Failed to get filter options",
+      statusCode: 500,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
-      return res.status(500).json({
-        error: {
-          message: "Internal server error during price refresh",
-          code: "INTERNAL_ERROR",
-        },
-      });
-    }
-  })
-);
+// POST /api/refresh-prices
+router.post("/refresh-prices", async (_req: Request, res: Response) => {
+  try {
+    // This endpoint will be implemented in Phase 3
+    return res.status(501).json({
+      error: "NotImplemented",
+      message: "Refresh prices functionality will be available in Phase 3",
+      statusCode: 501,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Refresh prices error:", error);
+    return res.status(500).json({
+      error: "RefreshPricesError",
+      message: "Failed to refresh prices",
+      statusCode: 500,
+      timestamp: new Date().toISOString(),
+    });
+  }
+});
 
-// GET /api/search/status/:jobId - Get job status
-router.get(
-  "/status/:jobId",
-  asyncHandler(async (req: Request, res: Response) => {
-    const { jobId } = req.params;
-    const { type = "scraping" } = req.query;
-
-    try {
-      if (!searchService) {
-        throw new Error("Search service not initialized");
-      }
-
-      const queueService = (searchService as any).queueService;
-      if (!queueService) {
-        throw new Error("Queue service not available");
-      }
-
-      const status = await queueService.getJobStatus(
-        jobId,
-        type as "scraping" | "price-refresh"
-      );
-
-      if (!status) {
-        return res.status(404).json({
-          error: {
-            message: "Job not found",
-            code: "NOT_FOUND",
-          },
-        });
-      }
-
-      return res.status(200).json(status);
-    } catch (error) {
-      console.error("Job status retrieval error:", error);
-      
-      return res.status(500).json({
-        error: {
-          message: "Internal server error retrieving job status",
-          code: "INTERNAL_ERROR",
-        },
-      });
-    }
-  })
-);
-
-export default router;
+export { router as searchRouter };

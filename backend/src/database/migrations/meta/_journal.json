@@ -1,0 +1,27 @@
+{
+  "version": "5",
+  "dialect": "pg",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1755060997211,
+      "tag": "0000_thankful_shinko_yamashiro",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1755061578641,
+      "tag": "0001_redundant_eddie_brock",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1755124895368,
+      "tag": "0002_chilly_thena",
+      "breakpoints": true
+    }
+  ]
+}
