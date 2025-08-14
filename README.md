@@ -2,7 +2,7 @@
 
 A comprehensive price tracking system that monitors product prices across multiple sources in real-time. The system provides advanced search capabilities, price comparison, historical tracking, and price alerts - all without requiring user accounts or authentication.
 
-### ✨ Key Features
+## ✨ Key Features
 
 - **🔍 Advanced Search**: Multi-source product search with filters and sorting
 - **📊 Price Comparison**: Compare prices across different sources
@@ -35,14 +35,8 @@ npm run dev
 ### 🎯 Getting Started
 
 - **[Quick Setup Guide](docs/QUICK_SETUP.md)** - Get running in minutes
-- **[Development Workflow](docs/DEVELOPMENT_WORKFLOW.md)** - Daily development process
 
-### 🔧 Configuration
-
-- **[Environment Setup](docs/ENVIRONMENT_SETUP.md)** - Environment configuration guide
-- **[NeonDB Production Setup](docs/NEONDB_SETUP.md)** - Production deployment guide
-
-### 🏗️ Architecture
+### 🏗️ Architecture & Development
 
 - **[Project Plan](docs/PROJECT_PLAN.md)** - Comprehensive project architecture and roadmap
 - **[API Reference](docs/API_REFERENCE.md)** - Backend API documentation
@@ -117,6 +111,31 @@ pricepulse/
 
 ## 🎯 Available Scripts
 
+### 🚀 Quick Reference
+
+```bash
+# Quick start
+npm run setup
+
+# Development
+npm run dev
+
+# Testing
+npm run test
+npm run test:watch
+npm run test:coverage
+
+# Building
+npm run build:prod
+
+# Deployment
+npm run deploy
+
+# See all available commands
+npm run help
+npm run scripts
+```
+
 ### 🚀 Development
 
 - `npm run dev` - Start both frontend and backend
@@ -149,6 +168,38 @@ npm run env:setup        # Copies .env.example to .env
 # Then edit backend/.env with your real values
 ```
 
+**Environment Variables to Configure:**
+
+```env
+# Database Configuration
+DB_HOST=localhost          # Development: localhost, Production: your-db-host
+DB_PORT=5432              # Database port
+DB_USER=pricepulse        # Database username
+DB_PASSWORD=pricepulse123 # Database password
+DB_NAME=pricepulse        # Database name
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379  # Development: localhost, Production: your-redis-host
+
+# Server Configuration
+PORT=3001                 # Backend server port
+NODE_ENV=development      # development or production
+FRONTEND_URL=http://localhost:5173  # Frontend URL for CORS
+
+# Scraping Configuration
+SCRAPING_DELAY=1000       # Delay between scrapes (ms)
+MAX_CONCURRENT_SCRAPES=3  # Maximum concurrent scraping jobs
+SCRAPING_TIMEOUT=30000    # Scraping timeout (ms)
+```
+
+**Environment Switching:**
+
+```bash
+npm run env:dev           # Switch to development mode
+npm run env:prod          # Switch to production mode
+npm run env:status        # Check current environment
+```
+
 ## 🧪 Testing
 
 ```bash
@@ -159,6 +210,38 @@ npm run test
 # Frontend Tests
 cd frontend
 npm run test
+```
+
+## 🔄 Development Workflow
+
+### Daily Development
+
+```bash
+# Start your development environment
+npm run db:start      # Start databases
+npm run dev           # Start frontend + backend
+```
+
+### Common Scenarios
+
+```bash
+# Need to reset database?
+npm run db:reset      # Clean reset
+
+# Database acting weird?
+npm run db:setup      # Re-setup everything
+
+# Just want to restart databases?
+npm run db:stop       # Stop
+npm run db:start      # Start
+```
+
+### End of Day
+
+```bash
+# Stop everything
+npm run db:stop       # Stop databases
+# Or keep running if you want persistence
 ```
 
 ## 🚀 Deployment
@@ -179,8 +262,36 @@ npm run build
 ### Docker Deployment
 
 ```bash
+# Simple deployment
+npm run deploy
+
+# Manual deployment
 docker-compose -f docker-compose.prod.yml up -d
 ```
+
+### Production Database Setup
+
+For production, you can use:
+
+- **NeonDB** (PostgreSQL as a service)
+- **AWS RDS** or **Google Cloud SQL**
+- **Self-hosted PostgreSQL**
+
+**Quick NeonDB Setup:**
+
+1. Sign up at [neon.tech](https://neon.tech)
+2. Create a new project
+3. Copy connection string to `backend/.env.production`
+4. Run `npm run deploy`
+
+### Production Safety Features
+
+The application automatically handles production vs development behavior:
+
+- **Mock data disabled** in production
+- **Test data seeding blocked** in production
+- **Stricter rate limiting** in production
+- **Environment-based error handling**
 
 ## 🆘 Support
 
@@ -213,6 +324,7 @@ This is a personal project maintained by a single developer. For questions or is
 ### Phase 3: Advanced Features ✅
 
 ### Core Functionality
+
 - [x] Web scraping workers implementation
 - [x] Real-time price updates via WebSocket
 - [x] Advanced search filters and sorting
@@ -222,6 +334,7 @@ This is a personal project maintained by a single developer. For questions or is
 - [ ] Enhanced price alerts with email notifications and browser alerts
 
 ### Technical Implementation
+
 - [x] Puppeteer-based web scraping with fallback to mock data
 - [x] WebSocket server for real-time communication
 - [x] Advanced search with filtering (price, availability, rating, sources)

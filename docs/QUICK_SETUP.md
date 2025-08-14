@@ -71,6 +71,33 @@ npm run env:setup        # Copies .env.example to .env
 
 ## 🔄 Common Commands
 
+### 🚀 Quick Reference
+
+```bash
+# Quick start
+npm run setup
+
+# Development
+npm run dev
+
+# Testing
+npm run test
+npm run test:watch
+npm run test:coverage
+
+# Building
+npm run build:prod
+
+# Deployment
+npm run deploy
+
+# See all available commands
+npm run help
+npm run scripts
+```
+
+### 📋 Detailed Commands
+
 ```bash
 # Development
 npm run dev              # Start both frontend & backend
@@ -113,11 +140,12 @@ npm run setup            # Start over
 
 ## 📚 Next Steps
 
-1. Check out the [main README.md](README.md) for detailed documentation
-2. Explore the API endpoints in the backend
-3. Customize the frontend components
-4. Add your own product sources
-5. Check out the project on GitHub: [https://github.com/ntanwir10/pricepulse](https://github.com/ntanwir10/pricepulse)
+1. Check out the [main README.md](../README.md) for detailed documentation
+2. Explore the [API Reference](API_REFERENCE.md) for backend endpoints
+3. Review the [Project Plan](PROJECT_PLAN.md) for architecture details
+4. Customize the frontend components
+5. Add your own product sources
+6. Check out the project on GitHub: [https://github.com/ntanwir10/pricepulse](https://github.com/ntanwir10/pricepulse)
 
 > 💡 **Note**: This is a personal project maintained by a single developer. Feel free to fork and customize it for your own needs!
 

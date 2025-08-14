@@ -31,7 +31,13 @@ export class ScrapingService {
   private isInitialized = false;
 
   constructor() {
-    // Browser will be initialized lazily when first needed
+    // Prevent mock data in production
+    if (
+      process.env["NODE_ENV"] === "production" &&
+      process.env["MOCK_DATA_ENABLED"] === "true"
+    ) {
+      throw new Error("Mock data cannot be enabled in production environment");
+    }
   }
 
   private async initializeBrowser(): Promise<void> {
@@ -122,9 +128,9 @@ export class ScrapingService {
     try {
       await this.initializeBrowser();
 
-      // If we're in fallback mode (no browser), return mock data immediately
+      // Check if we should use mock data (development only)
       if (!this.browser && process.env["NODE_ENV"] === "development") {
-        logger.info("Using fallback mock data mode");
+        logger.info("Using fallback mock data mode for development");
         return this.generateMockScrapingResult(sourceId, query);
       }
 
@@ -141,22 +147,29 @@ export class ScrapingService {
           `Failed to get source configuration for ${sourceId}, using fallback:`,
           error
         );
-        // If we can't get source configuration, fall back to mock data
+        // If we can't get source configuration, fall back to mock data in development only
         if (process.env["NODE_ENV"] === "development") {
+          logger.info(
+            "Falling back to mock data due to source configuration failure"
+          );
           return this.generateMockScrapingResult(sourceId, query);
         }
-        throw new Error(`Source ${sourceId} not found`);
+        throw new Error(
+          `Source ${sourceId} not found - cannot scrape in production`
+        );
       }
 
       if (!source) {
-        // If no source configuration found, fall back to mock data in development
+        // If no source configuration found, fall back to mock data in development only
         if (process.env["NODE_ENV"] === "development") {
           logger.warn(
             `No source configuration found for ${sourceId}, using fallback`
           );
           return this.generateMockScrapingResult(sourceId, query);
         }
-        throw new Error(`Source ${sourceId} not found`);
+        throw new Error(
+          `Source ${sourceId} not found - cannot scrape in production`
+        );
       }
 
       const page = await this.browser.newPage();
@@ -200,6 +213,10 @@ export class ScrapingService {
         return this.generateMockScrapingResult(sourceId, query);
       }
 
+      // In production, return error instead of mock data
+      logger.error(
+        `Scraping failed in production environment for source ${sourceId}`
+      );
       return {
         success: false,
         error:

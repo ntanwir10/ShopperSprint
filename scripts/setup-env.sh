@@ -1,58 +1,76 @@
 #!/bin/bash
 
 # Environment Setup Script for PricePulse
-# This script sets up the environment files following the correct pattern:
-# 1. .env.example contains only placeholders
-# 2. .env contains real data (copied from .env.example and then updated)
+# This script helps set up the environment configuration
 
 set -e
 
-echo "🔧 Setting up environment files..."
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+print_status() {
+    echo -e "${BLUE}[INFO]${NC} $1"
+}
+
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
+}
+
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
+    echo -e "${RED}[ERROR]${NC} $1"
+}
 
 # Check if we're in the right directory
-if [ ! -f "package.json" ]; then
-    echo "❌ Error: Please run this script from the project root directory"
+if [ ! -f "package.json" ] || [ ! -f "docker-compose.yml" ]; then
+    print_error "This script must be run from the project root directory"
     exit 1
 fi
 
-# Navigate to backend directory
-cd backend
-
-# Check if .env.example exists
-if [ ! -f ".env.example" ]; then
-    echo "❌ Error: .env.example file not found in backend directory"
-    exit 1
-fi
+print_status "🔧 Setting up PricePulse environment configuration..."
 
 # Check if .env already exists
-if [ -f ".env" ]; then
-    echo "⚠️  Warning: .env file already exists"
-    read -p "Do you want to overwrite it with .env.example? (y/N): " -n 1 -r
+if [ -f "backend/.env" ]; then
+    print_warning ".env file already exists"
+    read -p "Do you want to overwrite it? (y/N): " -n 1 -r
     echo
     if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-        echo "❌ Setup cancelled. .env file not modified."
-        exit 1
+        print_status "Keeping existing .env file"
+        exit 0
     fi
 fi
 
-# Copy .env.example to .env
-echo "📋 Copying .env.example to .env..."
-cp .env.example .env
+# Copy the example file
+if [ -f "backend/.env.example" ]; then
+    cp backend/.env.example backend/.env
+    print_success "Created .env from .env.example"
+else
+    print_error ".env.example not found in backend directory"
+    exit 1
+fi
 
-echo "✅ Environment file setup complete!"
+print_success "✅ Environment configuration setup complete!"
 echo ""
-echo "📝 Next steps:"
-echo "1. Edit backend/.env with your actual configuration values"
-echo "2. Update the following placeholders with real data:"
-echo "   - your_db_host → localhost (for development) or your production DB host"
-echo "   - your_db_port → 5432 (for PostgreSQL)"
-echo "   - your_db_user → your database username"
-echo "   - your_db_password → your database password"
-echo "   - your_db_name → your database name"
-echo "   - your_redis_url → redis://localhost:6379 (for development) or your Redis URL"
-echo "   - your_server_port → 3001 (or your preferred port)"
-echo "   - your_node_env → development (or production)"
-echo "   - your_frontend_url → http://localhost:5173 (for development) or your domain"
+print_status "📋 Next steps:"
+print_status "   1. Edit backend/.env with your specific values"
+print_status "   2. Set NODE_ENV to 'development' or 'production'"
+print_status "   3. Update database credentials if needed"
+print_status "   4. Change JWT_SECRET for production use"
 echo ""
-echo "🔒 Remember: .env contains sensitive data and should never be committed to git!"
-echo "📋 .env.example is tracked in git and serves as a template for other developers."
+print_status "🔧 Environment variables explained:"
+print_status "   - NODE_ENV: Set to 'development' for local testing, 'production' for production"
+print_status "   - DATABASE_URL: Full database connection string (recommended)"
+print_status "   - DB_* variables: Individual database settings (alternative)"
+print_status "   - MOCK_DATA_ENABLED: Set to 'false' for production, 'true' for development"
+echo ""
+print_warning "⚠️  Important:"
+print_warning "   - Never commit .env files to version control"
+print_warning "   - Use .env.example as a template"
+print_warning "   - Change JWT_SECRET in production"

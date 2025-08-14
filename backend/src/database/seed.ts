@@ -10,7 +10,15 @@ import bcrypt from "bcryptjs";
 
 async function seed() {
   try {
-    console.log("🌱 Starting database seeding...");
+    // Prevent seeding in production environment
+    if (process.env["NODE_ENV"] === "production") {
+      console.log("🚫 Production environment detected - skipping seed data");
+      console.log("💡 Use production setup scripts instead");
+      process.exit(0);
+    }
+
+    console.log("🌱 Starting database seeding for DEVELOPMENT environment...");
+    console.log(`🔧 Environment: ${process.env["NODE_ENV"] || "development"}`);
 
     // Create sources
     console.log("📡 Creating sources...");
@@ -137,41 +145,43 @@ async function seed() {
 
     // Create advertisements
     console.log("📢 Creating advertisements...");
-    await getDb().insert(advertisements).values([
-      {
-        title: "Save Big on Electronics",
-        description:
-          "Get up to 50% off on selected electronics this week only!",
-        imageUrl: "https://example.com/electronics-sale.jpg",
-        targetUrl: "https://example.com/sale",
-        category: "Electronics",
-        keywords: ["electronics", "sale", "discount", "deals"],
-        isActive: true,
-        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      },
-      {
-        title: "New Smartphone Launch",
-        description:
-          "Be the first to get the latest smartphone with exclusive pre-order bonuses!",
-        imageUrl: "https://example.com/smartphone-launch.jpg",
-        targetUrl: "https://example.com/preorder",
-        category: "Electronics",
-        keywords: ["smartphone", "launch", "pre-order", "new"],
-        isActive: true,
-        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
-      },
-      {
-        title: "Laptop Bundle Deals",
-        description:
-          "Complete laptop setups with accessories included. Limited time offer!",
-        imageUrl: "https://example.com/laptop-bundle.jpg",
-        targetUrl: "https://example.com/bundles",
-        category: "Electronics",
-        keywords: ["laptop", "bundle", "accessories", "complete"],
-        isActive: true,
-        expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
-      },
-    ]);
+    await getDb()
+      .insert(advertisements)
+      .values([
+        {
+          title: "Save Big on Electronics",
+          description:
+            "Get up to 50% off on selected electronics this week only!",
+          imageUrl: "https://example.com/electronics-sale.jpg",
+          targetUrl: "https://example.com/sale",
+          category: "Electronics",
+          keywords: ["electronics", "sale", "discount", "deals"],
+          isActive: true,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        },
+        {
+          title: "New Smartphone Launch",
+          description:
+            "Be the first to get the latest smartphone with exclusive pre-order bonuses!",
+          imageUrl: "https://example.com/smartphone-launch.jpg",
+          targetUrl: "https://example.com/preorder",
+          category: "Electronics",
+          keywords: ["smartphone", "launch", "pre-order", "new"],
+          isActive: true,
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+        },
+        {
+          title: "Laptop Bundle Deals",
+          description:
+            "Complete laptop setups with accessories included. Limited time offer!",
+          imageUrl: "https://example.com/laptop-bundle.jpg",
+          targetUrl: "https://example.com/bundles",
+          category: "Electronics",
+          keywords: ["laptop", "bundle", "accessories", "complete"],
+          isActive: true,
+          expiresAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+        },
+      ]);
 
     console.log("✅ Advertisements created successfully");
 
@@ -258,7 +268,6 @@ async function seed() {
     console.log("   Admin: admin@example.com / AdminPass123!");
     console.log("   User:  user@example.com / UserPass123!");
     console.log("\n🔑 Use these accounts to test the authentication system");
-
   } catch (error) {
     console.error("❌ Error during seeding:", error);
     throw error;
