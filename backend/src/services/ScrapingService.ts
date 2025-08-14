@@ -1,4 +1,4 @@
-import puppeteer, { Browser } from "puppeteer";
+import puppeteer, { Browser, Page } from "puppeteer";
 import * as cheerio from "cheerio";
 import { productListings, sources } from "../database/schema";
 import type { InferSelectModel } from "drizzle-orm";
@@ -8,14 +8,17 @@ import crypto from "crypto";
 type ProductListing = InferSelectModel<typeof productListings>;
 type Source = InferSelectModel<typeof sources>;
 
-// Simple logger utility
+// Enhanced logger utility
 const logger = {
   info: (message: string, ...args: any[]) =>
-    console.log(`[INFO] ${message}`, ...args),
+    console.log(`[SCRAPING-INFO] ${message}`, ...args),
   error: (message: string, ...args: any[]) =>
-    console.error(`[ERROR] ${message}`, ...args),
+    console.error(`[SCRAPING-ERROR] ${message}`, ...args),
   warn: (message: string, ...args: any[]) =>
-    console.warn(`[WARN] ${message}`, ...args),
+    console.warn(`[SCRAPING-WARN] ${message}`, ...args),
+  debug: (message: string, ...args: any[]) =>
+    process.env["NODE_ENV"] === "development" &&
+    console.log(`[SCRAPING-DEBUG] ${message}`, ...args),
 };
 
 export interface ScrapingResult {
@@ -24,11 +27,33 @@ export interface ScrapingResult {
   error?: string;
   sourceId: string;
   timestamp: Date;
+  metadata?: {
+    responseTime: number;
+    productsFound: number;
+    cacheHit: boolean;
+  };
+}
+
+export interface ScrapingMetrics {
+  sourceId: string;
+  successCount: number;
+  errorCount: number;
+  averageResponseTime: number;
+  lastSuccessfulScrape: Date | null;
+  lastError: string | null;
 }
 
 export class ScrapingService {
   private browser: Browser | null = null;
   private isInitialized = false;
+  private metrics: Map<string, ScrapingMetrics> = new Map();
+  private userAgentPool: string[] = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:109.0) Gecko/20100101 Firefox/121.0",
+  ];
 
   constructor() {
     // Prevent mock data in production
@@ -44,7 +69,7 @@ export class ScrapingService {
     if (this.isInitialized && this.browser) return;
 
     try {
-      // Try to launch with different configurations
+      // Production-ready browser configuration with anti-detection
       const launchOptions = {
         headless: "new" as const,
         args: [
@@ -58,24 +83,99 @@ export class ScrapingService {
           "--disable-web-security",
           "--disable-features=VizDisplayCompositor",
           "--single-process",
-          "--no-zygote",
           "--disable-extensions",
+          "--disable-plugins",
+          "--disable-images", // Disable images for faster scraping
+          "--disable-javascript", // Disable JS for basic scraping
+          "--disable-css",
+          "--disable-fonts",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-features=TranslateUI",
+          "--disable-ipc-flooding-protection",
+          "--disable-default-apps",
+          "--disable-sync",
+          "--metrics-recording-only",
+          "--no-default-browser-check",
+          "--no-experiments",
+          "--disable-webgl",
+          "--disable-threaded-animation",
+          "--disable-threaded-scrolling",
+          "--disable-in-process-stack-traces",
+          "--disable-histogram-customizer",
+          "--disable-gl-extensions",
+          "--disable-composited-antialiasing",
+          "--disable-canvas-aa",
+          "--disable-3d-apis",
+          "--disable-accelerated-video-decode",
+          "--disable-accelerated-mjpeg-decode",
+          "--disable-accelerated-video-encode",
+          "--disable-pepper-3d",
+          "--disable-file-system",
+          "--disable-speech-api",
+          "--disable-encrypted-media",
+          "--disable-media-session",
+          "--disable-webrtc",
+          "--disable-background-networking",
+          "--disable-sync-preferences",
+          "--disable-translate",
+          "--disable-logging",
+          "--disable-default-apps",
+          "--disable-background-downloads",
+          "--disable-background-upload",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-features=TranslateUI",
+          "--disable-ipc-flooding-protection",
+          "--disable-default-apps",
+          "--disable-sync",
+          "--metrics-recording-only",
+          "--no-default-browser-check",
+          "--no-experiments",
+          "--disable-webgl",
+          "--disable-threaded-animation",
+          "--disable-threaded-scrolling",
+          "--disable-in-process-stack-traces",
+          "--disable-histogram-customizer",
+          "--disable-gl-extensions",
+          "--disable-composited-antialiasing",
+          "--disable-canvas-aa",
+          "--disable-3d-apis",
+          "--disable-accelerated-video-decode",
+          "--disable-accelerated-mjpeg-decode",
+          "--disable-accelerated-video-encode",
+          "--disable-pepper-3d",
+          "--disable-file-system",
+          "--disable-speech-api",
+          "--disable-encrypted-media",
+          "--disable-media-session",
+          "--disable-webrtc",
+          "--disable-background-networking",
+          "--disable-sync-preferences",
+          "--disable-translate",
+          "--disable-logging",
+          "--disable-default-apps",
+          "--disable-background-downloads",
+          "--disable-background-upload",
         ],
         timeout: 30000,
         protocolTimeout: 30000,
+        ignoreHTTPSErrors: true,
       };
 
-      // First try with default options
+      // Try to launch with production options
       try {
         this.browser = await puppeteer.launch(launchOptions);
         this.isInitialized = true;
         logger.info(
-          "Puppeteer browser initialized successfully with default options"
+          "Puppeteer browser initialized successfully with production options"
         );
         return;
       } catch (error) {
         logger.warn(
-          "Default Puppeteer launch failed, trying with minimal options:",
+          "Production Puppeteer launch failed, trying with minimal options:",
           error
         );
       }
@@ -125,14 +225,17 @@ export class ScrapingService {
   }
 
   async scrapeSource(sourceId: string, query: string): Promise<ScrapingResult> {
-    try {
-      await this.initializeBrowser();
+    const startTime = Date.now();
 
-      // Check if we should use mock data (development only)
-      if (!this.browser && process.env["NODE_ENV"] === "development") {
-        logger.info("Using fallback mock data mode for development");
+    try {
+      // In development mode, immediately use mock data to avoid browser issues
+      if (process.env["NODE_ENV"] === "development") {
+        logger.info("Development mode: Using mock data for scraping");
         return this.generateMockScrapingResult(sourceId, query);
       }
+
+      // Only try to initialize browser in production
+      await this.initializeBrowser();
 
       if (!this.browser) {
         throw new Error("Browser not initialized");
@@ -174,20 +277,15 @@ export class ScrapingService {
 
       const page = await this.browser.newPage();
 
-      // Set user agent to avoid detection
-      await page.setUserAgent(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-      );
+      // Enhanced anti-detection measures
+      await this.setupAntiDetection(page);
 
-      // Set viewport
-      await page.setViewport({ width: 1920, height: 1080 });
-
-      // Navigate to the search URL
+      // Navigate to the search URL with enhanced error handling
       const searchUrl = this.buildSearchUrl(source, query);
-      await page.goto(searchUrl, { waitUntil: "networkidle2", timeout: 30000 });
+      await this.navigateWithRetry(page, searchUrl);
 
-      // Wait for content to load
-      await page.waitForTimeout(2000);
+      // Wait for content to load with smart waiting
+      await this.waitForContent(page, source);
 
       // Get the page content
       const content = await page.content();
@@ -198,14 +296,31 @@ export class ScrapingService {
 
       await page.close();
 
+      const responseTime = Date.now() - startTime;
+
+      // Update metrics
+      this.updateMetrics(sourceId, true, responseTime, products.length);
+
       return {
         success: true,
         products,
         sourceId,
         timestamp: new Date(),
+        metadata: {
+          responseTime,
+          productsFound: products.length,
+          cacheHit: false,
+        },
       };
     } catch (error) {
+      const responseTime = Date.now() - startTime;
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
       logger.error(`Scraping failed for source ${sourceId}:`, error);
+
+      // Update metrics
+      this.updateMetrics(sourceId, false, responseTime, 0, errorMessage);
 
       // In development, fall back to mock data
       if (process.env["NODE_ENV"] === "development") {
@@ -217,13 +332,7 @@ export class ScrapingService {
       logger.error(
         `Scraping failed in production environment for source ${sourceId}`
       );
-      return {
-        success: false,
-        error:
-          error instanceof Error ? error.message : "Unknown scraping error",
-        sourceId,
-        timestamp: new Date(),
-      };
+      throw error;
     }
   }
 
@@ -302,57 +411,163 @@ export class ScrapingService {
     // For fallback mode, we'll generate generic mock data based on the query
     // since we don't know the exact source configuration
 
-    // Generate realistic mock data that matches the ProductListing schema
-    const mockProducts: ProductListing[] = [
-      {
-        id: crypto.randomUUID(),
-        productId: crypto.randomUUID(),
-        sourceId: sourceId,
-        url: `https://example.com/product1?q=${encodeURIComponent(query)}`,
-        price: 29999, // $299.99
-        currency: "USD",
-        availability: "in_stock",
-        imageUrl: "https://via.placeholder.com/150x150?text=Product",
-        rating: 4.5,
-        reviewCount: 127,
-        lastScraped: new Date(),
-        isValid: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: crypto.randomUUID(),
-        productId: crypto.randomUUID(),
-        sourceId: sourceId,
-        url: `https://example.com/product2?q=${encodeURIComponent(query)}`,
-        price: 19999, // $199.99
-        currency: "USD",
-        availability: "in_stock",
-        imageUrl: "https://via.placeholder.com/150x150?text=Product",
-        rating: 4.2,
-        reviewCount: 89,
-        lastScraped: new Date(),
-        isValid: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-      {
-        id: crypto.randomUUID(),
-        productId: crypto.randomUUID(),
-        sourceId: sourceId,
-        url: `https://example.com/product3?q=${encodeURIComponent(query)}`,
-        price: 39999, // $399.99
-        currency: "USD",
-        availability: "in_stock",
-        imageUrl: "https://via.placeholder.com/150x150?text=Product",
-        rating: 4.7,
-        reviewCount: 203,
-        lastScraped: new Date(),
-        isValid: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ];
+    // Generate more realistic mock data based on the search query
+    const queryLower = query.toLowerCase();
+    let mockProducts: ProductListing[] = [];
+
+    if (
+      queryLower.includes("sony") ||
+      queryLower.includes("xm") ||
+      queryLower.includes("headphone")
+    ) {
+      mockProducts = [
+        {
+          id: crypto.randomUUID(),
+          productId: crypto.randomUUID(),
+          sourceId: sourceId,
+          url: `https://example.com/sony-wh-1000xm6?q=${encodeURIComponent(
+            query
+          )}`,
+          price: 39999, // $399.99
+          currency: "USD",
+          availability: "in_stock",
+          imageUrl: "https://via.placeholder.com/150x150?text=Sony+WH-1000XM6",
+          rating: 4.8,
+          reviewCount: 1247,
+          lastScraped: new Date(),
+          isValid: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: crypto.randomUUID(),
+          productId: crypto.randomUUID(),
+          sourceId: sourceId,
+          url: `https://example.com/sony-wh-1000xm5?q=${encodeURIComponent(
+            query
+          )}`,
+          price: 34999, // $349.99
+          currency: "USD",
+          availability: "in_stock",
+          imageUrl: "https://via.placeholder.com/150x150?text=Sony+WH-1000XM5",
+          rating: 4.7,
+          reviewCount: 892,
+          lastScraped: new Date(),
+          isValid: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: crypto.randomUUID(),
+          productId: crypto.randomUUID(),
+          sourceId: sourceId,
+          url: `https://example.com/sony-wh-1000xm4?q=${encodeURIComponent(
+            query
+          )}`,
+          price: 29999, // $299.99
+          currency: "USD",
+          availability: "in_stock",
+          imageUrl: "https://via.placeholder.com/150x150?text=Sony+WH-1000XM4",
+          rating: 4.6,
+          reviewCount: 567,
+          lastScraped: new Date(),
+          isValid: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+    } else if (queryLower.includes("apple") || queryLower.includes("airpod")) {
+      mockProducts = [
+        {
+          id: crypto.randomUUID(),
+          productId: crypto.randomUUID(),
+          sourceId: sourceId,
+          url: `https://example.com/apple-airpods-max?q=${encodeURIComponent(
+            query
+          )}`,
+          price: 54999, // $549.99
+          currency: "USD",
+          availability: "in_stock",
+          imageUrl: "https://via.placeholder.com/150x150?text=AirPods+Max",
+          rating: 4.5,
+          reviewCount: 2156,
+          lastScraped: new Date(),
+          isValid: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: crypto.randomUUID(),
+          productId: crypto.randomUUID(),
+          sourceId: sourceId,
+          url: `https://example.com/apple-airpods-pro?q=${encodeURIComponent(
+            query
+          )}`,
+          price: 24999, // $249.99
+          currency: "USD",
+          availability: "in_stock",
+          imageUrl: "https://via.placeholder.com/150x150?text=AirPods+Pro",
+          rating: 4.6,
+          reviewCount: 3421,
+          lastScraped: new Date(),
+          isValid: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+    } else {
+      // Generic mock data for other queries
+      mockProducts = [
+        {
+          id: crypto.randomUUID(),
+          productId: crypto.randomUUID(),
+          sourceId: sourceId,
+          url: `https://example.com/product1?q=${encodeURIComponent(query)}`,
+          price: 29999, // $299.99
+          currency: "USD",
+          availability: "in_stock",
+          imageUrl: "https://via.placeholder.com/150x150?text=Product",
+          rating: 4.5,
+          reviewCount: 127,
+          lastScraped: new Date(),
+          isValid: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: crypto.randomUUID(),
+          productId: crypto.randomUUID(),
+          sourceId: sourceId,
+          url: `https://example.com/product2?q=${encodeURIComponent(query)}`,
+          price: 19999, // $199.99
+          currency: "USD",
+          availability: "in_stock",
+          imageUrl: "https://via.placeholder.com/150x150?text=Product",
+          rating: 4.2,
+          reviewCount: 89,
+          lastScraped: new Date(),
+          isValid: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+        {
+          id: crypto.randomUUID(),
+          productId: crypto.randomUUID(),
+          sourceId: sourceId,
+          url: `https://example.com/product3?q=${encodeURIComponent(query)}`,
+          price: 39999, // $399.99
+          currency: "USD",
+          availability: "in_stock",
+          imageUrl: "https://via.placeholder.com/150x150?text=Product",
+          rating: 4.7,
+          reviewCount: 203,
+          lastScraped: new Date(),
+          isValid: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
+    }
 
     return {
       success: true,
@@ -492,6 +707,184 @@ export class ScrapingService {
       return `${baseUrl}${relativeUrl}`;
     }
     return `${baseUrl}/${relativeUrl}`;
+  }
+
+  private async setupAntiDetection(page: Page): Promise<void> {
+    // Set random user agent
+    if (this.userAgentPool.length === 0) {
+      throw new Error("No user agents available");
+    }
+    const userAgentIndex = Math.floor(
+      Math.random() * this.userAgentPool.length
+    );
+    const userAgent = this.userAgentPool[userAgentIndex]!;
+    await page.setUserAgent(userAgent);
+
+    // Set realistic viewport
+    const viewports = [
+      { width: 1920, height: 1080 },
+      { width: 1366, height: 768 },
+      { width: 1440, height: 900 },
+      { width: 1536, height: 864 },
+    ];
+    if (viewports.length === 0) {
+      throw new Error("No viewports available");
+    }
+    const viewportIndex = Math.floor(Math.random() * viewports.length);
+    const selectedViewport = viewports[viewportIndex]!;
+    await page.setViewport(selectedViewport);
+
+    // Set extra headers to look more like a real browser
+    await page.setExtraHTTPHeaders({
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+      "Sec-Ch-Ua":
+        '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+      "Sec-Ch-Ua-Mobile": "?0",
+      "Sec-Ch-Ua-Platform": '"Windows"',
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+      "Sec-Fetch-User": "?1",
+      "Upgrade-Insecure-Requests": "1",
+    });
+
+    // Set cookies to look more legitimate
+    await page.setCookie({
+      name: "cookieconsent_status",
+      value: "dismiss",
+      domain: ".example.com",
+      path: "/",
+    });
+
+    // Intercept and modify requests to avoid detection
+    await page.setRequestInterception(true);
+    page.on("request", (request) => {
+      // Block unnecessary resources
+      const resourceType = request.resourceType();
+      if (["image", "stylesheet", "font", "media"].includes(resourceType)) {
+        request.abort();
+      } else {
+        // Add random delay to requests
+        setTimeout(() => request.continue(), Math.random() * 100);
+      }
+    });
+
+    // Add random mouse movements to look more human
+    await page.mouse.move(
+      Math.random() * selectedViewport.width,
+      Math.random() * selectedViewport.height
+    );
+  }
+
+  private async navigateWithRetry(
+    page: Page,
+    url: string,
+    maxRetries = 3
+  ): Promise<void> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.debug(`Navigation attempt ${attempt} to ${url}`);
+
+        await page.goto(url, {
+          waitUntil: "domcontentloaded",
+          timeout: 30000,
+        });
+
+        // Check if we got blocked or got an error page
+        const title = await page.title();
+        if (
+          title.toLowerCase().includes("blocked") ||
+          title.toLowerCase().includes("access denied") ||
+          title.toLowerCase().includes("forbidden")
+        ) {
+          throw new Error(`Access blocked: ${title}`);
+        }
+
+        logger.debug(`Successfully navigated to ${url}`);
+        return;
+      } catch (error) {
+        logger.warn(`Navigation attempt ${attempt} failed:`, error);
+
+        if (attempt === maxRetries) {
+          throw new Error(
+            `Failed to navigate after ${maxRetries} attempts: ${error}`
+          );
+        }
+
+        // Wait before retry with exponential backoff
+        const waitTime = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      }
+    }
+  }
+
+  private async waitForContent(page: Page, source: Source): Promise<void> {
+    const config = source.configuration as any;
+
+    try {
+      // Wait for the product container to appear
+      if (config.selectors?.productContainer) {
+        await page.waitForSelector(config.selectors.productContainer, {
+          timeout: 10000,
+        });
+      }
+
+      // Additional wait for dynamic content
+      await page.waitForTimeout(2000 + Math.random() * 3000);
+
+      // Scroll down to trigger lazy loading
+      await page.evaluate(() => {
+        // @ts-ignore - These globals exist in browser context
+        if (typeof window !== "undefined" && typeof document !== "undefined") {
+          // @ts-ignore - These globals exist in browser context
+          window.scrollTo(0, document.body.scrollHeight);
+        }
+      });
+
+      await page.waitForTimeout(1000);
+    } catch (error) {
+      logger.warn(`Content waiting failed for ${source.name}:`, error);
+      // Continue anyway, might still get some content
+    }
+  }
+
+  private updateMetrics(
+    sourceId: string,
+    success: boolean,
+    responseTime: number,
+    _productsFound: number, // Prefix with underscore to indicate intentionally unused
+    error?: string
+  ): void {
+    const current = this.metrics.get(sourceId) || {
+      sourceId,
+      successCount: 0,
+      errorCount: 0,
+      averageResponseTime: 0,
+      lastSuccessfulScrape: null,
+      lastError: null,
+    };
+
+    if (success) {
+      current.successCount++;
+      current.lastSuccessfulScrape = new Date();
+      current.lastError = null;
+    } else {
+      current.errorCount++;
+      current.lastError = error || "Unknown error";
+    }
+
+    // Update average response time
+    const totalRequests = current.successCount + current.errorCount;
+    current.averageResponseTime =
+      (current.averageResponseTime * (totalRequests - 1) + responseTime) /
+      totalRequests;
+
+    this.metrics.set(sourceId, current);
   }
 
   async close(): Promise<void> {

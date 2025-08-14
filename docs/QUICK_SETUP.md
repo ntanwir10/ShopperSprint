@@ -96,6 +96,19 @@ npm run help
 npm run scripts
 ```
 
+### 🔍 API Monitoring
+
+```bash
+# Monitor API health and performance
+./scripts/monitor_api.sh
+
+# Options available:
+# 1. Test Search API
+# 2. Monitor Real-time Health
+# 3. Analyze Performance
+# 4. Run All Tests
+```
+
 ### 📋 Detailed Commands
 
 ```bash
@@ -146,6 +159,16 @@ npm run setup            # Start over
 4. Customize the frontend components
 5. Add your own product sources
 6. Check out the project on GitHub: [https://github.com/ntanwir10/pricepulse](https://github.com/ntanwir10/pricepulse)
+
+## 🛠️ Available Scripts
+
+The `scripts/` directory contains useful utilities:
+
+- **`monitor_api.sh`** - API health monitoring and performance testing
+- **`deploy-production.sh`** - Automated production deployment
+- **`setup-database.sh`** - Database initialization and setup
+- **`reset-database.sh`** - Database reset utility
+- **`setup-env.sh`** - Environment configuration setup
 
 > 💡 **Note**: This is a personal project maintained by a single developer. Feel free to fork and customize it for your own needs!
 

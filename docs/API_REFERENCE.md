@@ -585,3 +585,119 @@ Get notification statistics.
   }
 }
 ```
+
+## 🔍 Monitoring Endpoints
+
+### GET /ping
+
+Ultra-fast ping endpoint for frontend health checks.
+
+**Response:**
+
+```json
+{
+  "pong": true,
+  "timestamp": "2024-01-01T00:00:00Z"
+}
+```
+
+### GET /health
+
+Lightweight health check for frontend.
+
+**Response:**
+
+```json
+{
+  "status": "OK",
+  "timestamp": "2024-01-01T00:00:00Z",
+  "websocketClients": 5
+}
+```
+
+### GET /api/monitoring/health
+
+Lightweight health check for frontend (no heavy operations).
+
+**Response:**
+
+```json
+{
+  "timestamp": "2024-01-01T00:00:00Z",
+  "status": "healthy",
+  "uptime": 3600,
+  "version": "1.0.0"
+}
+```
+
+### GET /api/monitoring/health/detailed
+
+Detailed health check for admin/monitoring purposes.
+
+**Response:**
+
+```json
+{
+  "timestamp": "2024-01-01T00:00:00Z",
+  "status": "healthy",
+  "uptime": 3600,
+  "memory": { "rss": 123456, "heapUsed": 98765 },
+  "system": {
+    "totalSources": 5,
+    "healthySources": 4,
+    "criticalSources": 0,
+    "overallStatus": "healthy"
+  },
+  "redis": {
+    "status": "connected",
+    "connected": true
+  }
+}
+```
+
+### GET /api/monitoring/metrics
+
+Get all scraping metrics and cache statistics.
+
+**Response:**
+
+```json
+{
+  "timestamp": "2024-01-01T00:00:00Z",
+  "scraping": [...],
+  "cache": {
+    "totalItems": 150,
+    "hitRate": 0.85,
+    "memoryUsage": "45MB"
+  }
+}
+```
+
+### GET /api/monitoring/alerts
+
+Get all active monitoring alerts.
+
+**Response:**
+
+```json
+{
+  "timestamp": "2024-01-01T00:00:00Z",
+  "alerts": [...],
+  "count": 2
+}
+```
+
+### GET /api/monitoring/cache
+
+Get cache information and statistics.
+
+**Response:**
+
+```json
+{
+  "timestamp": "2024-01-01T00:00:00Z",
+  "stats": {...},
+  "totalKeys": 150,
+  "sampleKeys": ["search:laptop", "search:phone"]
+}
+```

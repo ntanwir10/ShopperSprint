@@ -16,9 +16,12 @@ import { priceHistoryRouter } from "./routes/priceHistory";
 import notificationsRouter from "./routes/notifications";
 import { authRouter } from "./routes/auth";
 import { userPreferencesRouter } from "./routes/userPreferences";
+import { monitoringRouter } from "./routes/monitoring";
 import { errorHandler } from "./middleware/errorHandler";
 import { logger } from "./middleware/logger";
 import { WebSocketService } from "./services/websocketService";
+import { monitoringService } from "./services/monitoringService";
+import { cachingService } from "./services/cachingService";
 
 // Load environment variables
 dotenv.config();
@@ -59,13 +62,18 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 // Logging middleware
 app.use(logger);
 
-// Health check endpoint
+// Lightweight health check endpoint (for frontend)
 app.get("/health", (_req, res) => {
   res.json({
     status: "OK",
     timestamp: new Date().toISOString(),
     websocketClients: webSocketService.getConnectedClientsCount(),
   });
+});
+
+// Fast ping endpoint (for frontend health checks)
+app.get("/ping", (_req, res) => {
+  res.json({ pong: true, timestamp: new Date().toISOString() });
 });
 
 // API routes
@@ -75,6 +83,7 @@ app.use("/api/price-history", priceHistoryRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/user-preferences", userPreferencesRouter);
+app.use("/api/monitoring", monitoringRouter);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
@@ -93,6 +102,8 @@ app.use("*", (req, res) => {
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, shutting down gracefully...");
   webSocketService.close();
+  monitoringService.stop();
+  cachingService.stop();
   await closeConnections();
   server.close(() => {
     console.log("Server closed");
@@ -103,6 +114,8 @@ process.on("SIGTERM", async () => {
 process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully...");
   webSocketService.close();
+  monitoringService.stop();
+  cachingService.stop();
   await closeConnections();
   server.close(() => {
     console.log("Server closed");
@@ -124,11 +137,20 @@ const startServer = async () => {
     // Initialize WebSocket service
     webSocketService.initialize(server);
 
+    // Initialize monitoring and caching services
+    await monitoringService.loadPersistedData();
+    console.log("📊 Monitoring service initialized");
+
     // Start server
     server.listen(PORT, () => {
       console.log(`🚀 Server running on port ${PORT}`);
       console.log(`📡 WebSocket server ready`);
+      console.log(`📊 Monitoring service ready`);
+      console.log(`💾 Caching service ready`);
       console.log(`🌐 Health check: http://localhost:${PORT}/health`);
+      console.log(
+        `📈 Monitoring: http://localhost:${PORT}/api/monitoring/health`
+      );
       console.log(
         `🔧 Environment: ${process.env["NODE_ENV"] || "development"}`
       );

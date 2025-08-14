@@ -1,12 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, TrendingUp, Shield, Zap } from 'lucide-react';
+import { Search, TrendingUp, Shield, Zap, AlertCircle } from 'lucide-react';
 import BannerAd from './BannerAd';
 import SearchInput from './SearchInput';
+import { apiClient } from '../lib/api';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [apiStatus, setApiStatus] = useState<
+    'checking' | 'connected' | 'disconnected'
+  >('checking');
+
+  // Prevent duplicate API status checks
+  const statusCheckInProgress = useRef(false);
+
+  // Check API connectivity on component mount
+  useEffect(() => {
+    const checkApiStatus = async () => {
+      if (statusCheckInProgress.current) {
+        console.log('🔒 API status check already in progress, skipping...');
+        return;
+      }
+
+      statusCheckInProgress.current = true;
+      console.log('🔍 Checking API status...');
+
+      try {
+        const isConnected = await apiClient.testConnection();
+        console.log('📡 API connection result:', isConnected);
+        setApiStatus(isConnected ? 'connected' : 'disconnected');
+      } catch (error) {
+        console.error('❌ API status check failed:', error);
+        setApiStatus('disconnected');
+      } finally {
+        statusCheckInProgress.current = false;
+      }
+    };
+
+    checkApiStatus();
+  }, []);
 
   const handleSearch = (query: string) => {
     if (query.trim().length >= 3) {
@@ -38,6 +71,22 @@ const LandingPage: React.FC = () => {
         </div>
       </header>
 
+      {/* API Status Banner */}
+      {apiStatus === 'disconnected' && (
+        <div className="bg-red-50 border-b border-red-200">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
+              <p className="text-sm text-red-700">
+                ⚠️ Backend API is not accessible. Search functionality may not
+                work properly. Please ensure the backend server is running on
+                port 3001.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero Section */}
       <main className="flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -47,9 +96,9 @@ const LandingPage: React.FC = () => {
               <span className="text-primary-600"> Online</span>
             </h2>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              PricePulse searches across multiple e-commerce sites and compares prices in
-              real-time. Save money by finding the best deals on the products
-              you want.
+              PricePulse searches across multiple e-commerce sites and compares
+              prices in real-time. Save money by finding the best deals on the
+              products you want.
             </p>
 
             {/* Search Input */}
@@ -61,6 +110,11 @@ const LandingPage: React.FC = () => {
                 placeholder="Search for products (e.g., iPhone, laptop, headphones)..."
                 className="text-lg"
               />
+              {apiStatus === 'disconnected' && (
+                <p className="mt-2 text-sm text-red-600">
+                  ⚠️ Search may not work - backend server is not accessible
+                </p>
+              )}
             </div>
 
             {/* Banner Advertisement */}
@@ -133,10 +187,10 @@ const LandingPage: React.FC = () => {
                 About PricePulse
               </h3>
               <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-                PricePulse is a comprehensive platform that helps you find
-                the best prices across multiple online retailers. Our advanced
-                web scraping technology ensures you always get the most
-                up-to-date pricing information.
+                PricePulse is a comprehensive platform that helps you find the
+                best prices across multiple online retailers. Our advanced web
+                scraping technology ensures you always get the most up-to-date
+                pricing information.
               </p>
             </div>
           </div>
