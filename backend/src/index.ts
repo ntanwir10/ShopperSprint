@@ -20,8 +20,8 @@ import { monitoringRouter } from "./routes/monitoring";
 import { errorHandler } from "./middleware/errorHandler";
 import { logger } from "./middleware/logger";
 import { WebSocketService } from "./services/websocketService";
-import { monitoringService } from "./services/monitoringService";
-import { cachingService } from "./services/cachingService";
+import { MonitoringService } from "./services/monitoringService";
+import { CachingService } from "./services/cachingService";
 
 // Load environment variables
 dotenv.config();
@@ -34,6 +34,10 @@ const server = createServer(app);
 
 // Initialize WebSocket service
 const webSocketService = new WebSocketService();
+
+// Declare service variables (will be initialized after connections)
+let monitoringService: MonitoringService;
+let cachingService: CachingService;
 
 // Middleware
 app.use(helmet());
@@ -102,8 +106,8 @@ app.use("*", (req, res) => {
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, shutting down gracefully...");
   webSocketService.close();
-  monitoringService.stop();
-  cachingService.stop();
+  if (monitoringService) monitoringService.stop();
+  if (cachingService) cachingService.stop();
   await closeConnections();
   server.close(() => {
     console.log("Server closed");
@@ -114,8 +118,8 @@ process.on("SIGTERM", async () => {
 process.on("SIGINT", async () => {
   console.log("SIGINT received, shutting down gracefully...");
   webSocketService.close();
-  monitoringService.stop();
-  cachingService.stop();
+  if (monitoringService) monitoringService.stop();
+  if (cachingService) cachingService.stop();
   await closeConnections();
   server.close(() => {
     console.log("Server closed");
@@ -138,6 +142,8 @@ const startServer = async () => {
     webSocketService.initialize(server);
 
     // Initialize monitoring and caching services
+    monitoringService = new MonitoringService();
+    cachingService = new CachingService();
     await monitoringService.loadPersistedData();
     console.log("📊 Monitoring service initialized");
 

@@ -32,7 +32,7 @@ router.get("/health", async (_req: Request, res: Response) => {
 router.get("/health/detailed", async (_req: Request, res: Response) => {
   try {
     // Quick system health check (in-memory, no Redis calls)
-    const systemHealth = monitoringService.getSystemHealth();
+    const systemHealth = await monitoringService.getSystemHealth();
 
     // Fast Redis ping only (no heavy operations)
     const redisHealth = await checkRedisHealthFast();
@@ -71,7 +71,7 @@ router.get("/health/detailed", async (_req: Request, res: Response) => {
 // GET /api/monitoring/metrics - All scraping metrics
 router.get("/metrics", async (_req: Request, res: Response) => {
   try {
-    const metrics = monitoringService.getAllMetrics();
+    const metrics = await monitoringService.getAllMetrics();
     const cacheStats = cachingService.getStats();
 
     res.json({
@@ -104,7 +104,7 @@ router.get("/metrics/:sourceId", async (req: Request, res: Response) => {
       });
     }
 
-    const metrics = monitoringService.getSourceMetrics(sourceId);
+    const metrics = await monitoringService.getSourceMetrics(sourceId);
 
     if (!metrics) {
       return res.status(404).json({
@@ -134,7 +134,7 @@ router.get("/metrics/:sourceId", async (req: Request, res: Response) => {
 // GET /api/monitoring/alerts - All active alerts
 router.get("/alerts", async (_req: Request, res: Response) => {
   try {
-    const alerts = monitoringService.getActiveAlerts();
+    const alerts = await monitoringService.getActiveAlerts();
 
     return res.json({
       timestamp: new Date().toISOString(),
@@ -178,7 +178,7 @@ router.post(
         });
       }
 
-      const success = monitoringService.acknowledgeAlert(
+      const success = await monitoringService.acknowledgeAlert(
         alertId,
         acknowledgedBy
       );
