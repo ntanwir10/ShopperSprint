@@ -50,17 +50,34 @@ export class MonitoringService extends EventEmitter {
       ...config,
     };
 
-    this.redis = getRedis();
-    this.startHealthChecks();
+    // Don't initialize Redis immediately - lazy initialize when needed
+    this.redis = null;
+  }
+
+  /**
+   * Lazy initialize Redis connection
+   */
+  private async ensureRedis(): Promise<void> {
+    if (!this.redis) {
+      try {
+        this.redis = getRedis();
+        this.startHealthChecks();
+      } catch (error) {
+        console.error("Failed to initialize Redis in MonitoringService:", error);
+        this.redis = null;
+      }
+    }
   }
 
   /**
    * Update metrics for a scraping source
    */
-  updateMetrics(
+  async updateMetrics(
     sourceId: string,
     metrics: Partial<ScrapingHealthMetrics>
-  ): void {
+  ): Promise<void> {
+    await this.ensureRedis(); // Ensure Redis is initialized
+
     const current = this.metrics.get(sourceId) || {
       sourceId,
       sourceName: "Unknown",
@@ -89,7 +106,7 @@ export class MonitoringService extends EventEmitter {
     this.metrics.set(sourceId, updated);
 
     // Store in Redis for persistence
-    this.persistMetrics(sourceId, updated);
+    await this.persistMetrics(sourceId, updated);
 
     // Emit metrics update event
     this.emit("metricsUpdated", sourceId, updated);
@@ -133,28 +150,32 @@ export class MonitoringService extends EventEmitter {
   /**
    * Get health metrics for all sources
    */
-  getAllMetrics(): ScrapingHealthMetrics[] {
+  async getAllMetrics(): Promise<ScrapingHealthMetrics[]> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     return Array.from(this.metrics.values());
   }
 
   /**
    * Get health metrics for a specific source
    */
-  getSourceMetrics(sourceId: string): ScrapingHealthMetrics | null {
+  async getSourceMetrics(sourceId: string): Promise<ScrapingHealthMetrics | null> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     return this.metrics.get(sourceId) || null;
   }
 
   /**
    * Get all active alerts
    */
-  getActiveAlerts(): Alert[] {
+  async getActiveAlerts(): Promise<Alert[]> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     return this.alerts.filter((alert) => !alert.acknowledged);
   }
 
   /**
    * Acknowledge an alert
    */
-  acknowledgeAlert(alertId: string, acknowledgedBy: string): boolean {
+  async acknowledgeAlert(alertId: string, acknowledgedBy: string): Promise<boolean> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     const alert = this.alerts.find((a) => a.id === alertId);
     if (alert) {
       alert.acknowledged = true;
@@ -186,6 +207,7 @@ export class MonitoringService extends EventEmitter {
    * Perform a comprehensive health check
    */
   private async performHealthCheck(): Promise<void> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     try {
       const sources = Array.from(this.metrics.values());
 
@@ -193,7 +215,7 @@ export class MonitoringService extends EventEmitter {
         const healthStatus = await this.checkSourceHealth(source);
 
         if (healthStatus.status !== source.status) {
-          this.updateMetrics(source.sourceId, { status: healthStatus.status });
+          await this.updateMetrics(source.sourceId, { status: healthStatus.status });
 
           // Create status change alert
           if (healthStatus.status === "critical") {
@@ -249,6 +271,7 @@ export class MonitoringService extends EventEmitter {
   private async checkSourceHealth(
     source: ScrapingHealthMetrics
   ): Promise<{ status: "healthy" | "warning" | "critical" | "unknown" }> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     const now = new Date();
 
     // Check if source is too old (no recent activity)
@@ -338,6 +361,7 @@ export class MonitoringService extends EventEmitter {
     sourceId: string,
     metrics: ScrapingHealthMetrics
   ): Promise<void> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     try {
       if (this.redis) {
         await this.redis.setEx(
@@ -355,6 +379,7 @@ export class MonitoringService extends EventEmitter {
    * Persist alert to Redis
    */
   private async persistAlert(alert: Alert): Promise<void> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     try {
       if (this.redis) {
         await this.redis.setEx(
@@ -372,6 +397,7 @@ export class MonitoringService extends EventEmitter {
    * Load metrics from Redis on startup
    */
   async loadPersistedData(): Promise<void> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     try {
       if (!this.redis) return;
 
@@ -406,7 +432,7 @@ export class MonitoringService extends EventEmitter {
   /**
    * Get system health summary
    */
-  getSystemHealth(): {
+  async getSystemHealth(): Promise<{
     totalSources: number;
     healthySources: number;
     warningSources: number;
@@ -414,13 +440,14 @@ export class MonitoringService extends EventEmitter {
     unknownSources: number;
     activeAlerts: number;
     overallStatus: string;
-  } {
+  }> {
+    await this.ensureRedis(); // Ensure Redis is initialized
     const sources = Array.from(this.metrics.values());
     const healthy = sources.filter((s) => s.status === "healthy").length;
     const warning = sources.filter((s) => s.status === "warning").length;
     const critical = sources.filter((s) => s.status === "critical").length;
     const unknown = sources.filter((s) => s.status === "unknown").length;
-    const activeAlerts = this.getActiveAlerts().length;
+    const activeAlerts = (await this.getActiveAlerts()).length;
 
     let overallStatus = "healthy";
     if (critical > 0) overallStatus = "critical";

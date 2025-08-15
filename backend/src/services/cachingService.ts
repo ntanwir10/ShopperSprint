@@ -45,8 +45,23 @@ export class CachingService {
       ...config,
     };
 
-    this.redis = getRedis();
-    this.startCleanup();
+    // Don't initialize Redis immediately - lazy initialize when needed
+    this.redis = null;
+  }
+
+  /**
+   * Lazy initialize Redis connection
+   */
+  private async ensureRedis(): Promise<void> {
+    if (!this.redis) {
+      try {
+        this.redis = getRedis();
+        this.startCleanup();
+      } catch (error) {
+        console.error("Failed to initialize Redis in CachingService:", error);
+        this.redis = null;
+      }
+    }
   }
 
   /**
@@ -79,6 +94,7 @@ export class CachingService {
     sources?: string[]
   ): Promise<T | null> {
     try {
+      await this.ensureRedis();
       if (!this.redis) return null;
 
       const cacheKey = this.generateCacheKey(query, filters, sort, sources);
@@ -124,6 +140,7 @@ export class CachingService {
     sources?: string[]
   ): Promise<boolean> {
     try {
+      await this.ensureRedis();
       if (!this.redis) return false;
 
       const cacheKey = this.generateCacheKey(query, filters, sort, sources);
@@ -165,6 +182,7 @@ export class CachingService {
     sources?: string[]
   ): Promise<boolean> {
     try {
+      await this.ensureRedis();
       if (!this.redis) return false;
 
       const cacheKey = this.generateCacheKey(query, filters, sort, sources);
@@ -181,6 +199,7 @@ export class CachingService {
    */
   async clearAll(): Promise<boolean> {
     try {
+      await this.ensureRedis();
       if (!this.redis) return false;
 
       const keys = await this.redis.keys("search:*");
@@ -219,6 +238,7 @@ export class CachingService {
    */
   private async enforceCacheSizeLimit(): Promise<void> {
     try {
+      await this.ensureRedis();
       if (!this.redis) return;
 
       const keys = await this.redis.keys("search:*");
@@ -280,6 +300,7 @@ export class CachingService {
    */
   private async cleanupExpiredItems(): Promise<void> {
     try {
+      await this.ensureRedis();
       if (!this.redis) return;
 
       const keys = await this.redis.keys("search:*");
@@ -315,6 +336,7 @@ export class CachingService {
    */
   async getKeys(pattern: string = "search:*"): Promise<string[]> {
     try {
+      await this.ensureRedis();
       if (!this.redis) return [];
       return await this.redis.keys(pattern);
     } catch (error) {
@@ -328,6 +350,7 @@ export class CachingService {
    */
   async getItemInfo(key: string): Promise<CacheItem | null> {
     try {
+      await this.ensureRedis();
       if (!this.redis) return null;
 
       const data = await this.redis.get(key);
@@ -346,6 +369,7 @@ export class CachingService {
    */
   async updateTTL(key: string, newTTL: number): Promise<boolean> {
     try {
+      await this.ensureRedis();
       if (!this.redis) return false;
 
       const data = await this.redis.get(key);
