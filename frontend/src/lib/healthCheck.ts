@@ -8,19 +8,18 @@ export interface HealthStatus {
   error?: string;
 }
 
-class HealthChecker {
+export class HealthChecker {
   private healthStatus: HealthStatus = {
     status: 'unknown',
     lastCheck: 0,
     responseTime: 0,
   };
+  private isChecking = false;
+  private intervalId: NodeJS.Timeout | null = null;
+  private checkInterval: number;
 
-  private checkInterval: number = 30000; // 30 seconds
-  private intervalId: number | null = null;
-  private isChecking: boolean = false;
-
-  constructor(checkIntervalMs: number = 30000) {
-    this.checkInterval = checkIntervalMs;
+  constructor(checkInterval: number = 30000) {
+    this.checkInterval = checkInterval;
   }
 
   /**
@@ -147,6 +146,3 @@ class HealthChecker {
 
 // Export singleton instance
 export const healthChecker = new HealthChecker();
-
-// Export the class for custom instances
-export { HealthChecker };

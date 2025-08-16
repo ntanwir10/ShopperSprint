@@ -15,20 +15,8 @@ import {
   BarChart3,
 } from 'lucide-react';
 import PriceDisplay from './PriceDisplay';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  availability: 'in_stock' | 'out_of_stock' | 'limited' | 'unknown';
-  source: string;
-  imageUrl?: string;
-  rating?: number;
-  reviewCount?: number;
-  url: string;
-  lastScraped: string;
-}
+import { Product } from '../lib/api';
+import { Button } from './ui/button';
 
 interface PriceHistoryPoint {
   date: string;
@@ -216,12 +204,20 @@ const ProductDetail: React.FC = () => {
               Product Details
             </h1>
             <div className="flex items-center space-x-3">
-              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 <Heart className="h-5 w-5" />
-              </button>
-              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200">
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 <Share2 className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -235,12 +231,9 @@ const ProductDetail: React.FC = () => {
               {/* Product Image */}
               <div className="mb-6">
                 <img
-                  src={
-                    product.imageUrl ||
-                    'https://via.placeholder.com/400x400?text=No+Image'
-                  }
+                  src={product.image || '/placeholder-product.jpg'}
                   alt={product.name}
-                  className="w-full h-80 object-cover rounded-lg border border-gray-200"
+                  className="w-full h-full object-cover rounded-lg"
                 />
               </div>
 
@@ -253,8 +246,7 @@ const ProductDetail: React.FC = () => {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
                   <PriceDisplay
-                    price={product.price}
-                    currency={product.currency}
+                    product={product}
                     className="text-3xl font-bold text-gray-900"
                   />
                   <div className="flex items-center space-x-2">
@@ -590,7 +582,7 @@ const ProductDetail: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <img
                         src={
-                          relatedProduct.imageUrl ||
+                          relatedProduct.image ||
                           'https://via.placeholder.com/60x60?text=No+Image'
                         }
                         alt={relatedProduct.name}
@@ -602,8 +594,7 @@ const ProductDetail: React.FC = () => {
                         </h4>
                         <div className="flex items-center space-x-2 mt-1">
                           <PriceDisplay
-                            price={relatedProduct.price}
-                            currency={relatedProduct.currency}
+                            product={relatedProduct}
                             className="text-sm font-semibold text-gray-900"
                           />
                           {relatedProduct.rating && (

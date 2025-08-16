@@ -1,12 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, TrendingUp, Shield, Zap, AlertCircle } from 'lucide-react';
+import {
+  Search,
+  Shield,
+  Zap,
+  AlertCircle,
+  Bell,
+  BarChart3,
+} from 'lucide-react';
 import BannerAd from './BannerAd';
 import SearchInput from './SearchInput';
 import { apiClient } from '../lib/api';
+import { Card, CardContent } from './ui/card';
+import { Button } from './ui/button';
+import { Badge } from './ui/badge';
 
-const LandingPage: React.FC = () => {
-  const navigate = useNavigate();
+interface LandingPageProps {
+  onSearch: (query: string) => void;
+}
+
+const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [apiStatus, setApiStatus] = useState<
     'checking' | 'connected' | 'disconnected'
@@ -43,41 +55,54 @@ const LandingPage: React.FC = () => {
 
   const handleSearch = (query: string) => {
     if (query.trim().length >= 3) {
-      navigate('/search', { state: { query } });
+      onSearch(query);
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <TrendingUp className="h-8 w-8 text-primary-600" />
-              <h1 className="ml-2 text-2xl font-bold text-gray-900">
-                PricePulse
-              </h1>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-gray-900">
-                Features
-              </a>
-              <a href="#about" className="text-gray-600 hover:text-gray-900">
-                About
-              </a>
-            </nav>
-          </div>
-        </div>
-      </header>
+  const features = [
+    {
+      icon: <Zap className="w-8 h-8" />,
+      title: 'Smart Search',
+      description:
+        'Find products across popular retailers and alternative sources with intelligent matching.',
+      color: 'text-yellow-600',
+    },
+    {
+      icon: <BarChart3 className="w-8 h-8" />,
+      title: 'Real-time Updates',
+      description:
+        'Get the latest prices and availability information in real-time.',
+      color: 'text-blue-600',
+    },
+    {
+      icon: <Shield className="w-8 h-8" />,
+      title: 'Trusted Sources',
+      description:
+        'Compare prices from verified retailers with reliable data validation.',
+      color: 'text-green-600',
+    },
+  ];
 
+  const popularCategories = [
+    'Electronics',
+    'Fashion',
+    'Home & Garden',
+    'Sports',
+    'Books',
+    'Beauty',
+    'Automotive',
+    'Health',
+  ];
+
+  return (
+    <div className="min-h-screen">
       {/* API Status Banner */}
       {apiStatus === 'disconnected' && (
-        <div className="bg-red-50 border-b border-red-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+        <div className="bg-red-50 border-b border-red-200 dark:bg-red-900/20 dark:border-red-800">
+          <div className="container mx-auto px-4 py-3">
             <div className="flex items-center">
               <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
-              <p className="text-sm text-red-700">
+              <p className="text-sm text-red-700 dark:text-red-400">
                 ⚠️ Backend API is not accessible. Search functionality may not
                 work properly. Please ensure the backend server is running on
                 port 3001.
@@ -88,33 +113,65 @@ const LandingPage: React.FC = () => {
       )}
 
       {/* Hero Section */}
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Find the Best Prices
-              <span className="text-primary-600"> Online</span>
-            </h2>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              PricePulse searches across multiple e-commerce sites and compares
-              prices in real-time. Save money by finding the best deals on the
-              products you want.
+      <section className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-16 md:py-24">
+        <div className="container mx-auto px-4">
+          <div className="max-w-4xl mx-auto text-center">
+            {/* Status Badge */}
+            <Badge className="mb-6 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
+              Live tracking 1.2M+ products
+            </Badge>
+
+            {/* Main Heading */}
+            <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
+              Find the Best
+              <br />
+              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Prices Instantly
+              </span>
+            </h1>
+
+            {/* Subheading */}
+            <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
+              Track prices across multiple retailers, get instant alerts on
+              price drops, and never overpay again. No account needed,
+              completely anonymous.
             </p>
 
-            {/* Search Input */}
-            <div className="max-w-2xl mx-auto mb-12">
+            {/* Search Section */}
+            <div className="mb-12">
               <SearchInput
                 value={searchQuery}
                 onChange={setSearchQuery}
                 onSearch={handleSearch}
-                placeholder="Search for products (e.g., iPhone, laptop, headphones)..."
+                placeholder="Search for products, brands, or categories..."
                 className="text-lg"
               />
               {apiStatus === 'disconnected' && (
-                <p className="mt-2 text-sm text-red-600">
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400">
                   ⚠️ Search may not work - backend server is not accessible
                 </p>
               )}
+            </div>
+
+            {/* Popular Categories */}
+            <div className="mb-12">
+              <p className="text-sm text-muted-foreground mb-4">
+                Popular categories:
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                {popularCategories.map((category) => (
+                  <Button
+                    key={category}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleSearch(category)}
+                    className="rounded-full hover:bg-blue-50 hover:border-blue-200 dark:hover:bg-blue-900/20"
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
             </div>
 
             {/* Banner Advertisement */}
@@ -123,86 +180,81 @@ const LandingPage: React.FC = () => {
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Features Section */}
-        <section id="features" className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                Why Choose PricePulse?
-              </h3>
-              <p className="text-lg text-gray-600">
-                Get comprehensive price comparisons across multiple sources
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="bg-primary-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Search className="h-8 w-8 text-primary-600" />
-                </div>
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                  Smart Search
-                </h4>
-                <p className="text-gray-600">
-                  Find products across popular retailers and alternative sources
-                  with intelligent matching.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="bg-primary-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Zap className="h-8 w-8 text-primary-600" />
-                </div>
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                  Real-time Updates
-                </h4>
-                <p className="text-gray-600">
-                  Get the latest prices and availability information in
-                  real-time.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="bg-primary-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Shield className="h-8 w-8 text-primary-600" />
-                </div>
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                  Trusted Sources
-                </h4>
-                <p className="text-gray-600">
-                  Compare prices from verified retailers with reliable data
-                  validation.
-                </p>
-              </div>
-            </div>
+      {/* Features Section */}
+      <section className="py-16 md:py-24 bg-background">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Why Choose PricePulse?
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Our advanced price tracking technology helps you save money and
+              make smarter purchasing decisions.
+            </p>
           </div>
-        </section>
 
-        {/* About Section */}
-        <section id="about" className="py-16 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                About PricePulse
-              </h3>
-              <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-                PricePulse is a comprehensive platform that helps you find the
-                best prices across multiple online retailers. Our advanced web
-                scraping technology ensures you always get the most up-to-date
-                pricing information.
-              </p>
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {features.map((feature, index) => (
+              <Card
+                key={index}
+                className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+              >
+                <CardContent className="p-6 text-center">
+                  <div
+                    className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-6 ${feature.color}`}
+                  >
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold text-foreground mb-4">
+                    {feature.title}
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; 2024 PricePulse. All rights reserved.</p>
         </div>
-      </footer>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-16 md:py-24 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
+            Start Saving Money Today
+          </h2>
+          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
+            Join millions of smart shoppers who use PricePulse to find the best
+            deals and save money on every purchase.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              size="lg"
+              className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-8"
+              onClick={() => {
+                const searchElement = document.querySelector(
+                  'input[type="text"]'
+                ) as HTMLInputElement;
+                searchElement?.focus();
+              }}
+            >
+              <Search className="w-5 h-5 mr-2" />
+              Start Tracking Prices
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              className="border-white hover:bg-white hover:text-blue-600 font-semibold px-8"
+            >
+              <Bell className="w-5 h-5 mr-2" />
+              Set Price Alert
+            </Button>
+          </div>
+        </div>
+      </section>
     </div>
   );
 };

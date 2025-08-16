@@ -33,13 +33,17 @@ export interface Product {
   name: string;
   price: number;
   currency: string;
-  availability: 'in_stock' | 'out_of_stock' | 'limited' | 'unknown';
+  availability: 'in_stock' | 'limited' | 'out_of_stock';
   source: string;
-  imageUrl?: string;
+  url: string;
   rating?: number;
   reviewCount?: number;
-  url: string;
+  image?: string;
+  priceChange?: number;
+  originalPrice?: number;
+  category?: string;
   lastScraped: string;
+  slug: string; // SEO-friendly URL slug
 }
 
 // API client class

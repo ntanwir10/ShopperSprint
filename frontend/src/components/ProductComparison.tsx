@@ -18,20 +18,8 @@ import {
   Share2,
 } from 'lucide-react';
 import PriceDisplay from './PriceDisplay';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  availability: 'in_stock' | 'out_of_stock' | 'limited' | 'unknown';
-  source: string;
-  imageUrl?: string;
-  rating?: number;
-  reviewCount?: number;
-  url: string;
-  lastScraped: string;
-}
+import { Product } from '../lib/api';
+import { Button } from './ui/button';
 
 const ProductComparison: React.FC = () => {
   const location = useLocation();
@@ -55,9 +43,9 @@ const ProductComparison: React.FC = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <p className="text-gray-600 mb-4">No products to compare</p>
-          <button onClick={() => navigate('/search')} className="btn-primary">
+          <Button onClick={() => navigate('/search')} variant="default">
             Back to Search
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -157,12 +145,20 @@ const ProductComparison: React.FC = () => {
               Product Comparison
             </h1>
             <div className="flex items-center space-x-3">
-              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 <Heart className="h-5 w-5" />
-              </button>
-              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200">
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 <Share2 className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -180,8 +176,7 @@ const ProductComparison: React.FC = () => {
                 <p className="text-sm font-medium text-gray-600">Best Price</p>
                 {bestPrice && (
                   <PriceDisplay
-                    price={bestPrice.price}
-                    currency={bestPrice.currency}
+                    product={bestPrice}
                     className="text-2xl font-bold text-gray-900"
                   />
                 )}
@@ -248,11 +243,7 @@ const ProductComparison: React.FC = () => {
                 <p className="text-green-700">
                   <strong>{getSourceDisplayName(bestPrice.source)}</strong> has
                   the best price at{' '}
-                  <PriceDisplay
-                    price={bestPrice.price}
-                    currency={bestPrice.currency}
-                    className="font-bold"
-                  />
+                  <PriceDisplay product={bestPrice} className="font-bold" />
                 </p>
               </div>
             </div>
@@ -304,12 +295,9 @@ const ProductComparison: React.FC = () => {
                       {/* Product Image */}
                       <div className="h-48 bg-gray-200 flex items-center justify-center relative">
                         <img
-                          src={
-                            product.imageUrl ||
-                            'https://via.placeholder.com/300x200?text=No+Image'
-                          }
+                          src={product.image || '/placeholder-product.jpg'}
                           alt={product.name}
-                          className="h-full w-full object-cover"
+                          className="w-16 h-16 object-cover rounded-lg"
                         />
                         {priceDiff && (
                           <div className="absolute top-3 right-3">
@@ -341,8 +329,7 @@ const ProductComparison: React.FC = () => {
                         <div className="mb-4">
                           <div className="flex items-center justify-between">
                             <PriceDisplay
-                              price={product.price}
-                              currency={product.currency}
+                              product={product}
                               className="text-2xl font-bold text-gray-900"
                             />
                             {priceDiff && (
@@ -459,10 +446,7 @@ const ProductComparison: React.FC = () => {
                           key={product.id}
                           className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
                         >
-                          <PriceDisplay
-                            price={product.price}
-                            currency={product.currency}
-                          />
+                          <PriceDisplay product={product} />
                         </td>
                       ))}
                     </tr>
