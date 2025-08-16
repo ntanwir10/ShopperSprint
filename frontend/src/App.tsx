@@ -10,6 +10,10 @@ import { Header } from './components/Header';
 import LandingPage from './components/LandingPage';
 import SearchResults from './components/SearchResults';
 import ProductPage from './components/ProductPage';
+import ComparePage from './components/ComparePage';
+import AlertsPage from './components/AlertsPage';
+import ProductComparison from './components/ProductComparison';
+import ScrollToTop from './components/ScrollToTop';
 import { ThemeProvider } from './components/ThemeProvider';
 
 function AppContent() {
@@ -41,7 +45,13 @@ function AppContent() {
           element={<SearchResults searchQuery={searchQuery} />}
         />
         <Route path="/product/:slug" element={<ProductPage />} />
+        <Route path="/compare" element={<ComparePage />} />
+        <Route path="/alerts" element={<AlertsPage />} />
+        <Route path="/compare-products" element={<ProductComparison />} />
       </Routes>
+
+      {/* Scroll to top button */}
+      <ScrollToTop />
 
       {/* Footer */}
       <footer className="bg-muted/50 border-t mt-20">

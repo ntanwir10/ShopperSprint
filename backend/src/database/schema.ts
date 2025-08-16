@@ -21,11 +21,7 @@ export const sourceCategoryEnum = pgEnum("source_category", [
   "popular",
   "alternative",
 ]);
-export const userRoleEnum = pgEnum("user_role", [
-  "user",
-  "admin",
-  "moderator",
-]);
+export const userRoleEnum = pgEnum("user_role", ["user", "admin", "moderator"]);
 
 // Users table
 export const users = pgTable("users", {
@@ -244,9 +240,12 @@ export const priceAlertsRelations = relations(priceAlerts, ({ one }) => ({
   }),
 }));
 
-export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
-  user: one(users, {
-    fields: [userPreferences.userId],
-    references: [users.id],
-  }),
-}));
+export const userPreferencesRelations = relations(
+  userPreferences,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [userPreferences.userId],
+      references: [users.id],
+    }),
+  })
+);

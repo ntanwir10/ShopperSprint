@@ -71,7 +71,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
     <div className={`relative ${className}`}>
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#5482ef] w-5 h-5" />
           <Input
             ref={inputRef}
             type="text"
@@ -80,7 +80,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
             onChange={(e) => onChange(e.target.value)}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-            className={`pl-10 pr-20 ${inputHeight} ${textSize} bg-input-background border-border focus:ring-2 focus:ring-ring focus:border-transparent`}
+            className={`pl-10 pr-24 ${inputHeight} ${textSize} bg-white border-[#5482ef] focus:ring-2 focus:ring-[#5482ef] focus:border-[#5482ef] shadow-sm`}
           />
 
           {/* Clear Button */}
@@ -99,7 +99,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
           {/* Search Button */}
           <Button
             type="submit"
-            className={`absolute right-1 top-1/2 transform -translate-y-1/2 ${inputHeight} px-6`}
+            className={`absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-auto px-4 bg-[#1e4a8c] hover:bg-[#1e3a8a] text-white text-sm font-medium rounded-md`}
             disabled={!value.trim()}
           >
             Search

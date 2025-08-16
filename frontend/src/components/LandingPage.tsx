@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Shield,
@@ -19,6 +20,7 @@ interface LandingPageProps {
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [apiStatus, setApiStatus] = useState<
     'checking' | 'connected' | 'disconnected'
@@ -166,7 +168,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
                     variant="outline"
                     size="sm"
                     onClick={() => handleSearch(category)}
-                    className="rounded-full hover:bg-blue-50 hover:border-blue-200 dark:hover:bg-blue-900/20"
+                    className="rounded-full hover:bg-[#5482ef]/10 hover:border-[#5482ef] dark:hover:bg-[#5482ef]/20"
                   >
                     {category}
                   </Button>
@@ -199,7 +201,19 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
             {features.map((feature, index) => (
               <Card
                 key={index}
-                className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2"
+                className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer"
+                onClick={() => {
+                  if (feature.title === 'Real-time Updates') {
+                    navigate('/alerts');
+                  } else if (feature.title === 'Smart Search') {
+                    const searchElement = document.querySelector(
+                      'input[type="text"]'
+                    ) as HTMLInputElement;
+                    searchElement?.focus();
+                  } else if (feature.title === 'Trusted Sources') {
+                    navigate('/compare');
+                  }
+                }}
               >
                 <CardContent className="p-6 text-center">
                   <div
@@ -233,7 +247,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button
               size="lg"
-              className="bg-white text-blue-600 hover:bg-gray-100 font-semibold px-8"
+              className="bg-[#5482ef] text-white hover:bg-[#4a75d8] font-semibold px-8"
               onClick={() => {
                 const searchElement = document.querySelector(
                   'input[type="text"]'
@@ -247,7 +261,8 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
             <Button
               variant="outline"
               size="lg"
-              className="border-white hover:bg-white hover:text-blue-600 font-semibold px-8"
+              className="border-white hover:bg-white hover:text-[#5482ef] font-semibold px-8"
+              onClick={() => navigate('/alerts')}
             >
               <Bell className="w-5 h-5 mr-2" />
               Set Price Alert

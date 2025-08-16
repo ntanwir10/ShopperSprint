@@ -9,11 +9,10 @@ import {
   CheckSquare,
   Square,
   AlertCircle,
-  ExternalLink,
-  Clock,
   ArrowLeft,
   Star,
   Store,
+  ChevronUp,
 } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
@@ -38,7 +37,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'price' | 'rating' | 'name'>('price');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
     new Set()
   );
@@ -82,11 +81,6 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     }
   };
 
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    performSearch(query);
-  };
-
   const handleSort = (newSortBy: typeof sortBy) => {
     setSortBy(newSortBy);
   };
@@ -127,7 +121,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   const handleCompare = () => {
     if (selectedProducts.size >= 2) {
       const selectedArray = Array.from(selectedProducts);
-      navigate('/compare', {
+      navigate('/compare-products', {
         state: {
           productIds: selectedArray,
           products: results.filter((p) => selectedProducts.has(p.id)),
@@ -465,6 +459,15 @@ const SearchResults: React.FC<SearchResultsProps> = ({
             </CardContent>
           </Card>
         )}
+
+        {/* Scroll to top button */}
+        <Button
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          className="fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all duration-300 hover:scale-110"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp className="h-6 w-6" />
+        </Button>
       </main>
     </div>
   );

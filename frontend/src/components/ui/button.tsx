@@ -10,16 +10,16 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          'bg-primary hover:bg-primary/90 dark:hover:bg-primary/80 hover:shadow-md dark:hover:shadow-primary/20',
+          'bg-[#5482ef] hover:bg-[#4a75d8] dark:hover:bg-[#3d6bc7] hover:shadow-md dark:hover:shadow-[#5482ef]/20 text-white',
         destructive:
           'bg-destructive hover:bg-destructive/90 dark:hover:bg-destructive/80 hover:shadow-md dark:hover:shadow-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60',
         outline:
-          'border bg-background text-gray-900 dark:text-white hover:bg-accent hover:text-accent-foreground hover:border-ring hover:shadow-sm dark:bg-input/30 dark:border-input dark:hover:bg-input/50 dark:hover:border-ring dark:hover:shadow-accent/20',
+          'border bg-background text-gray-900 dark:text-white hover:bg-[#5482ef]/10 hover:text-[#5482ef] hover:border-[#5482ef] hover:shadow-sm dark:bg-input/30 dark:border-input dark:hover:bg-[#5482ef]/20 dark:hover:text-[#5482ef] dark:hover:border-[#5482ef]',
         secondary:
-          'bg-secondary text-gray-900 dark:text-white hover:bg-secondary/80 dark:hover:bg-secondary/70 hover:shadow-md dark:hover:shadow-secondary/20',
+          'bg-[#5482ef]/10 text-[#5482ef] dark:bg-[#5482ef]/20 dark:text-[#5482ef] hover:bg-[#5482ef]/20 dark:hover:bg-[#5482ef]/30 hover:shadow-md dark:hover:shadow-[#5482ef]/20',
         ghost:
-          'hover:bg-accent hover:text-accent-foreground hover:shadow-sm dark:hover:bg-accent/50 dark:hover:shadow-accent/20',
-        link: 'text-primary underline-offset-4 hover:underline hover:text-primary/80 dark:hover:text-primary/90',
+          'hover:bg-[#5482ef]/10 hover:text-[#5482ef] hover:shadow-sm dark:hover:bg-[#5482ef]/20 dark:hover:text-[#5482ef] dark:hover:shadow-[#5482ef]/20',
+        link: 'text-[#5482ef] underline-offset-4 hover:underline hover:text-[#4a75d8] dark:text-[#5482ef] dark:hover:text-[#4a75d8]',
       },
       size: {
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',
