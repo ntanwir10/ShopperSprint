@@ -1,22 +1,26 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ExternalLink,
   Star,
-  Store,
-  Clock,
   TrendingUp,
   TrendingDown,
   Minus,
-  AlertCircle,
+  Loader2,
   Heart,
   Share2,
+  Store,
+  Clock,
   BarChart3,
+  AlertCircle,
 } from 'lucide-react';
-import PriceDisplay from './PriceDisplay';
-import { Product } from '../lib/api';
+import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
+import { Badge } from './ui/badge';
+import { Product, apiClient } from '../lib/api';
+import { Alert, AlertDescription } from './ui/alert';
+import PriceDisplay from './PriceDisplay';
 
 interface PriceHistoryPoint {
   date: string;
@@ -26,74 +30,88 @@ interface PriceHistoryPoint {
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryPoint[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'history' | 'specs' | 'reviews'
-  >('overview');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    if (location.state?.product) {
-      setProduct(location.state.product);
-      generateMockPriceHistory(location.state.product);
-      generateMockRelatedProducts(location.state.product);
-      setLoading(false);
-    } else {
-      // In a real app, fetch product by ID from API
-      setError('Product not found');
-      setLoading(false);
-    }
+    const loadProduct = async () => {
+      if (location.state?.product) {
+        setProduct(location.state.product);
+        await loadPriceHistory(location.state.product.id);
+        await loadRelatedProducts(location.state.product.category);
+        setLoading(false);
+      } else if (id) {
+        try {
+          // Try to fetch product by ID from API
+          const searchResult = await apiClient.search({ query: id, maxResults: 1 });
+          if (searchResult.data && searchResult.data.results && searchResult.data.results.length > 0) {
+            const foundProduct = searchResult.data.results[0];
+            setProduct(foundProduct);
+            await loadPriceHistory(foundProduct.id);
+            await loadRelatedProducts(foundProduct.category);
+          } else {
+            setError('Product not found');
+          }
+        } catch (err) {
+          setError('Failed to load product');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setError('Product not found');
+        setLoading(false);
+      }
+    };
+
+    loadProduct();
   }, [location.state, id]);
 
-  const generateMockPriceHistory = (product: Product) => {
-    const history: PriceHistoryPoint[] = [];
-    const sources = ['Amazon', 'Best Buy', 'Walmart', 'Target'];
-
-    for (let i = 30; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-
-      const basePrice = product.price;
-      const variation = (Math.random() - 0.5) * 0.2; // ±10% variation
-      const price = Math.round(basePrice * (1 + variation));
-      const source = sources[Math.floor(Math.random() * sources.length)];
-
-      history.push({
-        date: date.toISOString(),
-        price,
-        source,
-      });
+  const loadPriceHistory = async (productId: string) => {
+    try {
+      const response = await apiClient.getPriceHistory(productId, '30d');
+      if (response.data) {
+        setPriceHistory(response.data.map(point => ({
+          date: point.date,
+          price: point.price,
+          source: 'API' // We'll need to add source to the API response
+        })));
+      } else {
+        // Fallback to empty history if API fails
+        setPriceHistory([]);
+      }
+    } catch (err) {
+      console.error('Failed to load price history:', err);
+      setPriceHistory([]);
     }
-
-    setPriceHistory(history);
   };
 
-  const generateMockRelatedProducts = (currentProduct: Product) => {
-    const related: Product[] = [];
-    const basePrice = currentProduct.price;
-
-    for (let i = 1; i <= 4; i++) {
-      const priceVariation = (Math.random() - 0.5) * 0.4; // ±20% variation
-      const price = Math.round(basePrice * (1 + priceVariation));
-
-      related.push({
-        ...currentProduct,
-        id: `related-${i}`,
-        name: `${currentProduct.name} - Model ${i}`,
-        price,
-        rating: (currentProduct.rating || 4.5) + (Math.random() - 0.5) * 0.6,
-        reviewCount: Math.floor(
-          (currentProduct.reviewCount || 100) * (0.5 + Math.random() * 0.5)
-        ),
-      });
+  const loadRelatedProducts = async (category?: string) => {
+    if (!category) {
+      setRelatedProducts([]);
+      return;
     }
 
-    setRelatedProducts(related);
+    try {
+      const response = await apiClient.search({ query: category, maxResults: 4 });
+      if (response.data && response.data.results) {
+        // Filter out the current product and limit to 4
+        const related = response.data.results
+          .filter(p => p.id !== product?.id)
+          .slice(0, 4);
+        setRelatedProducts(related);
+      } else {
+        setRelatedProducts([]);
+      }
+    } catch (err) {
+      console.error('Failed to load related products:', err);
+      setRelatedProducts([]);
+    }
   };
 
   const getAvailabilityColor = (availability: string) => {
@@ -172,7 +190,7 @@ const ProductDetail: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <Alert className="h-16 w-16 text-red-400 mx-auto mb-4" />
           <p className="text-lg text-gray-600 mb-4">
             {error || 'Product not found'}
           </p>

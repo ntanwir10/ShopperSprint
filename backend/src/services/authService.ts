@@ -1,8 +1,10 @@
+import { getDb } from "../database/connection";
+import { users, userSessions, userPreferences } from "../database/schema";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { getDb } from "../database/connection";
-import { users, userPreferences, userSessions } from "../database/schema";
-import { eq } from "drizzle-orm";
+import crypto from "crypto";
+import { EmailService } from "./emailService";
 
 export interface UserRegistrationData {
   email: string;
@@ -23,32 +25,33 @@ export interface UserProfile {
   username: string;
   firstName?: string;
   lastName?: string;
-  role: string;
+  role: "user" | "admin" | "moderator";
   isActive: boolean;
   emailVerified: boolean;
-  lastLogin?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AuthResponse {
   user: UserProfile;
   token: string;
-  expiresAt: Date;
+  expiresAt: string;
 }
 
 export class AuthService {
-  private readonly JWT_SECRET: string;
-  private readonly JWT_EXPIRES_IN: string;
-  private readonly SESSION_EXPIRES_IN_DAYS: number;
+  private emailService: EmailService | null = null;
 
   constructor() {
-    this.JWT_SECRET =
-      process.env["JWT_SECRET"] || "your-secret-key-change-in-production";
-    this.JWT_EXPIRES_IN = process.env["JWT_EXPIRES_IN"] || "7d";
-    this.SESSION_EXPIRES_IN_DAYS = parseInt(
-      process.env["SESSION_EXPIRES_IN_DAYS"] || "7"
-    );
+    try {
+      this.emailService = new EmailService();
+    } catch (error) {
+      console.warn(
+        "Email service initialization failed, continuing without email:",
+        error
+      );
+      this.emailService = null;
+    }
   }
 
   /**
@@ -61,7 +64,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new Error("User with this email already exists");
+      throw new Error("Email is already registered");
     }
 
     const existingUsername = await getDb().query.users.findFirst({
@@ -76,6 +79,10 @@ export class AuthService {
     const saltRounds = 12;
     const passwordHash = await bcrypt.hash(userData.password, saltRounds);
 
+    // Generate email verification token
+    const verificationToken = crypto.randomBytes(32).toString("hex");
+    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     // Create user
     const [newUser] = await getDb()
       .insert(users)
@@ -85,6 +92,9 @@ export class AuthService {
         passwordHash,
         firstName: userData.firstName || null,
         lastName: userData.lastName || null,
+        emailVerified: false,
+        verificationToken,
+        verificationExpires,
       })
       .returning();
 
@@ -97,15 +107,29 @@ export class AuthService {
       userId: newUser.id,
     });
 
+    // Send verification email
+    try {
+      if (this.emailService) {
+        const payload: any = {
+          email: userData.email,
+          token: verificationToken,
+        };
+        if (userData.firstName) payload.firstName = userData.firstName;
+        await this.emailService.sendVerificationEmail(payload);
+      }
+    } catch (error) {
+      console.error("Failed to send verification email:", error);
+    }
+
     // Generate JWT token and session
     const token = this.generateJWT(newUser.id);
-    const expiresAt = this.calculateExpiryDate();
+    const expiresAtDate = this.calculateExpiryDate();
 
     // Store session
     await getDb().insert(userSessions).values({
       userId: newUser.id,
       token,
-      expiresAt,
+      expiresAt: expiresAtDate,
     });
 
     // Update last login
@@ -117,7 +141,7 @@ export class AuthService {
     return {
       user: this.mapToUserProfile(newUser),
       token,
-      expiresAt,
+      expiresAt: expiresAtDate.toISOString(),
     };
   }
 
@@ -149,13 +173,13 @@ export class AuthService {
 
     // Generate JWT token and session
     const token = this.generateJWT(user.id);
-    const expiresAt = this.calculateExpiryDate();
+    const expiresAtDate = this.calculateExpiryDate();
 
     // Store session
     await getDb().insert(userSessions).values({
       userId: user.id,
       token,
-      expiresAt,
+      expiresAt: expiresAtDate,
     });
 
     // Update last login
@@ -167,8 +191,22 @@ export class AuthService {
     return {
       user: this.mapToUserProfile(user),
       token,
-      expiresAt,
+      expiresAt: expiresAtDate.toISOString(),
     };
+  }
+
+  /**
+   * Verify JWT token
+   */
+  async verifyToken(token: string): Promise<{ userId: string }> {
+    try {
+      const JWT_SECRET = (process.env["JWT_SECRET"] ||
+        "your-secret-key-change-in-production") as jwt.Secret;
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      return decoded;
+    } catch (error) {
+      throw new Error("Invalid token");
+    }
   }
 
   /**
@@ -176,7 +214,9 @@ export class AuthService {
    */
   async validateToken(token: string): Promise<UserProfile | null> {
     try {
-      const decoded = jwt.verify(token, this.JWT_SECRET) as { userId: string };
+      const JWT_SECRET = (process.env["JWT_SECRET"] ||
+        "your-secret-key-change-in-production") as jwt.Secret;
+      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
 
       // Check if session exists and is active
       const session = await getDb().query.userSessions.findFirst({
@@ -187,7 +227,7 @@ export class AuthService {
         return null;
       }
 
-      // Get user
+      // Get user profile
       const user = await getDb().query.users.findFirst({
         where: eq(users.id, decoded.userId),
       });
@@ -308,18 +348,138 @@ export class AuthService {
    * Generate JWT token
    */
   private generateJWT(userId: string): string {
-    return jwt.sign({ userId }, this.JWT_SECRET, {
-      expiresIn: this.JWT_EXPIRES_IN,
-    } as jwt.SignOptions);
+    const JWT_SECRET = (process.env["JWT_SECRET"] ||
+      "your-secret-key-change-in-production") as jwt.Secret;
+    const JWT_EXPIRES_IN = process.env["JWT_EXPIRES_IN"] || "7d";
+    return jwt.sign({ userId }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRES_IN as any,
+    });
   }
 
   /**
    * Calculate expiry date for session
    */
   private calculateExpiryDate(): Date {
+    const SESSION_EXPIRES_IN_DAYS = parseInt(
+      process.env["SESSION_EXPIRES_IN_DAYS"] || "7"
+    );
     const expiryDate = new Date();
-    expiryDate.setDate(expiryDate.getDate() + this.SESSION_EXPIRES_IN_DAYS);
+    expiryDate.setDate(expiryDate.getDate() + SESSION_EXPIRES_IN_DAYS);
     return expiryDate;
+  }
+
+  /**
+   * Verify email with token
+   */
+  async verifyEmail(token: string): Promise<boolean> {
+    try {
+      const user = await getDb().query.users.findFirst({
+        where: eq(users.verificationToken, token),
+      });
+
+      if (!user) {
+        throw new Error("Invalid verification token");
+      }
+
+      if (user.verificationExpires && new Date() > user.verificationExpires) {
+        throw new Error("Verification token has expired");
+      }
+
+      // Update user as verified
+      await getDb()
+        .update(users)
+        .set({
+          emailVerified: true,
+          verificationToken: null,
+          verificationExpires: null,
+        })
+        .where(eq(users.id, user.id));
+
+      return true;
+    } catch (error) {
+      console.error("Email verification failed:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail(email: string): Promise<boolean> {
+    try {
+      const user = await getDb().query.users.findFirst({
+        where: eq(users.email, email),
+      });
+
+      if (!user) {
+        // Don't reveal if user exists or not
+        return true;
+      }
+
+      // Generate reset token
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      const resetExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+      // Store reset token
+      await getDb()
+        .update(users)
+        .set({
+          resetToken,
+          resetExpires,
+        })
+        .where(eq(users.id, user.id));
+
+      // Send reset email
+      if (this.emailService) {
+        const payload: any = { email: user.email, token: resetToken };
+        if (user.firstName) payload.firstName = user.firstName;
+        await this.emailService.sendPasswordResetEmail(payload);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Failed to send password reset email:", error);
+      return false;
+    }
+  }
+
+  /**
+   * Reset password with token
+   */
+  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+    try {
+      const user = await getDb().query.users.findFirst({
+        where: eq(users.resetToken, token),
+      });
+
+      if (!user) {
+        throw new Error("Invalid reset token");
+      }
+
+      if (user.resetExpires && new Date() > user.resetExpires) {
+        throw new Error("Reset token has expired");
+      }
+
+      // Hash new password
+      const saltRounds = 12;
+      const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+
+      // Update password and clear reset token
+      await getDb()
+        .update(users)
+        .set({
+          passwordHash,
+          resetToken: null,
+          resetExpires: null,
+          updatedAt: new Date(),
+        })
+        .where(eq(users.id, user.id));
+
+      return true;
+    } catch (error) {
+      console.error("Password reset failed:", error);
+      return false;
+    }
   }
 
   /**

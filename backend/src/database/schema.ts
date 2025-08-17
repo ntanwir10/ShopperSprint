@@ -34,6 +34,10 @@ export const users = pgTable("users", {
   role: userRoleEnum("role").notNull().default("user"),
   isActive: boolean("is_active").notNull().default(true),
   emailVerified: boolean("email_verified").notNull().default(false),
+  verificationToken: text("verification_token"),
+  verificationExpires: timestamp("verification_expires"),
+  resetToken: text("reset_token"),
+  resetExpires: timestamp("reset_expires"),
   lastLogin: timestamp("last_login"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
@@ -84,6 +88,18 @@ export const userPreferences = pgTable("user_preferences", {
   timezone: text("timezone").notNull().default("UTC"),
   language: text("language").notNull().default("en"),
   currency: text("currency").notNull().default("USD"),
+  // Search preferences
+  defaultSources: text("default_sources").array(), // Array of source IDs
+  defaultSort: text("default_sort").default("price"), // price, rating, reviewCount, lastScraped
+  defaultSortDirection: text("default_sort_direction").default("asc"), // asc, desc
+  defaultFilters: jsonb("default_filters"), // JSON object for default filters
+  savedSearches: jsonb("saved_searches"), // Array of saved search objects
+  searchHistory: jsonb("search_history"), // Array of search history objects
+  // Alert preferences
+  alertFrequency: text("alert_frequency").default("immediate"), // immediate, hourly, daily, weekly
+  priceChangeThreshold: integer("price_change_threshold").default(5), // Percentage change to trigger alert
+  maxAlertsPerDay: integer("max_alerts_per_day").default(10), // Maximum alerts per day
+  alertCategories: text("alert_categories").array(), // Array of alert categories
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -249,3 +265,26 @@ export const userPreferencesRelations = relations(
     }),
   })
 );
+
+// OAuth Accounts table
+export const oauthAccounts = pgTable("oauth_accounts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(), // 'google' | 'apple'
+  providerUserId: text("provider_user_id").notNull(),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  scope: text("scope"),
+  expiresAt: timestamp("expires_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const oauthAccountsRelations = relations(oauthAccounts, ({ one }) => ({
+  user: one(users, {
+    fields: [oauthAccounts.userId],
+    references: [users.id],
+  }),
+}));

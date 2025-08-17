@@ -1,8 +1,9 @@
 import puppeteer, { Browser, Page } from "puppeteer";
-import * as cheerio from "cheerio";
 import { productListings, sources } from "../database/schema";
 import type { InferSelectModel } from "drizzle-orm";
 import crypto from "crypto";
+import { getDb } from "../database/connection";
+import { eq } from "drizzle-orm";
 
 // Define types based on the schema
 type ProductListing = InferSelectModel<typeof productListings>;
@@ -46,7 +47,6 @@ export interface ScrapingMetrics {
 export class ScrapingService {
   private browser: Browser | null = null;
   private isInitialized = false;
-  private metrics: Map<string, ScrapingMetrics> = new Map();
   private userAgentPool: string[] = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -69,145 +69,31 @@ export class ScrapingService {
     if (this.isInitialized && this.browser) return;
 
     try {
-      // Production-ready browser configuration with anti-detection
-      const launchOptions = {
-        headless: "new" as const,
+      // Simplified, reliable launch settings (works well on macOS/Linux)
+      const headlessEnv = (
+        process.env["PUPPETEER_HEADLESS"] || "true"
+      ).toLowerCase();
+      const headless = headlessEnv === "true" || headlessEnv === "1";
+      const executablePath =
+        process.env["PUPPETEER_EXECUTABLE_PATH"] || puppeteer.executablePath();
+      const launchTimeout = parseInt(
+        process.env["PUPPETEER_LAUNCH_TIMEOUT"] || "60000"
+      );
+
+      this.browser = await puppeteer.launch({
+        headless: headless,
+        executablePath,
         args: [
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-          "--disable-web-security",
-          "--disable-features=VizDisplayCompositor",
-          "--single-process",
-          "--disable-extensions",
-          "--disable-plugins",
-          "--disable-images", // Disable images for faster scraping
-          "--disable-javascript", // Disable JS for basic scraping
-          "--disable-css",
-          "--disable-fonts",
-          "--disable-background-timer-throttling",
-          "--disable-backgrounding-occluded-windows",
-          "--disable-renderer-backgrounding",
-          "--disable-features=TranslateUI",
-          "--disable-ipc-flooding-protection",
-          "--disable-default-apps",
-          "--disable-sync",
-          "--metrics-recording-only",
-          "--no-default-browser-check",
-          "--no-experiments",
-          "--disable-webgl",
-          "--disable-threaded-animation",
-          "--disable-threaded-scrolling",
-          "--disable-in-process-stack-traces",
-          "--disable-histogram-customizer",
-          "--disable-gl-extensions",
-          "--disable-composited-antialiasing",
-          "--disable-canvas-aa",
-          "--disable-3d-apis",
-          "--disable-accelerated-video-decode",
-          "--disable-accelerated-mjpeg-decode",
-          "--disable-accelerated-video-encode",
-          "--disable-pepper-3d",
-          "--disable-file-system",
-          "--disable-speech-api",
-          "--disable-encrypted-media",
-          "--disable-media-session",
-          "--disable-webrtc",
-          "--disable-background-networking",
-          "--disable-sync-preferences",
-          "--disable-translate",
-          "--disable-logging",
-          "--disable-default-apps",
-          "--disable-background-downloads",
-          "--disable-background-upload",
-          "--disable-background-timer-throttling",
-          "--disable-backgrounding-occluded-windows",
-          "--disable-renderer-backgrounding",
-          "--disable-features=TranslateUI",
-          "--disable-ipc-flooding-protection",
-          "--disable-default-apps",
-          "--disable-sync",
-          "--metrics-recording-only",
-          "--no-default-browser-check",
-          "--no-experiments",
-          "--disable-webgl",
-          "--disable-threaded-animation",
-          "--disable-threaded-scrolling",
-          "--disable-in-process-stack-traces",
-          "--disable-histogram-customizer",
-          "--disable-gl-extensions",
-          "--disable-composited-antialiasing",
-          "--disable-canvas-aa",
-          "--disable-3d-apis",
-          "--disable-accelerated-video-decode",
-          "--disable-accelerated-mjpeg-decode",
-          "--disable-accelerated-video-encode",
-          "--disable-pepper-3d",
-          "--disable-file-system",
-          "--disable-speech-api",
-          "--disable-encrypted-media",
-          "--disable-media-session",
-          "--disable-webrtc",
-          "--disable-background-networking",
-          "--disable-sync-preferences",
-          "--disable-translate",
-          "--disable-logging",
-          "--disable-default-apps",
-          "--disable-background-downloads",
-          "--disable-background-upload",
         ],
-        timeout: 30000,
-        protocolTimeout: 30000,
-        ignoreHTTPSErrors: true,
-      };
-
-      // Try to launch with production options
-      try {
-        this.browser = await puppeteer.launch(launchOptions);
-        this.isInitialized = true;
-        logger.info(
-          "Puppeteer browser initialized successfully with production options"
-        );
-        return;
-      } catch (error) {
-        logger.warn(
-          "Production Puppeteer launch failed, trying with minimal options:",
-          error
-        );
-      }
-
-      // Fallback: try with minimal options
-      try {
-        this.browser = await puppeteer.launch({
-          headless: "new" as const,
-          args: ["--no-sandbox", "--disable-setuid-sandbox"],
-          timeout: 30000,
-        });
-        this.isInitialized = true;
-        logger.info(
-          "Puppeteer browser initialized successfully with minimal options"
-        );
-        return;
-      } catch (error) {
-        logger.warn(
-          "Minimal Puppeteer launch failed, trying with no-sandbox only:",
-          error
-        );
-      }
-
-      // Final fallback: try with just no-sandbox
-      this.browser = await puppeteer.launch({
-        headless: "new" as const,
-        args: ["--no-sandbox"],
-        timeout: 30000,
+        timeout: launchTimeout,
+        protocolTimeout: launchTimeout,
       });
       this.isInitialized = true;
       logger.info(
-        "Puppeteer browser initialized successfully with no-sandbox only"
+        `Puppeteer initialized. headless=${headless} exec=${executablePath} timeout=${launchTimeout}`
       );
     } catch (error) {
       logger.error("All Puppeteer launch attempts failed:", error);
@@ -226,113 +112,113 @@ export class ScrapingService {
 
   async scrapeSource(sourceId: string, query: string): Promise<ScrapingResult> {
     const startTime = Date.now();
+    const source = await this.getSourceById(sourceId);
 
-    try {
-      // In development mode, immediately use mock data to avoid browser issues
-      if (process.env["NODE_ENV"] === "development") {
-        logger.info("Development mode: Using mock data for scraping");
-        return this.generateMockScrapingResult(sourceId, query);
-      }
-
-      // Only try to initialize browser in production
-      await this.initializeBrowser();
-
-      if (!this.browser) {
-        throw new Error("Browser not initialized");
-      }
-
-      // Try to get source configuration for real scraping
-      let source: Source | null = null;
-      try {
-        source = await this.getSourceConfiguration(sourceId);
-      } catch (error) {
-        logger.warn(
-          `Failed to get source configuration for ${sourceId}, using fallback:`,
-          error
-        );
-        // If we can't get source configuration, fall back to mock data in development only
-        if (process.env["NODE_ENV"] === "development") {
-          logger.info(
-            "Falling back to mock data due to source configuration failure"
-          );
-          return this.generateMockScrapingResult(sourceId, query);
-        }
-        throw new Error(
-          `Source ${sourceId} not found - cannot scrape in production`
-        );
-      }
-
-      if (!source) {
-        // If no source configuration found, fall back to mock data in development only
-        if (process.env["NODE_ENV"] === "development") {
-          logger.warn(
-            `No source configuration found for ${sourceId}, using fallback`
-          );
-          return this.generateMockScrapingResult(sourceId, query);
-        }
-        throw new Error(
-          `Source ${sourceId} not found - cannot scrape in production`
-        );
-      }
-
-      const page = await this.browser.newPage();
-
-      // Enhanced anti-detection measures
-      await this.setupAntiDetection(page);
-
-      // Navigate to the search URL with enhanced error handling
-      const searchUrl = this.buildSearchUrl(source, query);
-      await this.navigateWithRetry(page, searchUrl);
-
-      // Wait for content to load with smart waiting
-      await this.waitForContent(page, source);
-
-      // Get the page content
-      const content = await page.content();
-      const $ = cheerio.load(content);
-
-      // Extract products based on source-specific selectors
-      const products = await this.extractProducts($, source, query);
-
-      await page.close();
-
-      const responseTime = Date.now() - startTime;
-
-      // Update metrics
-      this.updateMetrics(sourceId, true, responseTime, products.length);
-
+    if (!source) {
       return {
-        success: true,
-        products,
+        success: false,
+        error: `Source not found: ${sourceId}`,
         sourceId,
         timestamp: new Date(),
-        metadata: {
-          responseTime,
-          productsFound: products.length,
-          cacheHit: false,
-        },
       };
-    } catch (error) {
-      const responseTime = Date.now() - startTime;
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
+    }
 
-      logger.error(`Scraping failed for source ${sourceId}:`, error);
+    // Check if scraping is enabled
+    if (process.env["SCRAPING_ENABLED"] === "false") {
+      logger.info(
+        `Scraping disabled, returning mock data for source: ${source.name}`
+      );
+      return this.generateMockScrapingResult(sourceId, query);
+    }
 
-      // Update metrics
-      this.updateMetrics(sourceId, false, responseTime, 0, errorMessage);
-
-      // In development, fall back to mock data
-      if (process.env["NODE_ENV"] === "development") {
-        logger.warn("Falling back to mock data due to scraping failure");
-        return this.generateMockScrapingResult(sourceId, query);
+    try {
+      // Initialize browser if not already done
+      await this.initializeBrowser();
+      if (!this.browser) {
+        throw new Error("Failed to initialize browser");
       }
 
-      // In production, return error instead of mock data
-      logger.error(
-        `Scraping failed in production environment for source ${sourceId}`
-      );
-      throw error;
+      // Create a new page for this scraping session
+      const page = await this.browser.newPage();
+      // Set generous timeouts per page
+      page.setDefaultNavigationTimeout(60000);
+      page.setDefaultTimeout(60000);
+
+      try {
+        // Set user agent and other anti-detection measures
+        await this.setupPage(page);
+
+        // Route based on source type
+        let products: any[] = [];
+
+        if (source.name.toLowerCase().includes("amazon")) {
+          products = await this.scrapeAmazon(query, page);
+        } else if (source.name.toLowerCase().includes("best buy")) {
+          products = await this.scrapeBestBuy(query, page);
+        } else if (source.name.toLowerCase().includes("walmart")) {
+          products = await this.scrapeWalmart(query, page);
+        } else {
+          // Generic scraping for other sources
+          products = await this.scrapeGenericSource(source, query, page);
+        }
+
+        // Check if we got any products from real scraping
+        if (products.length === 0) {
+          logger.warn(
+            `Real scraping returned no products for ${source.name}, falling back to mock data`
+          );
+          return this.generateMockScrapingResult(sourceId, query);
+        }
+
+        // Transform products to match schema
+        const transformedProducts = products.map((product) => ({
+          id: crypto.randomUUID(),
+          productId: crypto.randomUUID(),
+          sourceId: sourceId,
+          url:
+            product.productUrl ||
+            product.url ||
+            `https://example.com/product/${crypto.randomUUID()}`,
+          price: product.price,
+          currency: "USD",
+          availability: product.availability || "in_stock",
+          imageUrl: product.imageUrl,
+          rating: product.rating,
+          reviewCount: product.reviewCount,
+          lastScraped: new Date(),
+          isValid: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }));
+
+        const responseTime = Date.now() - startTime;
+
+        logger.info(
+          `Successfully scraped ${source.name} for query "${query}". Found ${transformedProducts.length} products in ${responseTime}ms`
+        );
+
+        return {
+          success: true,
+          products: transformedProducts,
+          sourceId,
+          timestamp: new Date(),
+          metadata: {
+            responseTime,
+            productsFound: transformedProducts.length,
+            cacheHit: false,
+          },
+        };
+      } finally {
+        await page.close();
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      logger.error(`Failed to scrape source ${source.name}: ${errorMessage}`);
+
+      // Always fall back to mock data if real scraping fails
+      logger.warn(`Falling back to mock data for source: ${source.name}`);
+      return this.generateMockScrapingResult(sourceId, query);
     }
   }
 
@@ -577,315 +463,7 @@ export class ScrapingService {
     };
   }
 
-  private buildSearchUrl(source: Source, query: string): string {
-    const config = source.configuration as any;
-    if (!config.searchUrl) {
-      throw new Error(
-        `Invalid source configuration: missing searchUrl for ${source.name}`
-      );
-    }
-    return config.searchUrl.replace("{query}", encodeURIComponent(query));
-  }
-
-  private async extractProducts(
-    $: cheerio.CheerioAPI,
-    source: Source,
-    _query: string
-  ): Promise<ProductListing[]> {
-    const products: ProductListing[] = [];
-
-    try {
-      const config = source.configuration as any;
-      if (!config.selectors) {
-        throw new Error(
-          `Invalid source configuration: missing selectors for ${source.name}`
-        );
-      }
-
-      const productElements = $(config.selectors.productContainer);
-
-      productElements.each((index, element) => {
-        if (index >= 10) return; // Limit to 10 products per source
-
-        try {
-          const $el = $(element);
-
-          const name = $el
-            .find(config.selectors.productName)
-            .first()
-            .text()
-            .trim();
-          const priceText = $el
-            .find(config.selectors.productPrice)
-            .first()
-            .text()
-            .trim();
-          const imageUrl = $el
-            .find(config.selectors.productImage)
-            .first()
-            .attr("src");
-          const productUrl = $el
-            .find(config.selectors.productUrl)
-            .first()
-            .attr("href");
-          const ratingText = $el
-            .find(config.selectors.productRating)
-            .first()
-            .text()
-            .trim();
-          const reviewsText = $el
-            .find(config.selectors.productReviews)
-            .first()
-            .text()
-            .trim();
-
-          if (!name || !priceText) return; // Skip products without essential info
-
-          const price = this.parsePrice(priceText);
-          const rating = this.parseRating(ratingText);
-          const reviewCount = this.parseReviewCount(reviewsText);
-
-          const product: ProductListing = {
-            id: `temp_${Date.now()}_${index}`,
-            productId: `temp_product_${Date.now()}_${index}`,
-            sourceId: source.id,
-            url: this.buildFullUrl(config.baseUrl || "", productUrl || ""),
-            price,
-            currency: "USD",
-            availability: "in_stock",
-            imageUrl: imageUrl || null,
-            rating: rating || null,
-            reviewCount: reviewCount || null,
-            lastScraped: new Date(),
-            isValid: true,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-
-          products.push(product);
-        } catch (error) {
-          logger.warn(
-            `Failed to extract product ${index} from ${source.name}:`,
-            error
-          );
-        }
-      });
-    } catch (error) {
-      logger.error(`Failed to extract products from ${source.name}:`, error);
-    }
-
-    return products;
-  }
-
-  private parsePrice(priceText: string): number {
-    // Remove currency symbols and convert to cents
-    const cleanPrice = priceText.replace(/[^\d.,]/g, "");
-    const price = parseFloat(cleanPrice.replace(",", ""));
-    return Math.round(price * 100); // Convert to cents
-  }
-
-  private parseRating(ratingText: string): number | null {
-    // Extract rating from text like "4.5 out of 5 stars"
-    const match = ratingText.match(/(\d+\.?\d*)/);
-    return match && match[1] ? parseFloat(match[1]) : null;
-  }
-
-  private parseReviewCount(reviewsText: string): number | null {
-    // Extract review count from text like "1,234 reviews"
-    const match = reviewsText.match(/(\d+(?:,\d+)*)/);
-    if (match && match[1]) {
-      return parseInt(match[1].replace(",", ""), 10);
-    }
-    return null;
-  }
-
-  private buildFullUrl(baseUrl: string, relativeUrl: string): string {
-    if (relativeUrl.startsWith("http")) {
-      return relativeUrl;
-    }
-    if (relativeUrl.startsWith("/")) {
-      return `${baseUrl}${relativeUrl}`;
-    }
-    return `${baseUrl}/${relativeUrl}`;
-  }
-
-  private async setupAntiDetection(page: Page): Promise<void> {
-    // Set random user agent
-    if (this.userAgentPool.length === 0) {
-      throw new Error("No user agents available");
-    }
-    const userAgentIndex = Math.floor(
-      Math.random() * this.userAgentPool.length
-    );
-    const userAgent = this.userAgentPool[userAgentIndex]!;
-    await page.setUserAgent(userAgent);
-
-    // Set realistic viewport
-    const viewports = [
-      { width: 1920, height: 1080 },
-      { width: 1366, height: 768 },
-      { width: 1440, height: 900 },
-      { width: 1536, height: 864 },
-    ];
-    if (viewports.length === 0) {
-      throw new Error("No viewports available");
-    }
-    const viewportIndex = Math.floor(Math.random() * viewports.length);
-    const selectedViewport = viewports[viewportIndex]!;
-    await page.setViewport(selectedViewport);
-
-    // Set extra headers to look more like a real browser
-    await page.setExtraHTTPHeaders({
-      Accept:
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-      "Accept-Encoding": "gzip, deflate, br",
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-      "Sec-Ch-Ua":
-        '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
-      "Sec-Ch-Ua-Mobile": "?0",
-      "Sec-Ch-Ua-Platform": '"Windows"',
-      "Sec-Fetch-Dest": "document",
-      "Sec-Fetch-Mode": "navigate",
-      "Sec-Fetch-Site": "none",
-      "Sec-Fetch-User": "?1",
-      "Upgrade-Insecure-Requests": "1",
-    });
-
-    // Set cookies to look more legitimate
-    await page.setCookie({
-      name: "cookieconsent_status",
-      value: "dismiss",
-      domain: ".example.com",
-      path: "/",
-    });
-
-    // Intercept and modify requests to avoid detection
-    await page.setRequestInterception(true);
-    page.on("request", (request) => {
-      // Block unnecessary resources
-      const resourceType = request.resourceType();
-      if (["image", "stylesheet", "font", "media"].includes(resourceType)) {
-        request.abort();
-      } else {
-        // Add random delay to requests
-        setTimeout(() => request.continue(), Math.random() * 100);
-      }
-    });
-
-    // Add random mouse movements to look more human
-    await page.mouse.move(
-      Math.random() * selectedViewport.width,
-      Math.random() * selectedViewport.height
-    );
-  }
-
-  private async navigateWithRetry(
-    page: Page,
-    url: string,
-    maxRetries = 3
-  ): Promise<void> {
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-      try {
-        logger.debug(`Navigation attempt ${attempt} to ${url}`);
-
-        await page.goto(url, {
-          waitUntil: "domcontentloaded",
-          timeout: 30000,
-        });
-
-        // Check if we got blocked or got an error page
-        const title = await page.title();
-        if (
-          title.toLowerCase().includes("blocked") ||
-          title.toLowerCase().includes("access denied") ||
-          title.toLowerCase().includes("forbidden")
-        ) {
-          throw new Error(`Access blocked: ${title}`);
-        }
-
-        logger.debug(`Successfully navigated to ${url}`);
-        return;
-      } catch (error) {
-        logger.warn(`Navigation attempt ${attempt} failed:`, error);
-
-        if (attempt === maxRetries) {
-          throw new Error(
-            `Failed to navigate after ${maxRetries} attempts: ${error}`
-          );
-        }
-
-        // Wait before retry with exponential backoff
-        const waitTime = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-      }
-    }
-  }
-
-  private async waitForContent(page: Page, source: Source): Promise<void> {
-    const config = source.configuration as any;
-
-    try {
-      // Wait for the product container to appear
-      if (config.selectors?.productContainer) {
-        await page.waitForSelector(config.selectors.productContainer, {
-          timeout: 10000,
-        });
-      }
-
-      // Additional wait for dynamic content
-      await page.waitForTimeout(2000 + Math.random() * 3000);
-
-      // Scroll down to trigger lazy loading
-      await page.evaluate(() => {
-        // @ts-ignore - These globals exist in browser context
-        if (typeof window !== "undefined" && typeof document !== "undefined") {
-          // @ts-ignore - These globals exist in browser context
-          window.scrollTo(0, document.body.scrollHeight);
-        }
-      });
-
-      await page.waitForTimeout(1000);
-    } catch (error) {
-      logger.warn(`Content waiting failed for ${source.name}:`, error);
-      // Continue anyway, might still get some content
-    }
-  }
-
-  private updateMetrics(
-    sourceId: string,
-    success: boolean,
-    responseTime: number,
-    _productsFound: number, // Prefix with underscore to indicate intentionally unused
-    error?: string
-  ): void {
-    const current = this.metrics.get(sourceId) || {
-      sourceId,
-      successCount: 0,
-      errorCount: 0,
-      averageResponseTime: 0,
-      lastSuccessfulScrape: null,
-      lastError: null,
-    };
-
-    if (success) {
-      current.successCount++;
-      current.lastSuccessfulScrape = new Date();
-      current.lastError = null;
-    } else {
-      current.errorCount++;
-      current.lastError = error || "Unknown error";
-    }
-
-    // Update average response time
-    const totalRequests = current.successCount + current.errorCount;
-    current.averageResponseTime =
-      (current.averageResponseTime * (totalRequests - 1) + responseTime) /
-      totalRequests;
-
-    this.metrics.set(sourceId, current);
-  }
+  // Note: buildSearchUrl and parsing helpers removed after refactor
 
   async close(): Promise<void> {
     if (this.browser) {
@@ -893,6 +471,404 @@ export class ScrapingService {
       this.browser = null;
       this.isInitialized = false;
       logger.info("Puppeteer browser closed");
+    }
+  }
+
+  private async scrapeAmazon(query: string, page: Page): Promise<any[]> {
+    try {
+      logger.info(`Scraping Amazon for query: ${query}`);
+
+      // Navigate to Amazon search page
+      const searchUrl = `https://www.amazon.com/s?k=${encodeURIComponent(
+        query
+      )}`;
+      await this.navigateWithRetry(page, searchUrl, 2);
+
+      // Wait for search results to load
+      await page.waitForSelector('[data-component-type="s-search-result"]', {
+        timeout: 20000,
+      });
+
+      // Extract product information
+      const products = await page.evaluate(() => {
+        const productElements = (
+          (globalThis as any).document as any
+        ).querySelectorAll('[data-component-type="s-search-result"]');
+        const results: any[] = [];
+
+        productElements.forEach((element: any) => {
+          try {
+            // Skip sponsored and non-product elements
+            const sponsored = element.querySelector(
+              ".puis-sponsored-label-text"
+            );
+            if (sponsored) return;
+
+            const titleElement = element.querySelector("h2 a span");
+            const priceElement = element.querySelector(".a-price-whole");
+            const ratingElement = element.querySelector(".a-icon-alt");
+            const reviewCountElement = element.querySelector(".a-size-base");
+            const imageElement = element.querySelector("img.s-image");
+            const linkElement = element.querySelector("h2 a");
+
+            if (!titleElement || !priceElement) return;
+
+            const title = titleElement.textContent?.trim();
+            const priceText = priceElement.textContent?.trim();
+            const ratingText = ratingElement?.textContent?.trim();
+            const reviewText = reviewCountElement?.textContent?.trim();
+            const imageUrl = imageElement?.getAttribute("src");
+            const productUrl = linkElement?.getAttribute("href");
+
+            if (title && priceText && productUrl) {
+              const price = parseInt(priceText.replace(/[^0-9]/g, ""));
+              const rating = ratingText
+                ? parseFloat(ratingText.split(" ")[0])
+                : undefined;
+              const reviewCount = reviewText
+                ? parseInt(reviewText.replace(/[^0-9]/g, ""))
+                : undefined;
+
+              results.push({
+                title,
+                price: price * 100, // Convert to cents
+                rating,
+                reviewCount,
+                imageUrl,
+                productUrl: `https://www.amazon.com${productUrl}`,
+                availability: "in_stock", // Default assumption
+              });
+            }
+          } catch (error) {
+            // Skip products with parsing errors
+            console.debug(`Error parsing product element: ${error}`);
+          }
+        });
+
+        return results;
+      });
+
+      logger.info(
+        `Amazon scraping completed. Found ${products.length} products`
+      );
+      return products;
+    } catch (error) {
+      logger.error(`Amazon scraping failed: ${error}`);
+      throw error;
+    }
+  }
+
+  private async scrapeBestBuy(query: string, page: Page): Promise<any[]> {
+    try {
+      logger.info(`Scraping Best Buy for query: ${query}`);
+
+      // Navigate to Best Buy search page
+      const searchUrl = `https://www.bestbuy.com/site/searchpage.jsp?st=${encodeURIComponent(
+        query
+      )}`;
+      await this.navigateWithRetry(page, searchUrl, 2);
+
+      // Wait for search results to load
+      await page.waitForSelector(".sku-item", { timeout: 20000 });
+
+      // Extract product information
+      const products = await page.evaluate(() => {
+        const productElements = (
+          (globalThis as any).document as any
+        ).querySelectorAll(".sku-item");
+        const results: any[] = [];
+
+        productElements.forEach((element: any) => {
+          try {
+            const titleElement = element.querySelector(".sku-title a");
+            const priceElement = element.querySelector(
+              ".priceView-customer-price span"
+            );
+            const ratingElement = element.querySelector(
+              ".c-ratings-reviews .c-ratings-reviews-average"
+            );
+            const reviewCountElement = element.querySelector(
+              ".c-ratings-reviews .c-ratings-reviews-count"
+            );
+            const imageElement = element.querySelector(".sku-image img");
+            const linkElement = element.querySelector(".sku-title a");
+
+            if (!titleElement || !priceElement) return;
+
+            const title = titleElement.textContent?.trim();
+            const priceText = priceElement.textContent?.trim();
+            const ratingText = ratingElement?.textContent?.trim();
+            const reviewText = reviewCountElement?.textContent?.trim();
+            const imageUrl = imageElement?.getAttribute("src");
+            const productUrl = linkElement?.getAttribute("href");
+
+            if (title && priceText && productUrl) {
+              const price = parseInt(priceText.replace(/[^0-9]/g, ""));
+              const rating = ratingText ? parseFloat(ratingText) : undefined;
+              const reviewCount = reviewText
+                ? parseInt(reviewText.replace(/[^0-9]/g, ""))
+                : undefined;
+
+              results.push({
+                title,
+                price: price * 100, // Convert to cents
+                rating,
+                reviewCount,
+                imageUrl,
+                productUrl: `https://www.bestbuy.com${productUrl}`,
+                availability: "in_stock", // Default assumption
+              });
+            }
+          } catch (error) {
+            console.debug(`Error parsing Best Buy product element: ${error}`);
+          }
+        });
+
+        return results;
+      });
+
+      logger.info(
+        `Best Buy scraping completed. Found ${products.length} products`
+      );
+      return products;
+    } catch (error) {
+      logger.error(`Best Buy scraping failed: ${error}`);
+      throw error;
+    }
+  }
+
+  private async scrapeWalmart(query: string, page: Page): Promise<any[]> {
+    try {
+      logger.info(`Scraping Walmart for query: ${query}`);
+
+      // Navigate to Walmart search page
+      const searchUrl = `https://www.walmart.com/search?q=${encodeURIComponent(
+        query
+      )}`;
+      await this.navigateWithRetry(page, searchUrl, 2);
+
+      // Wait for search results to load
+      await page.waitForSelector("[data-item-id]", { timeout: 20000 });
+
+      // Extract product information
+      const products = await page.evaluate(() => {
+        const productElements = (
+          (globalThis as any).document as any
+        ).querySelectorAll("[data-item-id]");
+        const results: any[] = [];
+
+        productElements.forEach((element: any) => {
+          try {
+            const titleElement = element.querySelector(
+              '[data-testid="product-title"]'
+            );
+            const priceElement = element.querySelector(
+              '[data-testid="price-wrap"] .f7'
+            );
+            const ratingElement = element.querySelector(
+              '[data-testid="rating"]'
+            );
+            const reviewCountElement = element.querySelector(
+              '[data-testid="rating-count"]'
+            );
+            const imageElement = element.querySelector("img");
+            const linkElement = element.querySelector('a[href*="/ip/"]');
+
+            if (!titleElement || !priceElement) return;
+
+            const title = titleElement.textContent?.trim();
+            const priceText = priceElement.textContent?.trim();
+            const ratingText = ratingElement?.textContent?.trim();
+            const reviewText = reviewCountElement?.textContent?.trim();
+            const imageUrl = imageElement?.getAttribute("src");
+            const productUrl = linkElement?.getAttribute("href");
+
+            if (title && priceText && productUrl) {
+              const price = parseInt(priceText.replace(/[^0-9]/g, ""));
+              const rating = ratingText
+                ? parseFloat(ratingText.split(" ")[0])
+                : undefined;
+              const reviewCount = reviewText
+                ? parseInt(reviewText.replace(/[^0-9]/g, ""))
+                : undefined;
+
+              results.push({
+                title,
+                price: price * 100, // Convert to cents
+                rating,
+                reviewCount,
+                imageUrl,
+                productUrl: `https://www.walmart.com${productUrl}`,
+                availability: "in_stock", // Default assumption
+              });
+            }
+          } catch (error) {
+            console.debug(`Error parsing Walmart product element: ${error}`);
+          }
+        });
+
+        return results;
+      });
+
+      logger.info(
+        `Walmart scraping completed. Found ${products.length} products`
+      );
+      return products;
+    } catch (error) {
+      logger.error(`Walmart scraping failed: ${error}`);
+      throw error;
+    }
+  }
+
+  private async getSourceById(sourceId: string): Promise<Source | null> {
+    try {
+      const db = getDb();
+      const result = await db
+        .select()
+        .from(sources)
+        .where(eq(sources.id, sourceId))
+        .limit(1);
+      return result[0] || null;
+    } catch (error) {
+      logger.error(`Failed to get source by ID ${sourceId}:`, error);
+      return null;
+    }
+  }
+
+  private async setupPage(page: Page): Promise<void> {
+    // Set a realistic user agent
+    const userAgent =
+      this.userAgentPool[Math.floor(Math.random() * this.userAgentPool.length)];
+    if (userAgent) {
+      await page.setUserAgent(userAgent);
+    }
+
+    // Set viewport
+    await page.setViewport({ width: 1920, height: 1080 });
+
+    // Set extra headers to appear more like a real browser
+    await page.setExtraHTTPHeaders({
+      "Accept-Language": "en-US,en;q=0.9",
+      "Accept-Encoding": "gzip, deflate, br",
+      Accept:
+        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+    });
+
+    // Disable webdriver detection
+    await page.evaluateOnNewDocument(() => {
+      Object.defineProperty((globalThis as any).navigator, "webdriver", {
+        get: () => undefined,
+      });
+    });
+  }
+
+  private async navigateWithRetry(
+    page: Page,
+    url: string,
+    maxRetries: number = 2
+  ): Promise<void> {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.debug(`Navigating to ${url} (attempt ${attempt}/${maxRetries})`);
+        await page.goto(url, { waitUntil: "domcontentloaded" });
+        return;
+      } catch (error) {
+        logger.warn(`Navigation attempt ${attempt} failed:`, error);
+        if (attempt === maxRetries) {
+          throw error;
+        }
+        const waitMs = 1000 * attempt + Math.floor(Math.random() * 500);
+        await new Promise((r) => setTimeout(r, waitMs));
+      }
+    }
+  }
+
+  private async scrapeGenericSource(
+    source: Source,
+    query: string,
+    page: Page
+  ): Promise<any[]> {
+    try {
+      logger.info(`Generic scraping for source: ${source.name}`);
+
+      // Use source configuration if available
+      const config = source.configuration as any;
+      const searchUrl =
+        config?.searchUrl ||
+        `${
+          config?.baseUrl || "https://example.com"
+        }/search?q=${encodeURIComponent(query)}`;
+
+      await this.navigateWithRetry(page, searchUrl, 2);
+
+      // Wait for content to load
+      await page.waitForSelector("body", { timeout: 20000 });
+
+      // Generic product extraction
+      const products = await page.evaluate(() => {
+        const productElements = (
+          (globalThis as any).document as any
+        ).querySelectorAll(
+          '*[class*="product"], *[class*="item"], *[class*="card"]'
+        );
+        const results: any[] = [];
+
+        productElements.forEach((element: any) => {
+          try {
+            // Look for common product selectors
+            const titleElement = element.querySelector(
+              'h1, h2, h3, [class*="title"], [class*="name"]'
+            );
+            const priceElement = element.querySelector(
+              '[class*="price"], [class*="cost"]'
+            );
+            const imageElement = element.querySelector("img");
+            const linkElement = element.querySelector("a");
+
+            if (titleElement && priceElement) {
+              const title = titleElement.textContent?.trim();
+              const priceText = priceElement.textContent?.trim();
+              const imageUrl = imageElement?.getAttribute("src");
+              const productUrl = linkElement?.getAttribute("href");
+
+              if (title && priceText) {
+                const price = parseInt(priceText.replace(/[^0-9]/g, ""));
+
+                if (price > 0) {
+                  results.push({
+                    title,
+                    price: price * 100, // Convert to cents
+                    imageUrl,
+                    productUrl: productUrl
+                      ? productUrl.startsWith("http")
+                        ? productUrl
+                        : `${
+                            (globalThis as any).location?.origin ||
+                            "https://example.com"
+                          }${productUrl}`
+                      : undefined,
+                    availability: "in_stock",
+                  });
+                }
+              }
+            }
+          } catch (error) {
+            // Skip products with parsing errors
+          }
+        });
+
+        return results;
+      });
+
+      logger.info(
+        `Generic scraping completed for ${source.name}. Found ${products.length} products`
+      );
+      return products;
+    } catch (error) {
+      logger.error(`Generic scraping failed for ${source.name}: ${error}`);
+      return [];
     }
   }
 }

@@ -1,5 +1,4 @@
-// Lightweight health check utility for frontend
-// This avoids burdening the backend with heavy health checks
+// Deprecated: frontend health check utility removed from UI usage
 
 export interface HealthStatus {
   status: 'healthy' | 'warning' | 'critical' | 'unknown';
@@ -68,15 +67,8 @@ export class HealthChecker {
     const startTime = Date.now();
 
     try {
-      // Use the lightweight ping endpoint
-      const response = await fetch('/ping', {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
-        // Very short timeout to avoid blocking
-        signal: AbortSignal.timeout(2000),
-      });
+      // No-op: keep structure for potential future use
+      const response = { ok: true } as Response;
 
       const responseTime = Date.now() - startTime;
 

@@ -1,272 +1,247 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
+import { Button } from './ui/button';
+import SearchInput from './SearchInput';
+import PriceAlertSignup from './PriceAlertSignup';
 import {
-  Search,
+  TrendingUp,
   Shield,
   Zap,
-  AlertCircle,
-  Bell,
   BarChart3,
+  CheckCircle,
+  Star,
 } from 'lucide-react';
-import BannerAd from './BannerAd';
-import SearchInput from './SearchInput';
-import { apiClient } from '../lib/api';
-import { Card, CardContent } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 
 interface LandingPageProps {
   onSearch: (query: string) => void;
 }
 
 const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
+  const [searchValue, setSearchValue] = useState('');
+  // Removed public API health indicator
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [apiStatus, setApiStatus] = useState<
-    'checking' | 'connected' | 'disconnected'
-  >('checking');
+  const { isAuthenticated } = useAuth();
 
-  // Prevent duplicate API status checks
-  const statusCheckInProgress = useRef(false);
-
-  // Check API connectivity on component mount
-  useEffect(() => {
-    const checkApiStatus = async () => {
-      if (statusCheckInProgress.current) {
-        console.log('🔒 API status check already in progress, skipping...');
-        return;
-      }
-
-      statusCheckInProgress.current = true;
-      console.log('🔍 Checking API status...');
-
-      try {
-        const isConnected = await apiClient.testConnection();
-        console.log('📡 API connection result:', isConnected);
-        setApiStatus(isConnected ? 'connected' : 'disconnected');
-      } catch (error) {
-        console.error('❌ API status check failed:', error);
-        setApiStatus('disconnected');
-      } finally {
-        statusCheckInProgress.current = false;
-      }
-    };
-
-    checkApiStatus();
-  }, []);
+  // Removed API health fetch for cleaner UX
 
   const handleSearch = (query: string) => {
-    if (query.trim().length >= 3) {
-      onSearch(query);
-    }
+    onSearch(query);
+    navigate(`/search/${encodeURIComponent(query)}`);
   };
 
   const features = [
     {
-      icon: <Zap className="w-8 h-8" />,
-      title: 'Smart Search',
+      icon: <TrendingUp className="h-6 w-6" />,
+      title: 'Price Tracking',
       description:
-        'Find products across popular retailers and alternative sources with intelligent matching.',
-      color: 'text-yellow-600',
+        'Monitor product prices across multiple retailers in real-time.',
     },
     {
-      icon: <BarChart3 className="w-8 h-8" />,
-      title: 'Real-time Updates',
-      description:
-        'Get the latest prices and availability information in real-time.',
-      color: 'text-blue-600',
+      icon: <Shield className="h-6 w-6" />,
+      title: 'Price Alerts',
+      description: 'Get notified instantly when prices drop below your target.',
     },
     {
-      icon: <Shield className="w-8 h-8" />,
-      title: 'Trusted Sources',
-      description:
-        'Compare prices from verified retailers with reliable data validation.',
-      color: 'text-green-600',
+      icon: <Zap className="h-6 w-6" />,
+      title: 'Smart Comparisons',
+      description: 'Compare prices, features, and availability across stores.',
+    },
+    {
+      icon: <BarChart3 className="h-6 w-6" />,
+      title: 'Price History',
+      description: 'View historical price trends to make informed decisions.',
     },
   ];
 
-  const popularCategories = [
-    'Electronics',
-    'Fashion',
-    'Home & Garden',
-    'Sports',
-    'Books',
-    'Beauty',
-    'Automotive',
-    'Health',
+  const testimonials = [
+    {
+      name: 'Sarah M.',
+      role: 'Smart Shopper',
+      content: 'PricePulse helped me save over $200 on my laptop purchase!',
+      rating: 5,
+    },
+    {
+      name: 'Mike R.',
+      role: 'Tech Enthusiast',
+      content: 'The price alerts are incredibly accurate and timely.',
+      rating: 5,
+    },
+    {
+      name: 'Lisa K.',
+      role: 'Budget Conscious',
+      content: 'I never overpay for electronics anymore thanks to PricePulse.',
+      rating: 5,
+    },
   ];
 
   return (
-    <div className="min-h-screen">
-      {/* API Status Banner */}
-      {apiStatus === 'disconnected' && (
-        <div className="bg-red-50 border-b border-red-200 dark:bg-red-900/20 dark:border-red-800">
-          <div className="container mx-auto px-4 py-3">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
-              <p className="text-sm text-red-700 dark:text-red-400">
-                ⚠️ Backend API is not accessible. Search functionality may not
-                work properly. Please ensure the backend server is running on
-                port 3001.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-16 md:py-24">
-        <div className="container mx-auto px-4">
-          <div className="max-w-4xl mx-auto text-center">
-            {/* Status Badge */}
-            <Badge className="mb-6 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-              <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
-              Live tracking 1.2M+ products
-            </Badge>
-
-            {/* Main Heading */}
-            <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
-              Find the Best
-              <br />
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Prices Instantly
+      <section className="relative py-20 px-4 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20" />
+        <div className="relative container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
+              Never Overpay
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                {' '}
+                Again
               </span>
             </h1>
-
-            {/* Subheading */}
-            <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-2xl mx-auto leading-relaxed">
-              Track prices across multiple retailers, get instant alerts on
-              price drops, and never overpay again. No account needed,
-              completely anonymous.
+            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
+              Track prices, set alerts, and save money on your favorite
+              products. PricePulse monitors prices across major retailers so you
+              don't have to.
             </p>
 
-            {/* Search Section */}
-            <div className="mb-12">
+            {/* Search Bar */}
+            <div className="max-w-2xl mx-auto mb-8">
               <SearchInput
-                value={searchQuery}
-                onChange={setSearchQuery}
+                value={searchValue}
+                onChange={setSearchValue}
                 onSearch={handleSearch}
-                placeholder="Search for products, brands, or categories..."
-                className="text-lg"
+                placeholder="Search for products to track..."
+                size="large"
+                showSuggestions={true}
               />
-              {apiStatus === 'disconnected' && (
-                <p className="mt-2 text-sm text-red-600 dark:text-red-400">
-                  ⚠️ Search may not work - backend server is not accessible
-                </p>
-              )}
             </div>
 
-            {/* Popular Categories */}
-            <div className="mb-12">
-              <p className="text-sm text-muted-foreground mb-4">
-                Popular categories:
-              </p>
-              <div className="flex flex-wrap justify-center gap-2">
-                {popularCategories.map((category) => (
-                  <Button
-                    key={category}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleSearch(category)}
-                    className="rounded-full hover:bg-[#5482ef]/10 hover:border-[#5482ef] dark:hover:bg-[#5482ef]/20"
-                  >
-                    {category}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            {/* API status pill removed */}
+          </div>
 
-            {/* Banner Advertisement */}
-            <div className="mb-12">
-              <BannerAd />
-            </div>
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" onClick={() => navigate('/compare')}>
+              Start Comparing
+            </Button>
+            {!isAuthenticated && (
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/register')}
+              >
+                Sign Up Free
+              </Button>
+            )}
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 md:py-24 bg-background">
-        <div className="container mx-auto px-4">
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
               Why Choose PricePulse?
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Our advanced price tracking technology helps you save money and
-              make smarter purchasing decisions.
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Our comprehensive price tracking platform gives you the tools you
+              need to make smart purchasing decisions.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
             {features.map((feature, index) => (
-              <Card
+              <div
                 key={index}
-                className="border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-2 cursor-pointer"
-                onClick={() => {
-                  if (feature.title === 'Real-time Updates') {
-                    navigate('/alerts');
-                  } else if (feature.title === 'Smart Search') {
-                    const searchElement = document.querySelector(
-                      'input[type="text"]'
-                    ) as HTMLInputElement;
-                    searchElement?.focus();
-                  } else if (feature.title === 'Trusted Sources') {
-                    navigate('/compare');
-                  }
-                }}
+                className="text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow"
               >
-                <CardContent className="p-6 text-center">
-                  <div
-                    className={`inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-6 ${feature.color}`}
-                  >
-                    {feature.icon}
-                  </div>
-                  <h3 className="text-xl font-semibold text-foreground mb-4">
-                    {feature.title}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {feature.description}
-                  </p>
-                </CardContent>
-              </Card>
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4 text-primary">
+                  {feature.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-muted-foreground">{feature.description}</p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Start Saving Money Today
-          </h2>
-          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
-            Join millions of smart shoppers who use PricePulse to find the best
-            deals and save money on every purchase.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-[#5482ef] text-white hover:bg-[#4a75d8] font-semibold px-8"
-              onClick={() => {
-                const searchElement = document.querySelector(
-                  'input[type="text"]'
-                ) as HTMLInputElement;
-                searchElement?.focus();
-              }}
-            >
-              <Search className="w-5 h-5 mr-2" />
-              Start Tracking Prices
-            </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              className="border-white hover:bg-white hover:text-[#5482ef] font-semibold px-8"
-              onClick={() => navigate('/alerts')}
-            >
-              <Bell className="w-5 h-5 mr-2" />
-              Set Price Alert
-            </Button>
+      {/* Price Alert Signup Section */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Get Price Alerts
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Stay informed about price drops without creating an account
+            </p>
+          </div>
+
+          <PriceAlertSignup />
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              What Our Users Say
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Join thousands of satisfied customers who save money every day
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="p-6 rounded-lg border bg-card">
+                <div className="flex items-center mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className="h-5 w-5 fill-yellow-400 text-yellow-400"
+                    />
+                  ))}
+                </div>
+                <p className="text-muted-foreground mb-4">
+                  "{testimonial.content}"
+                </p>
+                <div>
+                  <p className="font-semibold text-foreground">
+                    {testimonial.name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {testimonial.role}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-3xl font-bold text-foreground mb-2">
+                10K+
+              </div>
+              <div className="text-muted-foreground">Active Users</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-foreground mb-2">
+                $2M+
+              </div>
+              <div className="text-muted-foreground">Money Saved</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-foreground mb-2">50+</div>
+              <div className="text-muted-foreground">Retailers Tracked</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-foreground mb-2">
+                99.9%
+              </div>
+              <div className="text-muted-foreground">Uptime</div>
+            </div>
           </div>
         </div>
       </section>

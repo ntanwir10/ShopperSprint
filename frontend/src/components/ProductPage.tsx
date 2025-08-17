@@ -11,14 +11,16 @@ import {
   TrendingDown,
   TrendingUp,
   Minus,
+  Loader2,
 } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
-import { mockProducts, mockPriceHistory } from '../data/mockData';
 import { Product } from '../lib/api';
 import PriceHistoryChart from './PriceHistoryChart';
+import { apiClient } from '../lib/api';
+import { Alert, AlertDescription } from './ui/alert';
 
 interface PriceHistoryPoint {
   date: string;
@@ -36,37 +38,110 @@ const ProductPage: React.FC = () => {
     '7d' | '30d' | '90d' | '1y'
   >('30d');
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (location.state?.product) {
-      setProduct(location.state.product);
-    } else if (slug) {
-      // Find product from mock data by slug
-      const foundProduct = mockProducts.find((p) => p.slug === slug);
-      if (foundProduct) {
-        setProduct(foundProduct);
-      } else {
-        // If no product found by slug, try to find by ID as fallback
-        const foundById = mockProducts.find((p) => p.id === slug);
-        if (foundById) {
-          setProduct(foundById);
+    const loadProduct = async () => {
+      if (location.state?.product) {
+        setProduct(location.state.product);
+        await loadPriceHistory(location.state.product.id);
+        await loadRelatedProducts(location.state.product.category);
+      } else if (slug) {
+        setLoading(true);
+        setError(null);
+        
+        try {
+          // Try to find product by slug first
+          const searchResult = await apiClient.search(slug, 1);
+          if (searchResult.data && searchResult.data.length > 0) {
+            const foundProduct = searchResult.data[0];
+            setProduct(foundProduct);
+            await loadPriceHistory(foundProduct.id);
+            await loadRelatedProducts(foundProduct.category);
+          } else {
+            setError('Product not found');
+          }
+        } catch (err) {
+          setError('Failed to load product');
+        } finally {
+          setLoading(false);
         }
       }
-    }
+    };
 
-    // Load price history
-    if (product?.id && mockPriceHistory[product.id]) {
-      setPriceHistory(mockPriceHistory[product.id]);
-    }
+    loadProduct();
+  }, [slug, location.state]);
 
-    // Load related products (same category)
-    if (product?.category) {
-      const related = mockProducts
-        .filter((p) => p.id !== product.id && p.category === product.category)
-        .slice(0, 3);
-      setRelatedProducts(related);
+  const loadPriceHistory = async (productId: string) => {
+    try {
+      const response = await apiClient.getPriceHistory(productId, selectedTimeRange);
+      if (response.data) {
+        setPriceHistory(response.data.map(point => ({
+          date: point.date,
+          price: point.price / 100, // Convert from cents
+          currency: point.currency
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to load price history:', err);
+      // Set empty price history if API fails
+      setPriceHistory([]);
     }
-  }, [slug, location.state, product?.id, product?.category]);
+  };
+
+  const loadRelatedProducts = async (category: string) => {
+    try {
+      const response = await apiClient.search(category, 4);
+      if (response.data) {
+        // Filter out the current product and limit to 3
+        const related = response.data
+          .filter(p => p.id !== product?.id)
+          .slice(0, 3);
+        setRelatedProducts(related);
+      }
+    } catch (err) {
+      console.error('Failed to load related products:', err);
+      setRelatedProducts([]);
+    }
+  };
+
+  // Reload price history when time range changes
+  useEffect(() => {
+    if (product?.id) {
+      loadPriceHistory(product.id);
+    }
+  }, [selectedTimeRange, product?.id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading product...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center">
+            <Alert variant="destructive" className="max-w-md mx-auto mb-4">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <Button onClick={() => navigate('/')} className="mt-4">
+              Go Home
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (

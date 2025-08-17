@@ -26,6 +26,9 @@ import { CachingService } from "./services/cachingService";
 // Load environment variables
 dotenv.config();
 
+// Fix memory leak warnings
+process.setMaxListeners(20);
+
 // Initialize database connections after environment variables are loaded
 initializeConnections();
 
@@ -68,6 +71,15 @@ app.use(logger);
 
 // Lightweight health check endpoint (for frontend)
 app.get("/health", (_req, res) => {
+  res.json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    websocketClients: webSocketService.getConnectedClientsCount(),
+  });
+});
+
+// Alias: /api/health for clients that expect it via proxy
+app.get("/api/health", (_req, res) => {
   res.json({
     status: "OK",
     timestamp: new Date().toISOString(),

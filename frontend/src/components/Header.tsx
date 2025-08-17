@@ -1,21 +1,45 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Menu, X, Activity } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import SearchInput from './SearchInput';
 import { ThemeToggle } from './ThemeToggle';
+import { User, LogOut, Settings, Bell, Menu, X } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 interface HeaderProps {
   onSearch: (query: string) => void;
   showSearchBar?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+export const Header: React.FC<HeaderProps> = ({
+  onSearch,
+  showSearchBar = false,
+}) => {
+  const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
 
-  const handleLogoClick = () => {
+  const handleLogout = () => {
+    logout();
     navigate('/');
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const handleSearch = (query: string) => {
+    onSearch(query);
+    setSearchValue('');
   };
 
   return (
@@ -23,88 +47,127 @@ export const Header: React.FC<HeaderProps> = () => {
       <div className="container mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <div
-            className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity"
-            onClick={handleLogoClick}
-          >
-            <div className="w-8 h-8 bg-[#5482ef] rounded-lg flex items-center justify-center">
-              <Activity className="w-5 h-5 text-white" />
+          <Link to="/" className="flex items-center space-x-2">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center">
+              <span className="text-white font-bold text-lg">P</span>
             </div>
-            <span className="text-xl font-bold text-foreground">
+            <span className="font-bold text-xl text-foreground">
               PricePulse
             </span>
-          </div>
+          </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => navigate('/compare')}
-            >
-              Compare
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="relative"
-              onClick={() => navigate('/alerts')}
-            >
-              Alerts
-              <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-red-500 text-white text-xs">
-                3
-              </Badge>
-            </Button>
-            <ThemeToggle />
-          </div>
+          {/* Desktop Navigation - simplified (removed Home/Compare) */}
+          <nav className="hidden md:flex items-center space-x-6" />
 
-          {/* Mobile Menu Button */}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="md:hidden"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          >
-            {isMobileMenuOpen ? (
-              <X className="h-5 w-5" />
+          {/* Search Bar removed from header by default */}
+
+          {/* Right Side */}
+          <div className="flex items-center space-x-4">
+            {/* Authentication */}
+            {isAuthenticated ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="relative">
+                    <User className="h-5 w-5" />
+                    <span className="ml-2 hidden sm:inline-block">
+                      {user?.firstName || user?.username}
+                    </span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {user?.firstName} {user?.lastName}
+                      </p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user?.email}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Profile Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate('/alerts')}>
+                    <Bell className="mr-2 h-4 w-4" />
+                    <span>Price Alerts</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
-              <Menu className="h-5 w-5" />
+              <Button size="sm" asChild>
+                <Link to="/login">Login/Sign-up</Link>
+              </Button>
             )}
-          </Button>
+
+            {/* Theme Toggle moved to the far right */}
+            <ThemeToggle />
+
+            {/* Mobile Menu Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={toggleMobileMenu}
+            >
+              {isMobileMenuOpen ? (
+                <X className="h-5 w-5" />
+              ) : (
+                <Menu className="h-5 w-5" />
+              )}
+            </Button>
+          </div>
         </div>
+
+        {/* Mobile Search Bar removed */}
 
         {/* Mobile Menu */}
         {isMobileMenuOpen && (
-          <div className="md:hidden border-t py-4 space-y-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start"
-              onClick={() => {
-                navigate('/compare');
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              Compare
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="w-full justify-start relative"
-              onClick={() => {
-                navigate('/alerts');
-                setIsMobileMenuOpen(false);
-              }}
-            >
-              Alerts
-              <Badge className="absolute top-2 right-2 h-5 w-5 rounded-full bg-red-500 text-white text-xs">
-                3
-              </Badge>
-            </Button>
-            <div className="flex items-center justify-between px-2">
-              <span className="text-sm text-muted-foreground">Theme</span>
-              <ThemeToggle />
-            </div>
+          <div className="md:hidden border-t py-4">
+            <nav className="flex flex-col space-y-4">
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    to="/alerts"
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Price Alerts
+                  </Link>
+                  <Link
+                    to="/profile"
+                    className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Profile Settings
+                  </Link>
+                  <Button
+                    variant="ghost"
+                    className="justify-start text-muted-foreground hover:text-foreground"
+                    onClick={() => {
+                      handleLogout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    Log out
+                  </Button>
+                </>
+              ) : (
+                <Button className="justify-start" asChild>
+                  <Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>
+                    Login/Sign-up
+                  </Link>
+                </Button>
+              )}
+            </nav>
           </div>
         )}
       </div>

@@ -15,6 +15,17 @@ import AlertsPage from './components/AlertsPage';
 import ProductComparison from './components/ProductComparison';
 import ScrollToTop from './components/ScrollToTop';
 import { ThemeProvider } from './components/ThemeProvider';
+import { Toaster } from './components/ui/sonner';
+import { AuthProvider } from './contexts/AuthContext';
+import Login from './components/auth/Login';
+import Register from './components/auth/Register';
+import ForgotPassword from './components/auth/ForgotPassword';
+import ResetPassword from './components/auth/ResetPassword';
+import UserProfile from './components/auth/UserProfile';
+import PriceAlerts from './components/PriceAlerts';
+import EmailVerification from './components/auth/EmailVerification';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import OAuthCallback from './components/auth/OAuthCallback';
 
 function AppContent() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -48,6 +59,60 @@ function AppContent() {
         <Route path="/compare" element={<ComparePage />} />
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/compare-products" element={<ProductComparison />} />
+
+        {/* Authentication Routes */}
+        <Route
+          path="/login"
+          element={
+            <ProtectedRoute requireAuth={false}>
+              <Login />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <ProtectedRoute requireAuth={false}>
+              <Register />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/forgot-password"
+          element={
+            <ProtectedRoute requireAuth={false}>
+              <ForgotPassword />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reset-password"
+          element={
+            <ProtectedRoute requireAuth={false}>
+              <ResetPassword />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/email-verification" element={<EmailVerification />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
+
+        {/* Protected Routes */}
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <UserProfile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/price-alerts"
+          element={
+            <ProtectedRoute>
+              <PriceAlerts />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
 
       {/* Scroll to top button */}
@@ -102,9 +167,12 @@ function AppContent() {
 function App() {
   return (
     <ThemeProvider>
-      <Router>
-        <AppContent />
-      </Router>
+      <AuthProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </AuthProvider>
+      <Toaster richColors position="top-center" />
     </ThemeProvider>
   );
 }

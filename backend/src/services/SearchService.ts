@@ -250,6 +250,122 @@ export class SearchService {
     }
   }
 
+  // Get search suggestions based on query
+  async getSearchSuggestions(query: string, limit: number = 10): Promise<string[]> {
+    try {
+      // For now, generate mock suggestions based on the query
+      // In a real implementation, this would query a search history database
+      const mockSuggestions = [
+        `${query} best price`,
+        `${query} on sale`,
+        `${query} reviews`,
+        `${query} comparison`,
+        `${query} deals`,
+        `${query} amazon`,
+        `${query} walmart`,
+        `${query} best buy`,
+        `${query} newegg`,
+        `${query} online`,
+      ];
+
+      // Filter and limit suggestions
+      const suggestions = mockSuggestions
+        .filter(suggestion => suggestion.toLowerCase().includes(query.toLowerCase()))
+        .slice(0, limit);
+
+      // Add some generic suggestions if we don't have enough
+      if (suggestions.length < limit) {
+        const genericSuggestions = [
+          "electronics",
+          "gaming",
+          "home & garden",
+          "clothing",
+          "books",
+          "sports",
+          "automotive",
+          "health & beauty",
+        ];
+        
+        genericSuggestions.forEach(suggestion => {
+          if (suggestions.length < limit && !suggestions.includes(suggestion)) {
+            suggestions.push(suggestion);
+          }
+        });
+      }
+
+      return suggestions;
+    } catch (error) {
+      console.error("Error generating search suggestions:", error);
+      return [];
+    }
+  }
+
+  // Get popular search terms
+  async getPopularSearches(timeRange: string = "7d", limit: number = 20): Promise<Array<{ term: string; count: number }>> {
+    try {
+      // For now, return mock popular searches
+      // In a real implementation, this would query search analytics
+      const mockPopularSearches = [
+        { term: "laptop", count: 1250 },
+        { term: "smartphone", count: 980 },
+        { term: "headphones", count: 750 },
+        { term: "gaming console", count: 620 },
+        { term: "tablet", count: 580 },
+        { term: "smartwatch", count: 520 },
+        { term: "camera", count: 480 },
+        { term: "speaker", count: 420 },
+        { term: "keyboard", count: 380 },
+        { term: "mouse", count: 350 },
+        { term: "monitor", count: 320 },
+        { term: "printer", count: 290 },
+        { term: "router", count: 260 },
+        { term: "external hard drive", count: 240 },
+        { term: "webcam", count: 220 },
+        { term: "microphone", count: 200 },
+        { term: "gaming chair", count: 180 },
+        { term: "desk", count: 160 },
+        { term: "lamp", count: 140 },
+        { term: "plant", count: 120 },
+      ];
+
+      // Filter by time range (mock implementation)
+      let filteredSearches = mockPopularSearches;
+      if (timeRange === "30d") {
+        filteredSearches = mockPopularSearches.map(s => ({ ...s, count: Math.floor(s.count * 0.7) }));
+      } else if (timeRange === "90d") {
+        filteredSearches = mockPopularSearches.map(s => ({ ...s, count: Math.floor(s.count * 0.5) }));
+      }
+
+      return filteredSearches.slice(0, limit);
+    } catch (error) {
+      console.error("Error getting popular searches:", error);
+      return [];
+    }
+  }
+
+  // Get search analytics
+  async getSearchAnalytics(timeRange: string = "7d"): Promise<any> {
+    try {
+      // Mock analytics data
+      const analytics = {
+        totalSearches: 0,
+        uniqueUsers: 0,
+        averageResultsPerSearch: 0,
+        topCategories: [],
+        topSources: [],
+        searchTrends: [],
+        timeRange,
+        timestamp: new Date().toISOString(),
+      };
+
+      // In a real implementation, this would aggregate data from search history
+      return analytics;
+    } catch (error) {
+      console.error("Error getting search analytics:", error);
+      return null;
+    }
+  }
+
   private applyFilters(results: any[], filters?: SearchFilters): any[] {
     if (!filters) return results;
 

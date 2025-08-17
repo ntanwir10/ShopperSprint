@@ -18,8 +18,7 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import PriceDisplay from './PriceDisplay';
-import { mockProducts } from '../data/mockData';
-import { Product } from '../lib/api';
+import { apiClient, Product, SearchRequest } from '../lib/api';
 
 interface SearchResultsProps {
   searchQuery?: string;
@@ -37,10 +36,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'price' | 'rating' | 'name'>('price');
-
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
-    new Set()
-  );
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     // Get search query from multiple sources in order of priority
@@ -58,24 +54,33 @@ const SearchResults: React.FC<SearchResultsProps> = ({
     setError(null);
 
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      const searchRequest: SearchRequest = {
+        query: query.trim(),
+        maxResults: 50,
+      };
 
-      // Filter mock products based on search query
-      const filteredResults = mockProducts.filter(
-        (product) =>
-          product.name.toLowerCase().includes(query.toLowerCase()) ||
-          product.category?.toLowerCase().includes(query.toLowerCase()) ||
-          product.source.toLowerCase().includes(query.toLowerCase())
-      );
+      const response = await apiClient.search(searchRequest);
 
-      setResults(filteredResults);
+      if (response.error) {
+        setError(response.error);
+        setResults([]);
+        return;
+      }
 
-      if (filteredResults.length === 0) {
-        setError(`No products found for "${query}"`);
+      if (response.data?.results) {
+        setResults(response.data.results);
+        
+        if (response.data.results.length === 0) {
+          setError(`No products found for "${query}"`);
+        }
+      } else {
+        setError('Invalid response from server');
+        setResults([]);
       }
     } catch (err) {
+      console.error('Search error:', err);
       setError('Failed to search products. Please try again.');
+      setResults([]);
     } finally {
       setLoading(false);
     }
@@ -233,7 +238,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                 variant={viewMode === 'grid' ? 'default' : 'ghost'}
                 size="sm"
                 onClick={() => setViewMode('grid')}
-                className="rounded-none hover:bg-accent/80 dark:hover:bg-accent/60"
+                className="rounded-none hover:bg-accent/80 dark:hover:bg-accent-60"
               >
                 <Grid3X3 className="h-4 w-4" />
               </Button>
@@ -303,11 +308,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                   viewMode === 'list' ? 'flex gap-4' : ''
                 }`}
                 onClick={() => {
-                  if (product.slug) {
-                    navigate(`/product/${product.slug}`, {
-                      state: { product },
-                    });
-                  }
+                  // Generate slug from product name if not available
+                  const slug = product.slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                  navigate(`/product/${slug}`, {
+                    state: { product: { ...product, slug } },
+                  });
                 }}
               >
                 <CardContent
@@ -339,7 +344,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                     } overflow-hidden rounded-lg bg-muted`}
                   >
                     <img
-                      src={product.image || '/placeholder-product.jpg'}
+                      src={product.imageUrl || product.image || '/placeholder-product.jpg'}
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
                     />
@@ -407,11 +412,11 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                         className="flex-1"
                         onClick={(e: React.MouseEvent) => {
                           e.stopPropagation();
-                          if (product.slug) {
-                            navigate(`/product/${product.slug}`, {
-                              state: { product },
-                            });
-                          }
+                          // Generate slug from product name if not available
+                          const slug = product.slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+                          navigate(`/product/${slug}`, {
+                            state: { product: { ...product, slug } },
+                          });
                         }}
                       >
                         View Details

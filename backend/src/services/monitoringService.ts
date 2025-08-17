@@ -63,7 +63,10 @@ export class MonitoringService extends EventEmitter {
         this.redis = getRedis();
         this.startHealthChecks();
       } catch (error) {
-        console.error("Failed to initialize Redis in MonitoringService:", error);
+        console.error(
+          "Failed to initialize Redis in MonitoringService:",
+          error
+        );
         this.redis = null;
       }
     }
@@ -158,7 +161,9 @@ export class MonitoringService extends EventEmitter {
   /**
    * Get health metrics for a specific source
    */
-  async getSourceMetrics(sourceId: string): Promise<ScrapingHealthMetrics | null> {
+  async getSourceMetrics(
+    sourceId: string
+  ): Promise<ScrapingHealthMetrics | null> {
     await this.ensureRedis(); // Ensure Redis is initialized
     return this.metrics.get(sourceId) || null;
   }
@@ -174,7 +179,10 @@ export class MonitoringService extends EventEmitter {
   /**
    * Acknowledge an alert
    */
-  async acknowledgeAlert(alertId: string, acknowledgedBy: string): Promise<boolean> {
+  async acknowledgeAlert(
+    alertId: string,
+    acknowledgedBy: string
+  ): Promise<boolean> {
     await this.ensureRedis(); // Ensure Redis is initialized
     const alert = this.alerts.find((a) => a.id === alertId);
     if (alert) {
@@ -215,7 +223,9 @@ export class MonitoringService extends EventEmitter {
         const healthStatus = await this.checkSourceHealth(source);
 
         if (healthStatus.status !== source.status) {
-          await this.updateMetrics(source.sourceId, { status: healthStatus.status });
+          await this.updateMetrics(source.sourceId, {
+            status: healthStatus.status,
+          });
 
           // Create status change alert
           if (healthStatus.status === "critical") {
@@ -268,18 +278,21 @@ export class MonitoringService extends EventEmitter {
   /**
    * Check health of a specific source
    */
-  private async checkSourceHealth(
-    source: ScrapingHealthMetrics
-  ): Promise<{ status: "healthy" | "warning" | "critical" | "unknown" }> {
-    await this.ensureRedis(); // Ensure Redis is initialized
+  private async checkSourceHealth(source: ScrapingHealthMetrics): Promise<{
+    status: "healthy" | "warning" | "critical" | "unknown";
+  }> {
     const now = new Date();
 
     // Check if source is too old (no recent activity)
-    if (
-      source.lastCheck &&
-      now.getTime() - source.lastCheck.getTime() > 30 * 60 * 1000
-    ) {
-      return { status: "unknown" };
+    if (source.lastCheck) {
+      // Ensure lastCheck is a Date object
+      const lastCheckDate =
+        source.lastCheck instanceof Date
+          ? source.lastCheck
+          : new Date(source.lastCheck);
+      if (now.getTime() - lastCheckDate.getTime() > 30 * 60 * 1000) {
+        return { status: "unknown" };
+      }
     }
 
     // Check success rate

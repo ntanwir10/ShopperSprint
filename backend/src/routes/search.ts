@@ -2,11 +2,11 @@ import { Router, Request, Response } from "express";
 import { SearchService } from "../services/searchService";
 import { SourceRepository } from "../repositories/sourceRepository";
 import { getRedis, getDb } from "../database/connection";
-import {
-  searchRequestSchema,
-  searchResponseSchema,
-} from "../validation/schemas";
+import { searchRequestSchema } from "../validation/schemas";
 import { sources, products } from "../database/schema";
+
+// Import types
+import type { SearchFilters } from "../services/searchService";
 
 const router = Router();
 const sourceRepository = new SourceRepository();
@@ -51,7 +51,12 @@ router.post("/", async (req: Request, res: Response) => {
       category: req.query["category"] as string | undefined,
     };
 
-    const sort =
+    // Filter out undefined values for type compatibility
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value !== undefined)
+    ) as SearchFilters;
+
+    const sortParam =
       req.query["sort"] && req.query["direction"]
         ? {
             field: req.query["sort"] as
@@ -66,14 +71,14 @@ router.post("/", async (req: Request, res: Response) => {
     console.log("🔧 Search parameters:", {
       query: validatedData.query,
       filters,
-      sort,
+      sort: sortParam,
       maxResults: validatedData.maxResults,
     });
 
     // Check cache first (include filters and sorting in cache key)
     const cacheKey = `search:${validatedData.query}:${
       validatedData.sources?.join(",") || "all"
-    }:${JSON.stringify(filters)}:${JSON.stringify(sort)}`;
+    }:${JSON.stringify(filters)}:${JSON.stringify(sortParam)}`;
 
     const redis = getRedis();
     const cachedResult = await redis.get(cacheKey);
@@ -96,50 +101,290 @@ router.post("/", async (req: Request, res: Response) => {
 
     // Perform search with filters and sorting
     const startTime = Date.now();
-    const searchResult = await searchService.search({
-      ...validatedData,
-      filters: filters as any,
-      ...(sort && { sort }),
-    });
-    const searchDuration = Date.now() - startTime;
+    const requestPayload: any = { ...validatedData };
+    if (Object.keys(cleanFilters).length > 0)
+      requestPayload.filters = cleanFilters;
+    if (sortParam) requestPayload.sort = sortParam;
+    const searchResult = await searchService.search(requestPayload);
 
-    console.log("📈 Search completed:", {
-      duration: searchDuration,
-      resultsCount: searchResult.results.length,
-      totalSources: searchResult.metadata.totalSources,
-      successfulSources: searchResult.metadata.successfulSources,
-    });
+    const endTime = Date.now();
+    const searchDuration = endTime - startTime;
 
-    // Prepare response
-    const response = {
-      searchId: searchResult.searchId,
-      results: searchResult.results,
+    console.log("✅ Search completed in", searchDuration, "ms");
+    console.log("📊 Results count:", searchResult.results?.length || 0);
+
+    // Cache the result
+    const resultToCache = {
+      ...searchResult,
       metadata: {
-        totalSources: searchResult.metadata.totalSources,
-        successfulSources: searchResult.metadata.successfulSources,
+        ...searchResult.metadata,
         searchDuration,
-        cacheHit: false,
+        cachedAt: new Date().toISOString(),
       },
     };
 
-    // Cache the result for 15 minutes
-    if (redis) {
-      await redis.setEx(cacheKey, 900, JSON.stringify(response));
-      console.log("💾 Search results cached for 15 minutes");
-    }
+    await redis.setEx(cacheKey, 300, JSON.stringify(resultToCache)); // Cache for 5 minutes
 
-    // Validate response
-    const validatedResponse = searchResponseSchema.parse(response);
-
-    console.log("✅ Search response sent successfully");
-    return res.json(validatedResponse);
+    return res.json(resultToCache);
   } catch (error) {
     console.error("❌ Search error:", error);
     return res.status(500).json({
-      error: "SearchError",
-      message: "Failed to perform search",
-      statusCode: 500,
+      error: "Search failed",
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+// GET /api/search - Support for query parameters
+router.get("/", async (req: Request, res: Response) => {
+  try {
+    const query = req.query["q"] as string;
+    const limit = req.query["limit"]
+      ? parseInt(req.query["limit"] as string)
+      : 20;
+    const page = req.query["page"] ? parseInt(req.query["page"] as string) : 1;
+    const offset = (page - 1) * limit;
+
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({
+        error: "Bad Request",
+        message: "Query parameter 'q' is required",
+      });
+    }
+
+    console.log("🔍 GET Search request received:", {
+      query,
+      limit,
+      page,
+      offset,
+      url: req.url,
+      ip: req.ip,
+    });
+
+    // Extract filters and sorting from query parameters
+    const filters = {
+      minPrice: req.query["minPrice"]
+        ? parseInt(req.query["minPrice"] as string)
+        : undefined,
+      maxPrice: req.query["maxPrice"]
+        ? parseInt(req.query["maxPrice"] as string)
+        : undefined,
+      availability: req.query["availability"] as
+        | "in_stock"
+        | "out_of_stock"
+        | "limited"
+        | "unknown"
+        | undefined,
+      minRating: req.query["minRating"]
+        ? parseFloat(req.query["minRating"] as string)
+        : undefined,
+      sources: req.query["sources"]
+        ? (req.query["sources"] as string).split(",")
+        : undefined,
+      category: req.query["category"] as string | undefined,
+    };
+
+    // Filter out undefined values for type compatibility
+    const cleanFilters = Object.fromEntries(
+      Object.entries(filters).filter(([_, value]) => value !== undefined)
+    ) as SearchFilters;
+
+    const sortParam =
+      req.query["sort"] && req.query["direction"]
+        ? {
+            field: req.query["sort"] as
+              | "price"
+              | "rating"
+              | "reviewCount"
+              | "lastScraped",
+            direction: req.query["direction"] as "asc" | "desc",
+          }
+        : undefined;
+
+    // Check cache first
+    const cacheKey = `search:${query}:${
+      filters.sources?.join(",") || "all"
+    }:${JSON.stringify(filters)}:${JSON.stringify(sortParam)}:${page}:${limit}`;
+
+    const redis = getRedis();
+    const cachedResult = await redis.get(cacheKey);
+
+    if (cachedResult) {
+      const parsed = JSON.parse(cachedResult);
+      console.log("✅ Cache hit for GET search query:", query);
+      return res.json({
+        ...parsed,
+        metadata: {
+          ...parsed.metadata,
+          cacheHit: true,
+        },
+      });
+    }
+
+    console.log("🔄 Cache miss, performing fresh GET search...");
+
+    // Perform search with filters, sorting, and pagination
+    const startTime = Date.now();
+    const requestPayloadGet: any = {
+      query,
+      maxResults: limit,
+      sources: filters.sources,
+    };
+    if (Object.keys(cleanFilters).length > 0)
+      requestPayloadGet.filters = cleanFilters;
+    if (sortParam) requestPayloadGet.sort = sortParam;
+    const searchResult = await searchService.search(requestPayloadGet);
+
+    const endTime = Date.now();
+    const searchDuration = endTime - startTime;
+
+    console.log("✅ GET Search completed in", searchDuration, "ms");
+    console.log("📊 Results count:", searchResult.results?.length || 0);
+
+    // Calculate pagination metadata
+    const totalResults = searchResult.metadata?.totalSources || 0;
+    const totalPages = Math.ceil(totalResults / limit);
+    const hasNextPage = page < totalPages;
+    const hasPrevPage = page > 1;
+
+    // Cache the result
+    const resultToCache = {
+      ...searchResult,
+      metadata: {
+        ...searchResult.metadata,
+        searchDuration,
+        cachedAt: new Date().toISOString(),
+        pagination: {
+          page,
+          limit,
+          totalResults,
+          totalPages,
+          hasNextPage,
+          hasPrevPage,
+          offset,
+        },
+      },
+    };
+
+    await redis.setEx(cacheKey, 300, JSON.stringify(resultToCache)); // Cache for 5 minutes
+
+    return res.json(resultToCache);
+  } catch (error) {
+    console.error("❌ GET Search error:", error);
+    return res.status(500).json({
+      error: "Search failed",
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+// GET /api/search/suggestions - Get search suggestions
+router.get("/suggestions", async (req: Request, res: Response) => {
+  try {
+    const query = req.query["q"] as string;
+    const limit = req.query["limit"]
+      ? parseInt(req.query["limit"] as string)
+      : 10;
+
+    if (!query || query.trim().length < 2) {
+      return res.json({
+        suggestions: [],
+        query,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    console.log("💡 Search suggestions request:", { query, limit });
+
+    // Check cache for suggestions
+    const cacheKey = `suggestions:${query}:${limit}`;
+    const redis = getRedis();
+    const cachedSuggestions = await redis.get(cacheKey);
+
+    if (cachedSuggestions) {
+      const parsed = JSON.parse(cachedSuggestions);
+      console.log("✅ Cache hit for suggestions:", query);
+      return res.json({
+        ...parsed,
+        metadata: { cacheHit: true },
+      });
+    }
+
+    // Generate suggestions based on query
+    const suggestions = await searchService.getSearchSuggestions(query, limit);
+
+    const result = {
+      suggestions,
+      query,
       timestamp: new Date().toISOString(),
+      metadata: {
+        cacheHit: false,
+        suggestionsCount: suggestions.length,
+      },
+    };
+
+    // Cache suggestions for 10 minutes
+    await redis.setEx(cacheKey, 600, JSON.stringify(result));
+
+    return res.json(result);
+  } catch (error) {
+    console.error("❌ Search suggestions error:", error);
+    return res.status(500).json({
+      error: "Failed to get suggestions",
+      message: error instanceof Error ? error.message : "Unknown error",
+    });
+  }
+});
+
+// GET /api/search/popular - Get popular search terms
+router.get("/popular", async (req: Request, res: Response) => {
+  try {
+    const limit = req.query["limit"]
+      ? parseInt(req.query["limit"] as string)
+      : 20;
+    const timeRange = (req.query["timeRange"] as string) || "7d"; // 7d, 30d, 90d
+
+    console.log("🔥 Popular searches request:", { limit, timeRange });
+
+    // Check cache for popular searches
+    const cacheKey = `popular_searches:${timeRange}:${limit}`;
+    const redis = getRedis();
+    const cachedPopular = await redis.get(cacheKey);
+
+    if (cachedPopular) {
+      const parsed = JSON.parse(cachedPopular);
+      console.log("✅ Cache hit for popular searches");
+      return res.json({
+        ...parsed,
+        metadata: { cacheHit: true },
+      });
+    }
+
+    // Get popular searches from the service
+    const popularSearches = await searchService.getPopularSearches(
+      timeRange,
+      limit
+    );
+
+    const result = {
+      searches: popularSearches,
+      timeRange,
+      timestamp: new Date().toISOString(),
+      metadata: {
+        cacheHit: false,
+        searchesCount: popularSearches.length,
+      },
+    };
+
+    // Cache popular searches for 1 hour
+    await redis.setEx(cacheKey, 3600, JSON.stringify(result));
+
+    return res.json(result);
+  } catch (error) {
+    console.error("❌ Popular searches error:", error);
+    return res.status(500).json({
+      error: "Failed to get popular searches",
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
