@@ -1,13 +1,12 @@
 import express, { Request, Response } from "express";
 import { body, validationResult } from "express-validator";
 import { NotificationService } from "../services/notificationService";
-import { WebSocketService } from "../services/websocketService";
+import { webSocketService } from "../services/websocketService";
 import { authMiddleware } from "../middleware/authMiddleware";
 
 const router = express.Router();
 
-// Initialize services
-const webSocketService = new WebSocketService();
+// Initialize services using the shared singleton
 const notificationService = new NotificationService(webSocketService);
 
 // Validation schemas

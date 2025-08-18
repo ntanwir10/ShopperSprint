@@ -1,10 +1,11 @@
 import { getDb } from "../database/connection";
 import { users, userSessions, userPreferences } from "../database/schema";
-import { eq } from "drizzle-orm";
+import { eq, lt } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { EmailService } from "./emailService";
+import { auditService } from "./auditService";
 
 export interface UserRegistrationData {
   email: string;
@@ -41,6 +42,7 @@ export interface AuthResponse {
 
 export class AuthService {
   private emailService: EmailService | null = null;
+  private readonly MAX_CONCURRENT_SESSIONS = 5; // Maximum sessions per user
 
   constructor() {
     try {
@@ -57,142 +59,230 @@ export class AuthService {
   /**
    * Register a new user
    */
-  async registerUser(userData: UserRegistrationData): Promise<AuthResponse> {
-    // Check if user already exists
-    const existingUser = await getDb().query.users.findFirst({
-      where: eq(users.email, userData.email),
-    });
-
-    if (existingUser) {
-      throw new Error("Email is already registered");
-    }
-
-    const existingUsername = await getDb().query.users.findFirst({
-      where: eq(users.username, userData.username),
-    });
-
-    if (existingUsername) {
-      throw new Error("Username is already taken");
-    }
-
-    // Hash password
-    const saltRounds = 12;
-    const passwordHash = await bcrypt.hash(userData.password, saltRounds);
-
-    // Generate email verification token
-    const verificationToken = crypto.randomBytes(32).toString("hex");
-    const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-    // Create user
-    const [newUser] = await getDb()
-      .insert(users)
-      .values({
-        email: userData.email,
-        username: userData.username,
-        passwordHash,
-        firstName: userData.firstName || null,
-        lastName: userData.lastName || null,
-        emailVerified: false,
-        verificationToken,
-        verificationExpires,
-      })
-      .returning();
-
-    if (!newUser) {
-      throw new Error("Failed to create user");
-    }
-
-    // Create default user preferences
-    await getDb().insert(userPreferences).values({
-      userId: newUser.id,
-    });
-
-    // Send verification email
+  async registerUser(
+    userData: UserRegistrationData,
+    ipAddress?: string
+  ): Promise<AuthResponse> {
     try {
-      if (this.emailService) {
-        const payload: { email: string; token: string; firstName?: string } = {
-          email: userData.email,
-          token: verificationToken,
-        };
-        if (userData.firstName) payload.firstName = userData.firstName;
-        await this.emailService.sendUserVerificationEmail(payload);
+      // Check if user already exists
+      const existingUser = await getDb().query.users.findFirst({
+        where: eq(users.email, userData.email),
+      });
+
+      if (existingUser) {
+        await auditService.logAuthEvent(
+          "registration",
+          undefined,
+          ipAddress,
+          undefined,
+          false,
+          "Email already registered"
+        );
+        throw new Error("Email is already registered");
       }
+
+      const existingUsername = await getDb().query.users.findFirst({
+        where: eq(users.username, userData.username),
+      });
+
+      if (existingUsername) {
+        throw new Error("Username is already taken");
+      }
+
+      // Hash password
+      const saltRounds = 12;
+      const passwordHash = await bcrypt.hash(userData.password, saltRounds);
+
+      // Generate email verification token
+      const verificationToken = crypto.randomBytes(32).toString("hex");
+      const verificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+      // Create user
+      const [newUser] = await getDb()
+        .insert(users)
+        .values({
+          email: userData.email,
+          username: userData.username,
+          passwordHash,
+          firstName: userData.firstName || null,
+          lastName: userData.lastName || null,
+          emailVerified: false,
+          verificationToken,
+          verificationExpires,
+        })
+        .returning();
+
+      if (!newUser) {
+        throw new Error("Failed to create user");
+      }
+
+      // Create default user preferences
+      await getDb().insert(userPreferences).values({
+        userId: newUser.id,
+      });
+
+      // Send verification email
+      try {
+        if (this.emailService) {
+          const payload: { email: string; token: string; firstName?: string } =
+            {
+              email: userData.email,
+              token: verificationToken,
+            };
+          if (userData.firstName) payload.firstName = userData.firstName;
+          await this.emailService.sendUserVerificationEmail(payload);
+        }
+      } catch (error) {
+        console.error("Failed to send verification email:", error);
+      }
+
+      // Generate JWT token and session
+      const token = this.generateJWT(newUser.id);
+      const expiresAtDate = this.calculateExpiryDate();
+
+      // Enforce session limits before creating new session
+      await this.enforceSessionLimit(newUser.id);
+
+      // Store session
+      await getDb().insert(userSessions).values({
+        userId: newUser.id,
+        token,
+        expiresAt: expiresAtDate,
+      });
+
+      // Update last login
+      await getDb()
+        .update(users)
+        .set({ lastLogin: new Date() })
+        .where(eq(users.id, newUser.id));
+
+      // Log successful registration
+      await auditService.logAuthEvent(
+        "registration",
+        newUser.id,
+        ipAddress,
+        undefined,
+        true
+      );
+
+      return {
+        user: this.mapToUserProfile(newUser),
+        token,
+        expiresAt: expiresAtDate.toISOString(),
+      };
     } catch (error) {
-      console.error("Failed to send verification email:", error);
+      // Log failed registration
+      await auditService.logAuthEvent(
+        "registration",
+        undefined,
+        ipAddress,
+        undefined,
+        false,
+        error instanceof Error ? error.message : "Unknown error"
+      );
+      throw error;
     }
-
-    // Generate JWT token and session
-    const token = this.generateJWT(newUser.id);
-    const expiresAtDate = this.calculateExpiryDate();
-
-    // Store session
-    await getDb().insert(userSessions).values({
-      userId: newUser.id,
-      token,
-      expiresAt: expiresAtDate,
-    });
-
-    // Update last login
-    await getDb()
-      .update(users)
-      .set({ lastLogin: new Date() })
-      .where(eq(users.id, newUser.id));
-
-    return {
-      user: this.mapToUserProfile(newUser),
-      token,
-      expiresAt: expiresAtDate.toISOString(),
-    };
   }
 
   /**
    * Authenticate user login
    */
-  async loginUser(loginData: UserLoginData): Promise<AuthResponse> {
-    // Find user by email
-    const user = await getDb().query.users.findFirst({
-      where: eq(users.email, loginData.email),
-    });
+  async loginUser(
+    loginData: UserLoginData,
+    ipAddress?: string,
+    userAgent?: string
+  ): Promise<AuthResponse> {
+    try {
+      // Find user by email
+      const user = await getDb().query.users.findFirst({
+        where: eq(users.email, loginData.email),
+      });
 
-    if (!user) {
-      throw new Error("Invalid email or password");
+      if (!user) {
+        await auditService.logAuthEvent(
+          "failed_login",
+          undefined,
+          ipAddress,
+          userAgent,
+          false,
+          "User not found"
+        );
+        throw new Error("Invalid email or password");
+      }
+
+      if (!user.isActive) {
+        throw new Error("Account is deactivated");
+      }
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(
+        loginData.password,
+        user.passwordHash
+      );
+      if (!isPasswordValid) {
+        await auditService.logAuthEvent(
+          "failed_login",
+          user.id,
+          ipAddress,
+          userAgent,
+          false,
+          "Invalid password"
+        );
+        throw new Error("Invalid email or password");
+      }
+
+      // Generate JWT token and session
+      const token = this.generateJWT(user.id);
+      const expiresAtDate = this.calculateExpiryDate();
+
+      // Enforce session limits before creating new session
+      await this.enforceSessionLimit(user.id);
+
+      // Store session
+      await getDb().insert(userSessions).values({
+        userId: user.id,
+        token,
+        expiresAt: expiresAtDate,
+      });
+
+      // Update last login
+      await getDb()
+        .update(users)
+        .set({ lastLogin: new Date() })
+        .where(eq(users.id, user.id));
+
+      // Log successful login
+      await auditService.logAuthEvent(
+        "login",
+        user.id,
+        ipAddress,
+        userAgent,
+        true
+      );
+
+      return {
+        user: this.mapToUserProfile(user),
+        token,
+        expiresAt: expiresAtDate.toISOString(),
+      };
+    } catch (error) {
+      // Additional error logging if not already logged
+      if (
+        error instanceof Error &&
+        !error.message.includes("Invalid email or password") &&
+        !error.message.includes("Account is deactivated")
+      ) {
+        await auditService.logAuthEvent(
+          "failed_login",
+          undefined,
+          ipAddress,
+          userAgent,
+          false,
+          error.message
+        );
+      }
+      throw error;
     }
-
-    if (!user.isActive) {
-      throw new Error("Account is deactivated");
-    }
-
-    // Verify password
-    const isPasswordValid = await bcrypt.compare(
-      loginData.password,
-      user.passwordHash
-    );
-    if (!isPasswordValid) {
-      throw new Error("Invalid email or password");
-    }
-
-    // Generate JWT token and session
-    const token = this.generateJWT(user.id);
-    const expiresAtDate = this.calculateExpiryDate();
-
-    // Store session
-    await getDb().insert(userSessions).values({
-      userId: user.id,
-      token,
-      expiresAt: expiresAtDate,
-    });
-
-    // Update last login
-    await getDb()
-      .update(users)
-      .set({ lastLogin: new Date() })
-      .where(eq(users.id, user.id));
-
-    return {
-      user: this.mapToUserProfile(user),
-      token,
-      expiresAt: expiresAtDate.toISOString(),
-    };
   }
 
   /**
@@ -200,9 +290,27 @@ export class AuthService {
    */
   async verifyToken(token: string): Promise<{ userId: string }> {
     try {
-      const JWT_SECRET = (process.env["JWT_SECRET"] ||
-        "your-secret-key-change-in-production") as jwt.Secret;
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      const secret = process.env["JWT_SECRET"];
+
+      // Enforce secure JWT secret in all environments
+      if (!secret) {
+        throw new Error("JWT_SECRET environment variable is required");
+      }
+
+      // Check for insecure default secrets
+      if (
+        secret === "your-secret-key-change-in-production" ||
+        secret === "dev-secret" ||
+        secret.length < 32
+      ) {
+        throw new Error(
+          "JWT_SECRET must be a secure secret of at least 32 characters"
+        );
+      }
+
+      const decoded = jwt.verify(token, secret as jwt.Secret) as {
+        userId: string;
+      };
       return decoded;
     } catch (error) {
       throw new Error("Invalid token");
@@ -214,9 +322,25 @@ export class AuthService {
    */
   async validateToken(token: string): Promise<UserProfile | null> {
     try {
-      const JWT_SECRET = (process.env["JWT_SECRET"] ||
-        "your-secret-key-change-in-production") as jwt.Secret;
-      const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
+      const secret = process.env["JWT_SECRET"];
+
+      // Enforce secure JWT secret in all environments
+      if (!secret) {
+        return null;
+      }
+
+      // Check for insecure default secrets
+      if (
+        secret === "your-secret-key-change-in-production" ||
+        secret === "dev-secret" ||
+        secret.length < 32
+      ) {
+        return null;
+      }
+
+      const decoded = jwt.verify(token, secret as jwt.Secret) as {
+        userId: string;
+      };
 
       // Check if session exists and is active
       const session = await getDb().query.userSessions.findFirst({
@@ -332,26 +456,87 @@ export class AuthService {
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId));
+
+    // Revoke all existing sessions for this user
+    await getDb()
+      .update(userSessions)
+      .set({ isActive: false })
+      .where(eq(userSessions.userId, userId));
+  }
+
+  /**
+   * Enforce concurrent session limits per user
+   * Security: Prevent session hijacking and limit concurrent sessions
+   */
+  private async enforceSessionLimit(userId: string): Promise<void> {
+    // Get all active sessions for the user, ordered by creation time (newest first)
+    const activeSessions = await getDb().query.userSessions.findMany({
+      where: eq(userSessions.userId, userId),
+      orderBy: [userSessions.createdAt],
+    });
+
+    // Filter for truly active sessions (not expired and active)
+    const now = new Date();
+    const validSessions = activeSessions.filter(
+      (session) => session.isActive && session.expiresAt > now
+    );
+
+    // If we're at or over the limit, deactivate the oldest sessions
+    if (validSessions.length >= this.MAX_CONCURRENT_SESSIONS) {
+      const sessionsToDeactivate = validSessions.slice(
+        0,
+        validSessions.length - this.MAX_CONCURRENT_SESSIONS + 1
+      );
+
+      for (const session of sessionsToDeactivate) {
+        await getDb()
+          .update(userSessions)
+          .set({ isActive: false })
+          .where(eq(userSessions.id, session.id));
+      }
+
+      console.log(
+        `Deactivated ${sessionsToDeactivate.length} old sessions for user ${userId}`
+      );
+    }
   }
 
   /**
    * Clean up expired sessions
    */
   async cleanupExpiredSessions(): Promise<void> {
+    // Deactivate all sessions that are expired
+    const now = new Date();
     await getDb()
       .update(userSessions)
       .set({ isActive: false })
-      .where(eq(userSessions.expiresAt, new Date()));
+      .where(lt(userSessions.expiresAt, now));
   }
 
   /**
    * Generate JWT token
    */
   private generateJWT(userId: string): string {
-    const JWT_SECRET = (process.env["JWT_SECRET"] ||
-      "your-secret-key-change-in-production") as jwt.Secret;
+    const secret = process.env["JWT_SECRET"];
+
+    // Enforce secure JWT secret in all environments
+    if (!secret) {
+      throw new Error("JWT_SECRET environment variable is required");
+    }
+
+    // Check for insecure default secrets
+    if (
+      secret === "your-secret-key-change-in-production" ||
+      secret === "dev-secret" ||
+      secret.length < 32
+    ) {
+      throw new Error(
+        "JWT_SECRET must be a secure secret of at least 32 characters"
+      );
+    }
+
     const JWT_EXPIRES_IN = process.env["JWT_EXPIRES_IN"] || "7d";
-    return jwt.sign({ userId }, JWT_SECRET, {
+    return jwt.sign({ userId }, secret as jwt.Secret, {
       expiresIn: JWT_EXPIRES_IN as any,
     });
   }

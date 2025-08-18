@@ -47,7 +47,9 @@ export class AnonymousNotificationService {
   /**
    * Create a new anonymous price alert
    */
-  async createAnonymousAlert(data: CreateAnonymousAlertData): Promise<AnonymousPriceAlert> {
+  async createAnonymousAlert(
+    data: CreateAnonymousAlertData
+  ): Promise<AnonymousPriceAlert> {
     // Verify product exists
     const product = await getDb().query.products.findFirst({
       where: eq(products.id, data.productId),
@@ -140,9 +142,9 @@ export class AnonymousNotificationService {
   async verifyAlert(verificationToken: string): Promise<AnonymousPriceAlert> {
     const [alert] = await getDb()
       .update(anonymousPriceAlerts)
-      .set({ 
+      .set({
         isVerified: true,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
       .where(eq(anonymousPriceAlerts.verificationToken, verificationToken))
       .returning();
@@ -171,7 +173,9 @@ export class AnonymousNotificationService {
   /**
    * Get alert details by management token
    */
-  async getAlertByManagementToken(managementToken: string): Promise<AnonymousPriceAlert | null> {
+  async getAlertByManagementToken(
+    managementToken: string
+  ): Promise<AnonymousPriceAlert | null> {
     const alert = await getDb().query.anonymousPriceAlerts.findFirst({
       where: eq(anonymousPriceAlerts.managementToken, managementToken),
       with: {
@@ -265,7 +269,9 @@ export class AnonymousNotificationService {
       with: {
         product: true,
       },
-      orderBy: (anonymousPriceAlerts, { desc }) => [desc(anonymousPriceAlerts.createdAt)],
+      orderBy: (anonymousPriceAlerts, { desc }) => [
+        desc(anonymousPriceAlerts.createdAt),
+      ],
     });
 
     return alerts.map((alert) => ({
@@ -341,21 +347,24 @@ export class AnonymousNotificationService {
 
     // Send email notification
     try {
-      await this.emailService.sendPriceAlertTriggeredEmail({
-        id: alert.id,
-        email: alert.email,
-        productId: alert.productId,
-        targetPrice: alert.targetPrice,
-        currency: alert.currency,
-        alertType: alert.alertType,
-        threshold: alert.threshold,
-        verificationToken: alert.verificationToken,
-        managementToken: alert.managementToken,
-        isVerified: alert.isVerified,
-        isActive: alert.isActive,
-        createdAt: alert.createdAt,
-        updatedAt: alert.updatedAt,
-      }, currentPrice);
+      await this.emailService.sendPriceAlertTriggeredEmail(
+        {
+          id: alert.id,
+          email: alert.email,
+          productId: alert.productId,
+          targetPrice: alert.targetPrice,
+          currency: alert.currency,
+          alertType: alert.alertType,
+          threshold: alert.threshold,
+          verificationToken: alert.verificationToken,
+          managementToken: alert.managementToken,
+          isVerified: alert.isVerified,
+          isActive: alert.isActive,
+          createdAt: alert.createdAt,
+          updatedAt: alert.updatedAt,
+        },
+        currentPrice
+      );
     } catch (emailError) {
       console.error("Failed to send price alert notification:", emailError);
     }
@@ -381,7 +390,7 @@ export class AnonymousNotificationService {
       .where(eq(anonymousPriceAlerts.isVerified, true));
 
     // Count unique emails
-    const uniqueEmails = new Set(totalAlertsResult.map(alert => alert.email));
+    const uniqueEmails = new Set(totalAlertsResult.map((alert) => alert.email));
 
     return {
       totalAlerts: totalAlertsResult.length,
@@ -396,17 +405,16 @@ export class AnonymousNotificationService {
    */
   async cleanupExpiredTokens(): Promise<number> {
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    
-    const [result] = await getDb()
+
+    // Delete all unverified tokens created more than 24 hours ago
+    const deleted = await getDb()
       .delete(anonymousPriceAlerts)
       .where(
-        and(
-          eq(anonymousPriceAlerts.isVerified, false),
-          eq(anonymousPriceAlerts.createdAt, twentyFourHoursAgo)
-        )
-      )
-      .returning({ count: anonymousPriceAlerts.id });
+        ({ sql }) =>
+          sql`${anonymousPriceAlerts.isVerified} = false AND ${anonymousPriceAlerts.createdAt} < ${twentyFourHoursAgo}` as any
+      );
 
-    return result ? 1 : 0;
+    // Drizzle's delete() without returning doesn't provide count; best-effort return
+    return Array.isArray(deleted) ? deleted.length : 0;
   }
 }

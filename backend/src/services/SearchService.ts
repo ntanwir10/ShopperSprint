@@ -176,43 +176,19 @@ export class SearchService {
       const limitedResults = filteredResults.slice(0, maxResults);
 
       // Transform results to match the expected Zod schema
-      const transformedResults = limitedResults.map((product) => {
-        // Generate meaningful product names based on the search query
-        let productName = product.name;
-        if (!productName || productName.startsWith("Product ")) {
-          const queryWords = request.query.split(" ").slice(0, 3);
-          const randomSuffix = Math.random().toString(36).substring(2, 6);
-          productName = `${queryWords.join(" ")} ${randomSuffix}`;
-        }
-
-        // Generate meaningful source names
-        let sourceName = product.source;
-        if (!sourceName || sourceName.startsWith("Source ")) {
-          const sources = [
-            "Amazon",
-            "Best Buy",
-            "Walmart",
-            "Target",
-            "Newegg",
-            "B&H Photo",
-          ];
-          sourceName = sources[Math.floor(Math.random() * sources.length)];
-        }
-
-        return {
-          id: product.id,
-          name: productName,
-          price: product.price,
-          currency: product.currency,
-          availability: product.availability,
-          source: sourceName,
-          imageUrl: product.imageUrl,
-          rating: product.rating,
-          reviewCount: product.reviewCount,
-          url: product.url,
-          lastScraped: product.lastScraped.toISOString(),
-        };
-      });
+      const transformedResults = limitedResults.map((product) => ({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        currency: product.currency,
+        availability: product.availability,
+        source: product.source,
+        imageUrl: product.imageUrl,
+        rating: product.rating,
+        reviewCount: product.reviewCount,
+        url: product.url,
+        lastScraped: product.lastScraped.toISOString(),
+      }));
 
       const searchDuration = Date.now() - startTime;
 
@@ -251,7 +227,10 @@ export class SearchService {
   }
 
   // Get search suggestions based on query
-  async getSearchSuggestions(query: string, limit: number = 10): Promise<string[]> {
+  async getSearchSuggestions(
+    query: string,
+    limit: number = 10
+  ): Promise<string[]> {
     try {
       // For now, generate mock suggestions based on the query
       // In a real implementation, this would query a search history database
@@ -270,7 +249,9 @@ export class SearchService {
 
       // Filter and limit suggestions
       const suggestions = mockSuggestions
-        .filter(suggestion => suggestion.toLowerCase().includes(query.toLowerCase()))
+        .filter((suggestion) =>
+          suggestion.toLowerCase().includes(query.toLowerCase())
+        )
         .slice(0, limit);
 
       // Add some generic suggestions if we don't have enough
@@ -285,8 +266,8 @@ export class SearchService {
           "automotive",
           "health & beauty",
         ];
-        
-        genericSuggestions.forEach(suggestion => {
+
+        genericSuggestions.forEach((suggestion) => {
           if (suggestions.length < limit && !suggestions.includes(suggestion)) {
             suggestions.push(suggestion);
           }
@@ -301,7 +282,10 @@ export class SearchService {
   }
 
   // Get popular search terms
-  async getPopularSearches(timeRange: string = "7d", limit: number = 20): Promise<Array<{ term: string; count: number }>> {
+  async getPopularSearches(
+    timeRange: string = "7d",
+    limit: number = 20
+  ): Promise<Array<{ term: string; count: number }>> {
     try {
       // For now, return mock popular searches
       // In a real implementation, this would query search analytics
@@ -331,9 +315,15 @@ export class SearchService {
       // Filter by time range (mock implementation)
       let filteredSearches = mockPopularSearches;
       if (timeRange === "30d") {
-        filteredSearches = mockPopularSearches.map(s => ({ ...s, count: Math.floor(s.count * 0.7) }));
+        filteredSearches = mockPopularSearches.map((s) => ({
+          ...s,
+          count: Math.floor(s.count * 0.7),
+        }));
       } else if (timeRange === "90d") {
-        filteredSearches = mockPopularSearches.map(s => ({ ...s, count: Math.floor(s.count * 0.5) }));
+        filteredSearches = mockPopularSearches.map((s) => ({
+          ...s,
+          count: Math.floor(s.count * 0.5),
+        }));
       }
 
       return filteredSearches.slice(0, limit);

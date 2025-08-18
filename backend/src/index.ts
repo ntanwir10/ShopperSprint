@@ -10,6 +10,13 @@ import { json } from "body-parser";
 import { logger } from "./middleware/logger";
 import { errorHandler } from "./middleware/errorHandler";
 import {
+  securityHeaders,
+  contentSecurityPolicy,
+  csrfProtection,
+  sanitizeInput,
+  requestLogger,
+} from "./middleware/validationMiddleware";
+import {
   initDatabase,
   initRedis,
   closeConnections,
@@ -23,9 +30,22 @@ import anonymousNotificationsRouter from "./routes/anonymousNotifications";
 import { authRouter } from "./routes/auth";
 import notificationsRouter from "./routes/notifications";
 import { monitoringRouter } from "./routes/monitoring";
+import { webSocketService } from "./services/websocketService";
 
 const app = express();
 const PORT = Number(process.env["PORT"] || 3001);
+
+// Enforce required secrets/config in production
+const IS_PRODUCTION =
+  (process.env["NODE_ENV"] || "development") === "production";
+if (IS_PRODUCTION && !process.env["JWT_SECRET"]) {
+  throw new Error("Missing required JWT_SECRET in production environment");
+}
+if (!IS_PRODUCTION && !process.env["JWT_SECRET"]) {
+  console.warn(
+    "Warning: JWT_SECRET is not set. Authentication features may not work as expected."
+  );
+}
 
 // Rate limiting
 const limiter = rateLimit({
@@ -38,16 +58,64 @@ const limiter = rateLimit({
   },
 });
 
-// Middleware
-app.use(helmet());
+// Security middleware
+app.use(securityHeaders);
+app.use(contentSecurityPolicy);
+app.use(sanitizeInput);
+
+// Core middleware
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // We handle CSP manually
+    crossOriginOpenerPolicy: false, // We handle this in nginx
+  })
+);
 app.use(
   cors({
-    origin: process.env["FRONTEND_URL"] || "http://localhost:5173",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+
+      const allowedOrigins = [
+        process.env["FRONTEND_URL"] || "http://localhost:5173",
+        "http://localhost:3000", // Additional dev origins
+        "http://localhost:5000",
+      ];
+
+      // In production, be more strict
+      if (process.env["NODE_ENV"] === "production") {
+        const isAllowed = allowedOrigins.includes(origin);
+        return callback(
+          isAllowed ? null : new Error("Not allowed by CORS"),
+          isAllowed
+        );
+      }
+
+      // In development, allow all localhost origins
+      if (origin.includes("localhost") || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error("Not allowed by CORS"), false);
+    },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "X-CSRF-Token",
+    ],
+    exposedHeaders: [
+      "X-RateLimit-Limit",
+      "X-RateLimit-Remaining",
+      "X-RateLimit-Reset",
+    ],
   })
 );
 app.use(limiter);
 app.use(json());
+app.use(requestLogger);
 app.use(logger);
 
 // Health check endpoints
@@ -57,6 +125,8 @@ app.get("/health", (_req, res) => {
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     environment: process.env["NODE_ENV"] || "development",
+    authEnabled:
+      String(process.env["AUTH_ENABLED"] || "false").toLowerCase() === "true",
   });
 });
 
@@ -67,17 +137,22 @@ app.get("/ping", (_req, res) => {
   });
 });
 
-// API routes
+// API routes (with CSRF protection for state-changing operations)
 app.use("/api/search", searchRouter);
 app.use("/api/ads", advertisementRouter);
 app.use("/api/price-history", priceHistoryRouter);
-app.use("/api/anonymous-notifications", anonymousNotificationsRouter);
+app.use(
+  "/api/anonymous-notifications",
+  csrfProtection,
+  anonymousNotificationsRouter
+);
 
 // Gate auth-related routes behind AUTH_ENABLED flag
-const AUTH_ENABLED = String(process.env["AUTH_ENABLED"] || "false").toLowerCase() === "true";
+const AUTH_ENABLED =
+  String(process.env["AUTH_ENABLED"] || "false").toLowerCase() === "true";
 if (AUTH_ENABLED) {
-  app.use("/api/auth", authRouter);
-  app.use("/api/notifications", notificationsRouter);
+  app.use("/api/auth", csrfProtection, authRouter);
+  app.use("/api/notifications", csrfProtection, notificationsRouter);
 }
 
 // Monitoring endpoints always available (re-enabled)
@@ -125,6 +200,13 @@ const server = app.listen(PORT, () => {
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`🌐 API base: http://localhost:${PORT}/api`);
 });
+
+// Initialize WebSocket server on existing HTTP server
+try {
+  webSocketService.initialize(server);
+} catch (err) {
+  console.error("Failed to initialize WebSocket server:", err);
+}
 
 // Schedule periodic cleanup of expired verification tokens (every 6 hours)
 setInterval(async () => {

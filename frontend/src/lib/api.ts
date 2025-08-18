@@ -131,11 +131,21 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const url = `${baseUrl}${endpoint}`;
 
-    // Log the request for debugging
-    console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`, {
-      body: options.body,
-      headers: options.headers,
-    });
+    // Log the request for debugging (development only; redact auth header)
+    const isProd = import.meta.env.PROD;
+    if (!isProd) {
+      const safeHeaders = { ...(options.headers as any) };
+      if (
+        safeHeaders &&
+        typeof safeHeaders === 'object' &&
+        'Authorization' in safeHeaders
+      ) {
+        safeHeaders.Authorization = 'Bearer ***redacted***';
+      }
+      console.log(`🌐 API Request: ${options.method || 'GET'} ${url}`, {
+        headers: safeHeaders,
+      });
+    }
 
     try {
       const response = await fetch(url, {
@@ -147,18 +157,19 @@ class ApiClient {
         ...options,
       });
 
-      // Log the response for debugging
-      console.log(
-        `📡 API Response: ${response.status} ${response.statusText}`,
-        {
-          url: response.url,
-          headers: Object.fromEntries(response.headers.entries()),
-        }
-      );
+      // Log the response for debugging (development only)
+      if (!isProd) {
+        console.log(
+          `📡 API Response: ${response.status} ${response.statusText}`,
+          {
+            url: response.url,
+          }
+        );
+      }
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('❌ API Error Response:', errorData);
+        if (!isProd) console.error('❌ API Error Response:', errorData);
 
         // Auto-logout and redirect on 401 Unauthorized
         if (response.status === 401) {
@@ -186,7 +197,6 @@ class ApiClient {
       }
 
       const data = await response.json();
-      console.log('✅ API Success Response:', data);
 
       return { data };
     } catch (error) {
@@ -394,11 +404,17 @@ class ApiClient {
   async createPriceAlert(
     alertData: CreatePriceAlertRequest
   ): Promise<ApiResponse<PriceAlert>> {
+    const payload = {
+      ...alertData,
+      ...(alertData.targetPrice != null
+        ? { targetPrice: Math.round(alertData.targetPrice * 100) }
+        : {}),
+    } as CreatePriceAlertRequest;
     return this.request<PriceAlert>(
       '/api/notifications/alerts',
       {
         method: 'POST',
-        body: JSON.stringify(alertData),
+        body: JSON.stringify(payload),
       },
       this.backendUrl
     );
@@ -418,11 +434,17 @@ class ApiClient {
     alertId: string,
     updates: Partial<PriceAlert>
   ): Promise<ApiResponse<PriceAlert>> {
+    const payload = {
+      ...updates,
+      ...(updates.targetPrice != null
+        ? { targetPrice: Math.round((updates.targetPrice as number) * 100) }
+        : {}),
+    } as Partial<PriceAlert>;
     return this.request<PriceAlert>(
       `/api/notifications/alerts/${alertId}`,
       {
         method: 'PUT',
-        body: JSON.stringify(updates),
+        body: JSON.stringify(payload),
       },
       this.backendUrl
     );
@@ -444,7 +466,12 @@ class ApiClient {
     timeRange: string = '30d'
   ): Promise<ApiResponse<PriceHistoryPoint[]>> {
     // Backend expects `days` numeric param; map common ranges
-    const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
+    const daysMap: Record<string, number> = {
+      '7d': 7,
+      '30d': 30,
+      '90d': 90,
+      '1y': 365,
+    };
     const days = daysMap[timeRange] ?? 30;
     try {
       const response = await fetch(
@@ -486,7 +513,10 @@ class ApiClient {
   async testConnection(): Promise<boolean> {
     try {
       const response = await this.health();
-      return !response.error && ['OK', 'healthy', 'Healthy'].includes(response.data?.status);
+      return (
+        !response.error &&
+        ['OK', 'healthy', 'Healthy'].includes(response.data?.status)
+      );
     } catch {
       return false;
     }

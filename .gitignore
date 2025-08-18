@@ -117,3 +117,19 @@ Thumbs.db
 
 # Task Master
 .taskmaster/
+
+logs
+dev-debug.log
+# Environment variables
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+
+# Task files
+# tasks.json
+# tasks/ 

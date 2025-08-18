@@ -1,4 +1,5 @@
 import { Router, Request, Response } from "express";
+import rateLimit from "express-rate-limit";
 import { body, validationResult } from "express-validator";
 import { AuthService } from "../services/authService";
 import { authMiddleware } from "../middleware/authMiddleware";
@@ -6,6 +7,14 @@ import { oauthService } from "../services/oauthService";
 
 const router = Router();
 const authService = new AuthService();
+
+// Stricter rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // Validation schemas
 const registerValidation = [
@@ -60,6 +69,7 @@ const passwordChangeValidation = [
  */
 router.post(
   "/register",
+  authLimiter,
   registerValidation,
   async (req: Request, res: Response) => {
     try {
@@ -103,42 +113,47 @@ router.post(
  * POST /api/auth/login
  * Authenticate user login
  */
-router.post("/login", loginValidation, async (req: Request, res: Response) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({
-        error: "Validation failed",
-        details: errors.array(),
+router.post(
+  "/login",
+  authLimiter,
+  loginValidation,
+  async (req: Request, res: Response) => {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          error: "Validation failed",
+          details: errors.array(),
+        });
+      }
+
+      const loginData = req.body;
+      const result = await authService.loginUser(loginData);
+
+      return res.status(200).json({
+        message: "Login successful",
+        user: result.user,
+        token: result.token,
+        expiresAt: result.expiresAt,
+      });
+    } catch (error: any) {
+      if (
+        error.message.includes("Invalid email or password") ||
+        error.message.includes("deactivated")
+      ) {
+        return res.status(401).json({
+          error: "Authentication failed",
+          message: error.message,
+        });
+      }
+
+      return res.status(500).json({
+        error: "Internal server error",
+        message: "Failed to authenticate user",
       });
     }
-
-    const loginData = req.body;
-    const result = await authService.loginUser(loginData);
-
-    return res.status(200).json({
-      message: "Login successful",
-      user: result.user,
-      token: result.token,
-      expiresAt: result.expiresAt,
-    });
-  } catch (error: any) {
-    if (
-      error.message.includes("Invalid email or password") ||
-      error.message.includes("deactivated")
-    ) {
-      return res.status(401).json({
-        error: "Authentication failed",
-        message: error.message,
-      });
-    }
-
-    return res.status(500).json({
-      error: "Internal server error",
-      message: "Failed to authenticate user",
-    });
   }
-});
+);
 
 // OAuth start endpoints
 router.get("/oauth/google", async (_req: Request, res: Response) => {

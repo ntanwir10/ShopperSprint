@@ -245,6 +245,13 @@ VITE_MOCK_DATA_ENABLED=true
 VITE_HOT_RELOAD=true
 ```
 
+### Auth Flags Alignment
+
+- Backend flag: `AUTH_ENABLED` (backend/.env) — controls whether `/api/auth` and `/api/notifications` are mounted.
+- Frontend flag: `VITE_AUTH_ENABLED` (frontend/.env) — toggles auth UI/features.
+
+Keep these flags consistent across environments. The backend `/health` returns `authEnabled`; the frontend logs a console warning if it detects a mismatch at runtime.
+
 ### Supabase Configuration (optional but recommended)
 
 If you are integrating Supabase (managed Postgres + Auth), add the following variables.

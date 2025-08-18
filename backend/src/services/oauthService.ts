@@ -251,10 +251,26 @@ export class OAuthService {
   }
 
   private generateJWT(userId: string): string {
-    const JWT_SECRET = (process.env["JWT_SECRET"] ||
-      "your-secret-key-change-in-production") as jwt.Secret;
+    const secret = process.env["JWT_SECRET"];
+
+    // Enforce secure JWT secret in all environments
+    if (!secret) {
+      throw new Error("JWT_SECRET environment variable is required");
+    }
+
+    // Check for insecure default secrets
+    if (
+      secret === "your-secret-key-change-in-production" ||
+      secret === "dev-secret" ||
+      secret.length < 32
+    ) {
+      throw new Error(
+        "JWT_SECRET must be a secure secret of at least 32 characters"
+      );
+    }
+
     const JWT_EXPIRES_IN = process.env["JWT_EXPIRES_IN"] || "7d";
-    return jwt.sign({ userId }, JWT_SECRET, {
+    return jwt.sign({ userId }, secret as jwt.Secret, {
       expiresIn: JWT_EXPIRES_IN as any,
     });
   }

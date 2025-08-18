@@ -1,4 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useEffect } from 'react';
+import { connectWebSocket } from './lib/ws';
 import { ThemeProvider } from './components/ThemeProvider';
 import { Header } from './components/Header';
 import LandingPage from './components/LandingPage';
@@ -11,6 +13,9 @@ import TestAnonymousAlert from './components/TestAnonymousAlert';
 import ScrollToTop from './components/ScrollToTop';
 
 function App() {
+  useEffect(() => {
+    connectWebSocket();
+  }, []);
   return (
     <ThemeProvider>
       <Router>

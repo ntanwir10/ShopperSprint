@@ -163,6 +163,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return () => window.removeEventListener('storage', onStorage);
   }, []);
 
+  // Warn if frontend and backend auth flags are misaligned
+  useEffect(() => {
+    const frontendAuthEnabled =
+      (import.meta.env.VITE_AUTH_ENABLED || 'false') === 'true';
+    (async () => {
+      try {
+        const resp = await apiClient.health();
+        const backendAuthEnabled = (resp.data as any)?.authEnabled;
+        if (
+          typeof backendAuthEnabled === 'boolean' &&
+          backendAuthEnabled !== frontendAuthEnabled
+        ) {
+          console.warn(
+            `[AuthFlagMismatch] Frontend VITE_AUTH_ENABLED=${frontendAuthEnabled} but backend AUTH_ENABLED=${backendAuthEnabled}.` +
+              ' Ensure environment variables are consistent across frontend and backend.'
+          );
+        }
+      } catch {
+        // ignore
+      }
+    })();
+  }, []);
+
   const login = async (
     email: string,
     password: string

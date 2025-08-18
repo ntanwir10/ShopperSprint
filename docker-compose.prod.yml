@@ -75,6 +75,13 @@ services:
     image: postgres:15-alpine
     container_name: pricepulse-postgres-prod
     restart: unless-stopped
+    user: "999:999" # postgres user
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
@@ -105,6 +112,12 @@ services:
     image: redis:7-alpine
     container_name: pricepulse-redis-prod
     restart: unless-stopped
+    user: "999:999" # redis user
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - redis-data:/data
@@ -200,9 +213,13 @@ services:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
     container_name: pricepulse-elasticsearch
     restart: unless-stopped
+    user: "1000:1000" # elasticsearch user
+    security_opt:
+      - no-new-privileges:true
     environment:
       - discovery.type=single-node
-      - xpack.security.enabled=false
+      - xpack.security.enabled=true
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
