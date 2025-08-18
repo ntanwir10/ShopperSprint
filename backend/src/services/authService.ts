@@ -110,12 +110,12 @@ export class AuthService {
     // Send verification email
     try {
       if (this.emailService) {
-        const payload: any = {
+        const payload: { email: string; token: string; firstName?: string } = {
           email: userData.email,
           token: verificationToken,
         };
         if (userData.firstName) payload.firstName = userData.firstName;
-        await this.emailService.sendVerificationEmail(payload);
+        await this.emailService.sendUserVerificationEmail(payload);
       }
     } catch (error) {
       console.error("Failed to send verification email:", error);
@@ -431,8 +431,11 @@ export class AuthService {
 
       // Send reset email
       if (this.emailService) {
-        const payload: any = { email: user.email, token: resetToken };
-        if (user.firstName) payload.firstName = user.firstName;
+        const payload: { email: string; token: string; firstName?: string } = {
+          email: user.email,
+          token: resetToken,
+        };
+        if (user.firstName) payload.firstName = user.firstName as string;
         await this.emailService.sendPasswordResetEmail(payload);
       }
 

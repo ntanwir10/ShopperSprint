@@ -1,294 +1,412 @@
-import * as nodemailer from "nodemailer";
-import { config } from "dotenv";
-
-config();
-
-export interface EmailOptions {
-  to: string;
-  subject: string;
-  html: string;
-  text?: string;
-}
-
-export interface VerificationEmailData {
-  email: string;
-  token: string;
-  firstName?: string;
-}
-
-export interface PriceAlertEmailData {
-  email: string;
-  productName: string;
-  currentPrice: number;
-  targetPrice: number;
-  productUrl: string;
-  alertType: string;
-}
-
-export interface PasswordResetEmailData {
-  email: string;
-  token: string;
-  firstName?: string;
-}
+import * as dotenv from "dotenv";
+dotenv.config();
+import nodemailer, { Transporter } from "nodemailer";
+import { AnonymousPriceAlert } from "./anonymousNotificationService";
 
 export class EmailService {
-  private transporter: nodemailer.Transporter;
-  private frontendBaseUrl: string;
+  private transporter: Transporter;
 
   constructor() {
-    // Create transporter using environment variables
+    const secure = String(process.env["SMTP_SECURE"] || "false") === "true";
     this.transporter = nodemailer.createTransport({
       host: process.env["SMTP_HOST"] || "smtp.gmail.com",
-      port: parseInt(process.env["SMTP_PORT"] || "587"),
-      secure: false, // true for 465, false for other ports
+      port: parseInt(process.env["SMTP_PORT"] || (secure ? "465" : "587")),
+      secure,
       auth: {
         user: process.env["SMTP_USER"],
         pass: process.env["SMTP_PASS"],
       },
     });
-
-    // Determine frontend base URL with sensible default for dev
-    const fallbackFrontend = "http://localhost:5173";
-    const envFrontend = process.env["FRONTEND_URL"];
-    this.frontendBaseUrl =
-      envFrontend && envFrontend.trim().length > 0
-        ? envFrontend
-        : fallbackFrontend;
   }
 
-  async sendEmail(options: EmailOptions): Promise<boolean> {
-    try {
-      const mailOptions = {
-        from: process.env["SMTP_FROM"] || process.env["SMTP_USER"],
-        to: options.to,
-        subject: options.subject,
-        html: options.html,
-        text: options.text || this.htmlToText(options.html),
-      };
-
-      const result = await this.transporter.sendMail(mailOptions);
-      console.log(
-        `Email sent successfully to ${options.to}:`,
-        result.messageId
-      );
-      return true;
-    } catch (error) {
-      console.error("Failed to send email:", error);
-      return false;
-    }
-  }
-
-  async sendVerificationEmail(data: VerificationEmailData): Promise<boolean> {
-    const verificationUrl = `${this.frontendBaseUrl}/email-verification?token=${data.token}`;
+  /**
+   * Send verification email for registered user
+   */
+  async sendUserVerificationEmail(input: {
+    email: string;
+    token: string;
+    firstName?: string;
+  }): Promise<void> {
+    const verificationUrl = `${process.env["FRONTEND_URL"] || "http://localhost:5173"}/verify-email?token=${input.token}`;
 
     const html = `
-      <!DOCTYPE html>
       <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Verify Your Email - PricePulse</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Welcome to PricePulse!</h1>
-              <p>Verify your email to get started</p>
-            </div>
-            <div class="content">
-              <h2>Hi ${data.firstName || "there"}!</h2>
-              <p>Welcome to PricePulse! We're excited to have you on board.</p>
-              <p>To complete your registration and start tracking prices, please verify your email address by clicking the button below:</p>
-              
-              <div style="text-align: center;">
-                <a href="${verificationUrl}" class="button">Verify Email Address</a>
-              </div>
-              
-              <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; color: #667eea;">${verificationUrl}</p>
-              
-              <p>This link will expire in 24 hours for security reasons.</p>
-              
-              <p>If you didn't create an account with PricePulse, you can safely ignore this email.</p>
-            </div>
-            <div class="footer">
-              <p>&copy; 2024 PricePulse. All rights reserved.</p>
-              <p>This email was sent to ${data.email}</p>
-            </div>
-          </div>
+        <body style="font-family: Arial, sans-serif">
+          <h2>Verify your PricePulse account</h2>
+          <p>Hello${input.firstName ? ` ${input.firstName}` : ""},</p>
+          <p>Thanks for signing up. Please verify your email to activate your account.</p>
+          <p><a href="${verificationUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none">Verify Email</a></p>
+          <p>Or copy this link: <a href="${verificationUrl}">${verificationUrl}</a></p>
         </body>
       </html>
     `;
 
-    return this.sendEmail({
-      to: data.email,
-      subject: "Verify Your Email - PricePulse",
+    await this.transporter.sendMail({
+      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      to: input.email,
+      subject: "Verify your PricePulse account",
       html,
     });
   }
 
-  async sendPriceAlertEmail(data: PriceAlertEmailData): Promise<boolean> {
+  /**
+   * Send password reset email
+   */
+  async sendPasswordResetEmail(input: {
+    email: string;
+    token: string;
+    firstName?: string;
+  }): Promise<void> {
+    const resetUrl = `${process.env["FRONTEND_URL"] || "http://localhost:5173"}/reset-password?token=${input.token}`;
+
     const html = `
-      <!DOCTYPE html>
       <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Price Alert - PricePulse</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .alert-box { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 20px; margin: 20px 0; }
-            .price-info { background: white; border-radius: 5px; padding: 20px; margin: 20px 0; text-align: center; }
-            .current-price { font-size: 24px; color: #e74c3c; font-weight: bold; }
-            .target-price { font-size: 18px; color: #27ae60; }
-            .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>🚨 Price Alert!</h1>
-              <p>Your price target has been reached!</p>
-            </div>
-            <div class="content">
-              <div class="alert-box">
-                <h2>Great news! The price of <strong>${
-                  data.productName
-                }</strong> has dropped to your target price!</h2>
-              </div>
-              
-              <div class="price-info">
-                <p><strong>Current Price:</strong></p>
-                <div class="current-price">$${(data.currentPrice / 100).toFixed(
-                  2
-                )}</div>
-                <p><strong>Your Target:</strong></p>
-                <div class="target-price">$${(data.targetPrice / 100).toFixed(
-                  2
-                )}</div>
-              </div>
-              
-              <p>This is your chance to grab this item at a great price! Click the button below to view the product:</p>
-              
-              <div style="text-align: center;">
-                <a href="${data.productUrl}" class="button">View Product</a>
-              </div>
-              
-              <p><strong>Alert Type:</strong> ${data.alertType}</p>
-              
-              <p>You can manage your price alerts by logging into your PricePulse account.</p>
-            </div>
-            <div class="footer">
-              <p>&copy; 2024 PricePulse. All rights reserved.</p>
-              <p>This email was sent to ${data.email}</p>
-            </div>
-          </div>
+        <body style="font-family: Arial, sans-serif">
+          <h2>Reset your Password</h2>
+          <p>Hello${input.firstName ? ` ${input.firstName}` : ""},</p>
+          <p>We received a request to reset your password. Click the button below to continue.</p>
+          <p><a href="${resetUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none">Reset Password</a></p>
+          <p>If you did not request this, you can safely ignore this email.</p>
         </body>
       </html>
     `;
 
-    return this.sendEmail({
-      to: data.email,
-      subject: `Price Alert: ${data.productName} - Target Price Reached!`,
+    await this.transporter.sendMail({
+      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      to: input.email,
+      subject: "Reset your PricePulse password",
       html,
     });
   }
 
-  async sendPasswordResetEmail(data: PasswordResetEmailData): Promise<boolean> {
-    const resetUrl = `${this.frontendBaseUrl}/reset-password?token=${data.token}`;
+  /**
+   * Send verification email for anonymous price alert
+   */
+  async sendVerificationEmail(alert: AnonymousPriceAlert): Promise<void> {
+    const verificationUrl = `${process.env["FRONTEND_URL"]}/verify/${alert.verificationToken}`;
+    const managementUrl = `${process.env["FRONTEND_URL"]}/manage/${alert.managementToken}`;
 
-    const html = `
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8">
-          <title>Reset Your Password - PricePulse</title>
-          <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-            .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-            .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-            .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-            .button { display: inline-block; background: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-            .warning { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 20px; margin: 20px 0; }
-            .footer { text-align: center; margin-top: 30px; color: #666; font-size: 14px; }
-          </style>
-        </head>
-        <body>
-          <div class="container">
-            <div class="header">
-              <h1>Reset Your Password</h1>
-              <p>PricePulse Account Security</p>
-            </div>
-            <div class="content">
-              <h2>Hi ${data.firstName || "there"}!</h2>
-              <p>We received a request to reset your PricePulse account password.</p>
-              
-              <p>Click the button below to create a new password:</p>
-              
-              <div style="text-align: center;">
-                <a href="${resetUrl}" class="button">Reset Password</a>
-              </div>
-              
-              <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-              <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
-              
-              <div class="warning">
-                <p><strong>Security Notice:</strong></p>
-                <ul>
-                  <li>This link will expire in 1 hour for security reasons</li>
-                  <li>If you didn't request a password reset, please ignore this email</li>
-                  <li>Your current password will remain unchanged</li>
-                </ul>
-              </div>
-              
-              <p>If you have any questions, please contact our support team.</p>
-            </div>
-            <div class="footer">
-              <p>&copy; 2024 PricePulse. All rights reserved.</p>
-              <p>This email was sent to ${data.email}</p>
-            </div>
-          </div>
-        </body>
-      </html>
-    `;
+    const html = this.getVerificationEmailTemplate(
+      alert,
+      verificationUrl,
+      managementUrl
+    );
 
-    return this.sendEmail({
-      to: data.email,
-      subject: "Reset Your Password - PricePulse",
+    await this.transporter.sendMail({
+      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      to: alert.email,
+      subject: "Verify Your Price Alert - PricePulse",
       html,
     });
   }
 
-  private htmlToText(html: string): string {
-    // Simple HTML to text conversion
-    return html
-      .replace(/<[^>]*>/g, "") // Remove HTML tags
-      .replace(/&nbsp;/g, " ") // Replace &nbsp; with space
-      .replace(/&amp;/g, "&") // Replace &amp; with &
-      .replace(/&lt;/g, "<") // Replace &lt; with <
-      .replace(/&gt;/g, ">") // Replace &gt; with >
-      .replace(/\s+/g, " ") // Replace multiple spaces with single space
-      .trim();
+  /**
+   * Send price alert triggered notification email
+   */
+  async sendPriceAlertTriggeredEmail(
+    alert: AnonymousPriceAlert,
+    currentPrice: number
+  ): Promise<void> {
+    const managementUrl = `${process.env["FRONTEND_URL"]}/manage/${alert.managementToken}`;
+
+    const html = this.getPriceAlertTriggeredTemplate(
+      alert,
+      currentPrice,
+      managementUrl
+    );
+
+    await this.transporter.sendMail({
+      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      to: alert.email,
+      subject: "Price Alert Triggered! - PricePulse",
+      html,
+    });
   }
 
-  async testConnection(): Promise<boolean> {
+  /**
+   * Send management link email (for users who lost their management link)
+   */
+  async sendManagementLinkEmail(alert: AnonymousPriceAlert): Promise<void> {
+    const managementUrl = `${process.env["FRONTEND_URL"]}/manage/${alert.managementToken}`;
+
+    const html = this.getManagementLinkTemplate(alert, managementUrl);
+
+    await this.transporter.sendMail({
+      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      to: alert.email,
+      subject: "Manage Your Price Alert - PricePulse",
+      html,
+    });
+  }
+
+  /**
+   * Test email service configuration
+   */
+  async testEmailService(): Promise<boolean> {
     try {
       await this.transporter.verify();
-      console.log("Email service connection verified successfully");
       return true;
     } catch (error) {
-      console.error("Email service connection failed:", error);
+      console.error("Email service test failed:", error);
       return false;
     }
+  }
+
+  async verifyConnection(): Promise<{ ok: boolean; error?: string }> {
+    try {
+      await this.transporter.verify();
+      return { ok: true };
+    } catch (error: any) {
+      return { ok: false, error: error?.message || String(error) };
+    }
+  }
+
+  /**
+   * Send test email
+   */
+  async sendTestEmail(
+    to: string,
+    subject: string,
+    body: string
+  ): Promise<void> {
+    await this.transporter.sendMail({
+      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      to,
+      subject,
+      text: body,
+    });
+  }
+
+  private getVerificationEmailTemplate(
+    alert: AnonymousPriceAlert,
+    verificationUrl: string,
+    managementUrl: string
+  ): string {
+    const targetPrice = (alert.targetPrice / 100).toFixed(2);
+    const currency = alert.currency;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Verify Your Price Alert</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .button:hover { background: #1d4ed8; }
+          .footer { text-align: center; margin-top: 30px; color: #64748b; font-size: 14px; }
+          .alert-details { background: white; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #2563eb; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔔 Verify Your Price Alert</h1>
+          </div>
+          
+          <div class="content">
+            <p>Hello!</p>
+            
+            <p>You've created a price alert for a product. To activate your alert and start receiving notifications, please verify your email address.</p>
+            
+            <div class="alert-details">
+              <h3>Alert Details:</h3>
+              <p><strong>Target Price:</strong> ${currency} ${targetPrice}</p>
+              <p><strong>Alert Type:</strong> ${alert.alertType}</p>
+              ${
+                alert.threshold
+                  ? `<p><strong>Threshold:</strong> ${alert.threshold}%</p>`
+                  : ""
+              }
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="${verificationUrl}" class="button">✅ Verify Alert</a>
+            </div>
+            
+            <p><strong>Or copy this link:</strong><br>
+            <a href="${verificationUrl}">${verificationUrl}</a></p>
+            
+            <p><strong>Important:</strong> This verification link will expire in 24 hours.</p>
+            
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #e2e8f0;">
+            
+            <h3>📧 Manage Your Alert</h3>
+            <p>Once verified, you can manage your alert using this link:</p>
+            <a href="${managementUrl}" class="button">🔧 Manage Alert</a>
+            
+            <p><strong>Or copy this link:</strong><br>
+            <a href="${managementUrl}">${managementUrl}</a></p>
+            
+            <p><strong>Note:</strong> The management link will never expire and can be used to update or delete your alert.</p>
+          </div>
+          
+          <div class="footer">
+            <p>This email was sent by PricePulse - Track prices, save money, and never overpay again.</p>
+            <p>If you didn't create this alert, you can safely ignore this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getPriceAlertTriggeredTemplate(
+    alert: AnonymousPriceAlert,
+    currentPrice: number,
+    managementUrl: string
+  ): string {
+    const targetPrice = (alert.targetPrice / 100).toFixed(2);
+    const currentPriceFormatted = (currentPrice / 100).toFixed(2);
+    const currency = alert.currency;
+    const priceChange = (
+      ((currentPrice - alert.targetPrice) / alert.targetPrice) *
+      100
+    ).toFixed(1);
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Price Alert Triggered!</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #dc2626; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .button:hover { background: #b91c1c; }
+          .footer { text-align: center; margin-top: 30px; color: #64748b; font-size: 14px; }
+          .price-alert { background: white; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #dc2626; }
+          .price-change { font-size: 18px; font-weight: bold; color: #dc2626; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🚨 Price Alert Triggered!</h1>
+          </div>
+          
+          <div class="content">
+            <p>Hello!</p>
+            
+            <p>Your price alert has been triggered! The product you're tracking has reached your target price.</p>
+            
+            <div class="price-alert">
+              <h3>🎯 Alert Details:</h3>
+              <p><strong>Target Price:</strong> ${currency} ${targetPrice}</p>
+              <p><strong>Current Price:</strong> ${currency} ${currentPriceFormatted}</p>
+              <p><strong>Price Change:</strong> <span class="price-change">${priceChange}%</span></p>
+              <p><strong>Alert Type:</strong> ${alert.alertType}</p>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="${managementUrl}" class="button">🔧 Manage Your Alerts</a>
+            </div>
+            
+            <p><strong>What you can do:</strong></p>
+            <ul>
+              <li>View the current product price</li>
+              <li>Update your alert settings</li>
+              <li>Delete this alert if no longer needed</li>
+              <li>Create new alerts for other products</li>
+            </ul>
+            
+            <p><strong>Need help?</strong> Reply to this email or visit our support page.</p>
+          </div>
+          
+          <div class="footer">
+            <p>This email was sent by PricePulse - Track prices, save money, and never overpay again.</p>
+            <p>To stop receiving these emails, <a href="${managementUrl}">manage your alerts</a>.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+  }
+
+  private getManagementLinkTemplate(
+    alert: AnonymousPriceAlert,
+    managementUrl: string
+  ): string {
+    const targetPrice = (alert.targetPrice / 100).toFixed(2);
+    const currency = alert.currency;
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Manage Your Price Alert</title>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: #059669; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .button:hover { background: #047857; }
+          .footer { text-align: center; margin-top: 30px; color: #64748b; font-size: 14px; }
+          .alert-details { background: white; padding: 20px; border-radius: 6px; margin: 20px 0; border-left: 4px solid #059669; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔧 Manage Your Price Alert</h1>
+          </div>
+          
+          <div class="content">
+            <p>Hello!</p>
+            
+            <p>You requested a link to manage your price alert. Here it is:</p>
+            
+            <div class="alert-details">
+              <h3>Alert Details:</h3>
+              <p><strong>Target Price:</strong> ${currency} ${targetPrice}</p>
+              <p><strong>Alert Type:</strong> ${alert.alertType}</p>
+              ${
+                alert.threshold
+                  ? `<p><strong>Threshold:</strong> ${alert.threshold}%</p>`
+                  : ""
+              }
+              <p><strong>Status:</strong> ${
+                alert.isVerified ? "✅ Verified" : "⏳ Pending Verification"
+              }</p>
+            </div>
+            
+            <div style="text-align: center;">
+              <a href="${managementUrl}" class="button">🔧 Manage Alert</a>
+            </div>
+            
+            <p><strong>Or copy this link:</strong><br>
+            <a href="${managementUrl}">${managementUrl}</a></p>
+            
+            <p><strong>What you can do:</strong></p>
+            <ul>
+              <li>Update your target price</li>
+              <li>Change alert type or threshold</li>
+              <li>Activate or deactivate the alert</li>
+              <li>Delete the alert</li>
+            </ul>
+            
+            <p><strong>Note:</strong> This management link will never expire and can be used anytime.</p>
+          </div>
+          
+          <div class="footer">
+            <p>This email was sent by PricePulse - Track prices, save money, and never overpay again.</p>
+            <p>If you didn't request this link, you can safely ignore this email.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
   }
 }

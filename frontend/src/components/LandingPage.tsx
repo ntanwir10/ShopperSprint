@@ -1,32 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/button';
 import SearchInput from './SearchInput';
 import PriceAlertSignup from './PriceAlertSignup';
-import {
-  TrendingUp,
-  Shield,
-  Zap,
-  BarChart3,
-  CheckCircle,
-  Star,
-} from 'lucide-react';
+import { TrendingUp, Shield, Zap, BarChart3, Star } from 'lucide-react';
 
-interface LandingPageProps {
-  onSearch: (query: string) => void;
-}
+interface LandingPageProps {}
 
-const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
+const LandingPage: React.FC<LandingPageProps> = () => {
   const [searchValue, setSearchValue] = useState('');
   // Removed public API health indicator
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
 
   // Removed API health fetch for cleaner UX
 
   const handleSearch = (query: string) => {
-    onSearch(query);
     navigate(`/search/${encodeURIComponent(query)}`);
   };
 
@@ -115,15 +103,18 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
             <Button size="lg" onClick={() => navigate('/compare')}>
               Start Comparing
             </Button>
-            {!isAuthenticated && (
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => navigate('/register')}
-              >
-                Sign Up Free
-              </Button>
-            )}
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                // Scroll to price alert section
+                document
+                  .getElementById('price-alerts')
+                  ?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Set Price Alerts
+            </Button>
           </div>
         </div>
       </section>
@@ -161,7 +152,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onSearch }) => {
       </section>
 
       {/* Price Alert Signup Section */}
-      <section className="py-20 px-4 bg-muted/30">
+      <section id="price-alerts" className="py-20 px-4 bg-muted/30">
         <div className="container mx-auto max-w-4xl">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">

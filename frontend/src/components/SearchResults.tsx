@@ -13,11 +13,13 @@ import {
   Star,
   Store,
   ChevronUp,
+  Bell,
 } from 'lucide-react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import PriceDisplay from './PriceDisplay';
+import AnonymousPriceAlert from './AnonymousPriceAlert';
 import { apiClient, Product, SearchRequest } from '../lib/api';
 
 interface SearchResultsProps {
@@ -37,6 +39,7 @@ const SearchResults: React.FC<SearchResultsProps> = ({
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'price' | 'rating' | 'name'>('price');
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [showAlertForm, setShowAlertForm] = useState<string | null>(null);
 
   useEffect(() => {
     // Get search query from multiple sources in order of priority
@@ -444,7 +447,32 @@ const SearchResults: React.FC<SearchResultsProps> = ({
                           ? 'Remove'
                           : 'Compare'}
                       </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-shrink-0"
+                        onClick={(e: React.MouseEvent) => {
+                          e.stopPropagation();
+                          // Show alert form for this product
+                          setShowAlertForm(product.id);
+                        }}
+                      >
+                        <Bell className="h-4 w-4" />
+                      </Button>
                     </div>
+
+                    {/* Price Alert Form */}
+                    {showAlertForm === product.id && (
+                      <div className="mt-3 p-3 border rounded-lg bg-muted/50">
+                        <AnonymousPriceAlert 
+                          productId={product.id}
+                          productName={product.name}
+                          currentPrice={product.price}
+                          onSuccess={() => setShowAlertForm(null)}
+                          compact={true}
+                        />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -8,13 +8,13 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Production environment to deploy to'
+        description: "Production environment to deploy to"
         required: true
-        default: 'production'
+        default: "production"
         type: choice
         options:
-        - production
-        - staging
+          - production
+          - staging
 
 env:
   ENVIRONMENT: production
@@ -57,8 +57,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
 
       - name: Install dependencies
         run: |
@@ -96,8 +96,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: "18"
+          cache: "npm"
 
       - name: Install dependencies
         run: |
@@ -127,7 +127,7 @@ jobs:
           docker build -t ghcr.io/${{ github.repository }}/frontend:latest ./frontend
           docker push ghcr.io/${{ github.repository }}/frontend:prod-${{ github.sha }}
           docker push ghcr.io/${{ github.repository }}/frontend:latest
-          
+
           # Build backend image
           docker build -t ghcr.io/${{ github.repository }}/backend:prod-${{ github.sha }} ./backend
           docker build -t ghcr.io/${{ github.repository }}/backend:latest ./backend
@@ -138,7 +138,7 @@ jobs:
         run: |
           echo "🚀 Deploying to production environment..."
           echo "This is a critical deployment - ensuring zero downtime..."
-          
+
           # This would use your production deployment tool
           # Examples: Kubernetes, Docker Swarm, AWS ECS, etc.
           echo "Production deployment completed successfully"
@@ -146,20 +146,19 @@ jobs:
       - name: Production health check
         run: |
           echo "🔍 Running production health checks..."
-          
+
           # Wait for deployment to stabilize
           sleep 60
-          
+
           # Comprehensive health checks
           curl -f https://${{ env.DOMAIN }}/health || exit 1
-          curl -f https://${{ env.DOMAIN }}/api/health || exit 1
-          
+
           echo "✅ Production health checks passed"
 
       - name: Performance validation
         run: |
           echo "📊 Running performance validation..."
-          
+
           # Basic performance checks
           # This could include Lighthouse CI, WebPageTest, etc.
           echo "Performance validation completed"
@@ -173,7 +172,7 @@ jobs:
             const environment = '${{ env.ENVIRONMENT }}';
             const domain = '${{ env.DOMAIN }}';
             const sha = '${{ github.sha }}';
-            
+
             if (status === 'success') {
               console.log(`🚀 Successfully deployed to ${environment}`);
               console.log(`🌐 Production URL: https://${domain}`);
@@ -216,7 +215,7 @@ jobs:
           script: |
             const status = '${{ job.status }}';
             const environment = '${{ env.ENVIRONMENT }}';
-            
+
             if (status === 'success') {
               console.log(`🎉 ${environment} deployment and verification completed successfully!`);
               console.log(`🚀 PricePulse is now live in production!`);

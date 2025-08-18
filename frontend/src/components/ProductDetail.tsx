@@ -3,23 +3,19 @@ import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ExternalLink,
-  Star,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  Loader2,
-  Heart,
   Share2,
+  Star,
+  TrendingDown,
+  TrendingUp,
+  Minus,
+  Heart,
   Store,
   Clock,
   BarChart3,
   AlertCircle,
 } from 'lucide-react';
-import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { Product, apiClient } from '../lib/api';
-import { Alert, AlertDescription } from './ui/alert';
 import PriceDisplay from './PriceDisplay';
 
 interface PriceHistoryPoint {
@@ -49,9 +45,16 @@ const ProductDetail: React.FC = () => {
       } else if (id) {
         try {
           // Try to fetch product by ID from API
-          const searchResult = await apiClient.search({ query: id, maxResults: 1 });
-          if (searchResult.data && searchResult.data.results && searchResult.data.results.length > 0) {
-            const foundProduct = searchResult.data.results[0];
+          const searchResult = await apiClient.search({
+            query: id,
+            maxResults: 1,
+          });
+          if (
+            searchResult.data &&
+            (searchResult.data as any).results &&
+            (searchResult.data as any).results.length > 0
+          ) {
+            const foundProduct = (searchResult.data as any).results[0];
             setProduct(foundProduct);
             await loadPriceHistory(foundProduct.id);
             await loadRelatedProducts(foundProduct.category);
@@ -76,11 +79,13 @@ const ProductDetail: React.FC = () => {
     try {
       const response = await apiClient.getPriceHistory(productId, '30d');
       if (response.data) {
-        setPriceHistory(response.data.map(point => ({
-          date: point.date,
-          price: point.price,
-          source: 'API' // We'll need to add source to the API response
-        })));
+        setPriceHistory(
+          response.data.map((point) => ({
+            date: point.date,
+            price: point.price,
+            source: 'API', // We'll need to add source to the API response
+          }))
+        );
       } else {
         // Fallback to empty history if API fails
         setPriceHistory([]);
@@ -98,11 +103,15 @@ const ProductDetail: React.FC = () => {
     }
 
     try {
-      const response = await apiClient.search({ query: category, maxResults: 4 });
-      if (response.data && response.data.results) {
+      const response = await apiClient.search({
+        query: category,
+        maxResults: 4,
+      });
+      if (response.data && (response.data as any).results) {
         // Filter out the current product and limit to 4
-        const related = response.data.results
-          .filter(p => p.id !== product?.id)
+        const results = ((response.data as any).results ?? []) as Product[];
+        const related = results
+          .filter((p: Product) => p.id !== product?.id)
           .slice(0, 4);
         setRelatedProducts(related);
       } else {
@@ -190,7 +199,7 @@ const ProductDetail: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <Alert className="h-16 w-16 text-red-400 mx-auto mb-4" />
+          <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
           <p className="text-lg text-gray-600 mb-4">
             {error || 'Product not found'}
           </p>

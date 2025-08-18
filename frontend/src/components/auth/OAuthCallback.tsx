@@ -10,7 +10,6 @@ const OAuthCallback: React.FC = () => {
 
   useEffect(() => {
     const token = params.get('token');
-    const expiresAt = params.get('expiresAt');
     if (token) {
       localStorage.setItem('auth_token', token);
       // Optionally persist expiresAt if needed

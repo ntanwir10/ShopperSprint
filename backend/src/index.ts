@@ -1,46 +1,42 @@
+// Load environment variables ASAP
+import * as dotenv from "dotenv";
+dotenv.config();
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { createServer } from "http";
-import dotenv from "dotenv";
+import { json } from "body-parser";
+import { logger } from "./middleware/logger";
+import { errorHandler } from "./middleware/errorHandler";
 import {
-  initRedis,
   initDatabase,
+  initRedis,
   closeConnections,
-  initializeConnections,
 } from "./database/connection";
-import { searchRouter } from "./routes/search";
+
+// Import routes
+import searchRouter from "./routes/search";
 import { advertisementRouter } from "./routes/advertisement";
 import { priceHistoryRouter } from "./routes/priceHistory";
-import notificationsRouter from "./routes/notifications";
+import anonymousNotificationsRouter from "./routes/anonymousNotifications";
 import { authRouter } from "./routes/auth";
-import { userPreferencesRouter } from "./routes/userPreferences";
+import notificationsRouter from "./routes/notifications";
 import { monitoringRouter } from "./routes/monitoring";
-import { errorHandler } from "./middleware/errorHandler";
-import { logger } from "./middleware/logger";
-import { WebSocketService } from "./services/websocketService";
-import { MonitoringService } from "./services/monitoringService";
-import { CachingService } from "./services/cachingService";
-
-// Load environment variables
-dotenv.config();
-
-// Fix memory leak warnings
-process.setMaxListeners(20);
-
-// Initialize database connections after environment variables are loaded
-initializeConnections();
 
 const app = express();
-const server = createServer(app);
+const PORT = Number(process.env["PORT"] || 3001);
 
-// Initialize WebSocket service
-const webSocketService = new WebSocketService();
-
-// Declare service variables (will be initialized after connections)
-let monitoringService: MonitoringService;
-let cachingService: CachingService;
+// Rate limiting
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  message: {
+    error: "Too many requests",
+    message: "Too many requests from this IP, please try again later.",
+    statusCode: 429,
+  },
+});
 
 // Middleware
 app.use(helmet());
@@ -50,58 +46,44 @@ app.use(
     credentials: true,
   })
 );
-
-// Rate limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
-  message: "Too many requests from this IP, please try again later.",
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use("/api/", limiter);
-
-// Body parsing
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
-// Logging middleware
+app.use(limiter);
+app.use(json());
 app.use(logger);
 
-// Lightweight health check endpoint (for frontend)
+// Health check endpoints
 app.get("/health", (_req, res) => {
   res.json({
-    status: "OK",
+    status: "healthy",
     timestamp: new Date().toISOString(),
-    websocketClients: webSocketService.getConnectedClientsCount(),
+    uptime: process.uptime(),
+    environment: process.env["NODE_ENV"] || "development",
   });
 });
 
-// Alias: /api/health for clients that expect it via proxy
-app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "OK",
-    timestamp: new Date().toISOString(),
-    websocketClients: webSocketService.getConnectedClientsCount(),
-  });
-});
-
-// Fast ping endpoint (for frontend health checks)
 app.get("/ping", (_req, res) => {
-  res.json({ pong: true, timestamp: new Date().toISOString() });
+  res.json({
+    pong: true,
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // API routes
 app.use("/api/search", searchRouter);
 app.use("/api/ads", advertisementRouter);
 app.use("/api/price-history", priceHistoryRouter);
-app.use("/api/notifications", notificationsRouter);
-app.use("/api/auth", authRouter);
-app.use("/api/user-preferences", userPreferencesRouter);
+app.use("/api/anonymous-notifications", anonymousNotificationsRouter);
+
+// Gate auth-related routes behind AUTH_ENABLED flag
+const AUTH_ENABLED = String(process.env["AUTH_ENABLED"] || "false").toLowerCase() === "true";
+if (AUTH_ENABLED) {
+  app.use("/api/auth", authRouter);
+  app.use("/api/notifications", notificationsRouter);
+}
+
+// Monitoring endpoints always available (re-enabled)
 app.use("/api/monitoring", monitoringRouter);
 
-// Error handling middleware (must be last)
+// Error handling middleware
 app.use(errorHandler);
 
 // 404 handler
@@ -110,75 +92,74 @@ app.use("*", (req, res) => {
     error: "Not Found",
     message: `Route ${req.originalUrl} not found`,
     statusCode: 404,
-    timestamp: new Date().toISOString(),
   });
 });
 
 // Graceful shutdown
-process.on("SIGTERM", async () => {
-  console.log("SIGTERM received, shutting down gracefully...");
-  webSocketService.close();
-  if (monitoringService) monitoringService.stop();
-  if (cachingService) cachingService.stop();
-  await closeConnections();
-  server.close(() => {
-    console.log("Server closed");
-    process.exit(0);
-  });
-});
+const gracefulShutdown = async (signal: string) => {
+  console.log(`\n${signal} received. Starting graceful shutdown...`);
 
-process.on("SIGINT", async () => {
-  console.log("SIGINT received, shutting down gracefully...");
-  webSocketService.close();
-  if (monitoringService) monitoringService.stop();
-  if (cachingService) cachingService.stop();
-  await closeConnections();
-  server.close(() => {
-    console.log("Server closed");
-    process.exit(0);
-  });
-});
-
-// Start server
-const PORT = process.env["PORT"] || 3001;
-
-const startServer = async () => {
   try {
-    // Initialize database connection
-    await initDatabase();
+    await closeConnections();
 
-    // Initialize Redis connection
-    await initRedis();
-
-    // Initialize WebSocket service
-    webSocketService.initialize(server);
-
-    // Initialize monitoring and caching services
-    monitoringService = new MonitoringService();
-    cachingService = new CachingService();
-    await monitoringService.loadPersistedData();
-    console.log("📊 Monitoring service initialized");
-
-    // Start server
-    server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-      console.log(`📡 WebSocket server ready`);
-      console.log(`📊 Monitoring service ready`);
-      console.log(`💾 Caching service ready`);
-      console.log(`🌐 Health check: http://localhost:${PORT}/health`);
-      console.log(
-        `📈 Monitoring: http://localhost:${PORT}/api/monitoring/health`
-      );
-      console.log(
-        `🔧 Environment: ${process.env["NODE_ENV"] || "development"}`
-      );
-    });
+    console.log("Graceful shutdown completed");
+    process.exit(0);
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error("Error during graceful shutdown:", error);
     process.exit(1);
   }
 };
 
-startServer();
+// Handle shutdown signals
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
-export { webSocketService };
+// Initialize external services (DB/Redis) without blocking server start
+initDatabase().catch((err) => console.error("Database init error:", err));
+initRedis().catch((err) => console.error("Redis init error:", err));
+
+// Start server
+const server = app.listen(PORT, () => {
+  console.log(`🚀 PricePulse Backend Server running on port ${PORT}`);
+  console.log(`📊 Environment: ${process.env["NODE_ENV"] || "development"}`);
+  console.log(`🔗 Health check: http://localhost:${PORT}/health`);
+  console.log(`🌐 API base: http://localhost:${PORT}/api`);
+});
+
+// Schedule periodic cleanup of expired verification tokens (every 6 hours)
+setInterval(async () => {
+  try {
+    const { AnonymousNotificationService } = await import(
+      "./services/anonymousNotificationService"
+    );
+    const svc = new AnonymousNotificationService();
+    const removed = await svc.cleanupExpiredTokens();
+    if (removed > 0) {
+      console.log(`🧹 Cleaned up ${removed} expired anonymous alert tokens`);
+    }
+  } catch (err) {
+    console.error("Token cleanup job failed:", err);
+  }
+}, 6 * 60 * 60 * 1000);
+
+// Handle server errors
+server.on("error", (error: NodeJS.ErrnoException) => {
+  if (error.syscall !== "listen") {
+    throw error;
+  }
+
+  switch (error.code) {
+    case "EACCES":
+      console.error(`Port ${PORT} requires elevated privileges`);
+      process.exit(1);
+      break;
+    case "EADDRINUSE":
+      console.error(`Port ${PORT} is already in use`);
+      process.exit(1);
+      break;
+    default:
+      throw error;
+  }
+});
+
+export default app;

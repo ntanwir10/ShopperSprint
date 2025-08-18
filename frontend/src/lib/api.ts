@@ -212,6 +212,93 @@ class ApiClient {
     );
   }
 
+  // Anonymous Alerts API
+  async createAnonymousAlert(input: {
+    email: string;
+    productId: string;
+    targetPrice: number; // dollars
+    currency?: string;
+    alertType?: 'below' | 'above' | 'percentage';
+    threshold?: number;
+  }): Promise<ApiResponse<any>> {
+    const payload = {
+      ...input,
+      targetPrice: Math.round(input.targetPrice * 100),
+    };
+    return this.request<any>(
+      '/api/anonymous-notifications/alerts',
+      { method: 'POST', body: JSON.stringify(payload) },
+      this.backendUrl
+    );
+  }
+
+  async getAnonymousAlert(managementToken: string): Promise<ApiResponse<any>> {
+    return this.request<any>(
+      `/api/anonymous-notifications/alerts/${managementToken}`,
+      { method: 'GET' },
+      this.backendUrl
+    );
+  }
+
+  async updateAnonymousAlert(
+    managementToken: string,
+    updates: {
+      targetPrice?: number; // dollars
+      currency?: string;
+      alertType?: 'below' | 'above' | 'percentage';
+      threshold?: number;
+      isActive?: boolean;
+    }
+  ): Promise<ApiResponse<any>> {
+    const payload = {
+      ...updates,
+      ...(updates.targetPrice != null
+        ? { targetPrice: Math.round(updates.targetPrice * 100) }
+        : {}),
+    };
+    return this.request<any>(
+      `/api/anonymous-notifications/alerts/${managementToken}`,
+      { method: 'PUT', body: JSON.stringify(payload) },
+      this.backendUrl
+    );
+  }
+
+  async deleteAnonymousAlert(
+    managementToken: string
+  ): Promise<ApiResponse<any>> {
+    return this.request<any>(
+      `/api/anonymous-notifications/alerts/${managementToken}`,
+      { method: 'DELETE' },
+      this.backendUrl
+    );
+  }
+
+  async resendVerification(managementToken: string): Promise<ApiResponse<any>> {
+    return this.request<any>(
+      `/api/anonymous-notifications/alerts/${managementToken}/resend-verification`,
+      { method: 'POST' },
+      this.backendUrl
+    );
+  }
+
+  async sendManagementLink(managementToken: string): Promise<ApiResponse<any>> {
+    return this.request<any>(
+      `/api/anonymous-notifications/alerts/${managementToken}/send-management-link`,
+      { method: 'POST' },
+      this.backendUrl
+    );
+  }
+
+  async verifyAnonymousAlert(
+    verificationToken: string
+  ): Promise<ApiResponse<any>> {
+    return this.request<any>(
+      `/api/anonymous-notifications/verify/${verificationToken}`,
+      { method: 'GET' },
+      this.backendUrl
+    );
+  }
+
   // Authentication APIs
   async login(credentials: LoginRequest): Promise<ApiResponse<AuthResponse>> {
     return this.request<AuthResponse>(
@@ -238,7 +325,7 @@ class ApiClient {
   }
 
   async validateToken(token: string): Promise<ApiResponse<User>> {
-    return this.request<User>(
+    const resp = await this.request<{ data?: { user?: User } }>(
       '/api/auth/verify',
       {
         method: 'GET',
@@ -246,6 +333,10 @@ class ApiClient {
       },
       this.backendUrl
     );
+    if (resp.data && (resp.data as any).data?.user) {
+      return { data: (resp.data as any).data.user as User };
+    }
+    return resp as any;
   }
 
   async verifyEmail(token: string): Promise<ApiResponse<{ user: User }>> {
@@ -290,7 +381,7 @@ class ApiClient {
     updates: Partial<User>
   ): Promise<ApiResponse<{ user: User }>> {
     return this.request<{ user: User }>(
-      '/auth/profile',
+      '/api/auth/profile',
       {
         method: 'PUT',
         body: JSON.stringify(updates),
@@ -352,9 +443,12 @@ class ApiClient {
     productId: string,
     timeRange: string = '30d'
   ): Promise<ApiResponse<PriceHistoryPoint[]>> {
+    // Backend expects `days` numeric param; map common ranges
+    const daysMap: Record<string, number> = { '7d': 7, '30d': 30, '90d': 90, '1y': 365 };
+    const days = daysMap[timeRange] ?? 30;
     try {
       const response = await fetch(
-        `${this.backendUrl}/api/price-history/${productId}?timeRange=${timeRange}`,
+        `${this.backendUrl}/api/price-history/${productId}?days=${days}`,
         {
           method: 'GET',
           headers: this.getAuthHeaders(),
@@ -366,7 +460,8 @@ class ApiClient {
       }
 
       const data = await response.json();
-      return { data: data.priceHistory || data };
+      const history = data?.history || data?.priceHistory || data;
+      return { data: history };
     } catch (error) {
       return {
         error:
@@ -391,7 +486,7 @@ class ApiClient {
   async testConnection(): Promise<boolean> {
     try {
       const response = await this.health();
-      return !response.error && response.data?.status === 'OK';
+      return !response.error && ['OK', 'healthy', 'Healthy'].includes(response.data?.status);
     } catch {
       return false;
     }

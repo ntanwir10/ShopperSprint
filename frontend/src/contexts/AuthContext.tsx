@@ -77,7 +77,28 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const authEnabled = (import.meta.env.VITE_AUTH_ENABLED || 'false') === 'true';
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  if (!authEnabled) {
+    const value: AuthContextType = {
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isLoading: false,
+      login: async () => ({ success: false, error: 'Auth disabled' }),
+      register: async () => ({ success: false, error: 'Auth disabled' }),
+      logout: () => {},
+      verifyEmail: async () => ({ success: false, error: 'Auth disabled' }),
+      forgotPassword: async () => ({ success: false, error: 'Auth disabled' }),
+      resetPassword: async () => ({ success: false, error: 'Auth disabled' }),
+      updateProfile: async () => ({ success: false, error: 'Auth disabled' }),
+    };
+    return (
+      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    );
+  }
+
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     token: localStorage.getItem('auth_token'),
@@ -231,10 +252,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
 
       // Update user state if email verification was successful
-      if (response.data?.user) {
+      if (response.data && (response.data as any).user) {
         setAuthState((prev) => ({
           ...prev,
-          user: response.data.user,
+          user: (response.data as any).user,
         }));
       }
 
@@ -299,10 +320,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: false, error: response.error };
       }
 
-      if (response.data?.user) {
+      if (response.data && (response.data as any).user) {
         setAuthState((prev) => ({
           ...prev,
-          user: response.data.user,
+          user: (response.data as any).user,
         }));
       }
 

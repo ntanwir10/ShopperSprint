@@ -14,7 +14,7 @@ export class HealthChecker {
     responseTime: 0,
   };
   private isChecking = false;
-  private intervalId: NodeJS.Timeout | null = null;
+  private intervalId: number | null = null;
   private checkInterval: number;
 
   constructor(checkInterval: number = 30000) {
@@ -33,7 +33,7 @@ export class HealthChecker {
     this.performHealthCheck();
 
     // Set up periodic checks
-    this.intervalId = setInterval(() => {
+    this.intervalId = window.setInterval(() => {
       this.performHealthCheck();
     }, this.checkInterval);
   }
@@ -42,8 +42,8 @@ export class HealthChecker {
    * Stop periodic health checks
    */
   stop(): void {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
+    if (this.intervalId !== null) {
+      window.clearInterval(this.intervalId);
       this.intervalId = null;
     }
   }
@@ -133,6 +133,20 @@ export class HealthChecker {
    */
   getTimeSinceLastCheck(): number {
     return Date.now() - this.healthStatus.lastCheck;
+  }
+}
+
+export async function backendHealthCheck(url: string) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`${url}/health`, { signal: controller.signal });
+    clearTimeout(timeout as any);
+    if (!res.ok) return { ok: false };
+    const data = await res.json().catch(() => ({}));
+    return { ok: data?.status === 'healthy' || data?.pong };
+  } catch {
+    return { ok: false };
   }
 }
 

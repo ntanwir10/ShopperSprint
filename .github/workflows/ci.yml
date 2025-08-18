@@ -2,17 +2,17 @@ name: 🧪 Continuous Integration
 
 on:
   push:
-    branches: [ main, develop, feature/*, hotfix/* ]
+    branches: [main, develop, feature/*, hotfix/*]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
   schedule:
     # Run security scans weekly
-    - cron: '0 2 * * 1'
+    - cron: "0 2 * * 1"
 
 env:
-  NODE_VERSION: '18'
-  POSTGRES_VERSION: '15'
-  REDIS_VERSION: '7'
+  NODE_VERSION: "18"
+  POSTGRES_VERSION: "15"
+  REDIS_VERSION: "7"
 
 jobs:
   # 🔒 Security & Code Quality Checks
@@ -27,7 +27,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: |
@@ -51,10 +51,10 @@ jobs:
       - name: Run OWASP Dependency Check
         uses: dependency-check/Dependency-Check_Action@main
         with:
-          project: 'PricePulse'
-          path: '.'
-          format: 'HTML'
-          out: 'reports'
+          project: "PricePulse"
+          path: "."
+          format: "HTML"
+          out: "reports"
 
       - name: Upload security report
         uses: actions/upload-artifact@v4
@@ -74,7 +74,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: |
@@ -141,7 +141,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: |
@@ -167,10 +167,10 @@ jobs:
           echo "Waiting for Redis..."
           until redis-cli -h localhost ping; do sleep 1; done
 
-      - name: Run database migrations
+      - name: Apply database schema (Drizzle push)
         run: |
           cd backend
-          npm run db:migrate
+          npm run db:push
 
       - name: Run backend tests
         run: |
@@ -195,7 +195,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: |
@@ -226,7 +226,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: |
@@ -300,29 +300,29 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
             });
-            
+
             const botComment = comments.find(comment => comment.user.type === 'Bot' && comment.body.includes('CI Results'));
-            
+
             const body = `## 🧪 CI Results for ${context.sha.substring(0, 7)}
-            
+
             ### ✅ Passed Jobs:
             - Security Audit
             - Code Quality
             - Backend Tests
             - Frontend Tests
             - Build & Package
-            
+
             ### 📊 Coverage:
             - Backend: Generated
             - Frontend: Generated
-            
+
             ### 🔒 Security:
             - Dependency audit: ✅
             - Secret scanning: ✅
             - OWASP check: ✅
-            
+
             All checks passed! 🎉`;
-            
+
             if (botComment) {
               await github.rest.issues.updateComment({
                 comment_id: botComment.id,

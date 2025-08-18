@@ -19,6 +19,7 @@ import { Badge } from './ui/badge';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
 import { Product } from '../lib/api';
 import PriceHistoryChart from './PriceHistoryChart';
+import AnonymousPriceAlert from './AnonymousPriceAlert';
 import { apiClient } from '../lib/api';
 import { Alert, AlertDescription } from './ui/alert';
 
@@ -29,7 +30,7 @@ interface PriceHistoryPoint {
 }
 
 const ProductPage: React.FC = () => {
-  const { slug } = useParams<{ slug: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const [product, setProduct] = useState<Product | null>(null);
@@ -40,6 +41,7 @@ const ProductPage: React.FC = () => {
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showAlertForm, setShowAlertForm] = useState(false);
 
   useEffect(() => {
     const loadProduct = async () => {
@@ -47,15 +49,22 @@ const ProductPage: React.FC = () => {
         setProduct(location.state.product);
         await loadPriceHistory(location.state.product.id);
         await loadRelatedProducts(location.state.product.category);
-      } else if (slug) {
+      } else if (id) {
         setLoading(true);
         setError(null);
-        
+
         try {
-          // Try to find product by slug first
-          const searchResult = await apiClient.search(slug, 1);
-          if (searchResult.data && searchResult.data.length > 0) {
-            const foundProduct = searchResult.data[0];
+          // Try to find product by id/slug first
+          const searchResult = await apiClient.search({
+            query: id,
+            maxResults: 1,
+          });
+          if (
+            searchResult.data &&
+            (searchResult.data as any).results &&
+            (searchResult.data as any).results.length > 0
+          ) {
+            const foundProduct = (searchResult.data as any).results[0];
             setProduct(foundProduct);
             await loadPriceHistory(foundProduct.id);
             await loadRelatedProducts(foundProduct.category);
@@ -71,17 +80,22 @@ const ProductPage: React.FC = () => {
     };
 
     loadProduct();
-  }, [slug, location.state]);
+  }, [id, location.state]);
 
   const loadPriceHistory = async (productId: string) => {
     try {
-      const response = await apiClient.getPriceHistory(productId, selectedTimeRange);
+      const response = await apiClient.getPriceHistory(
+        productId,
+        selectedTimeRange
+      );
       if (response.data) {
-        setPriceHistory(response.data.map(point => ({
-          date: point.date,
-          price: point.price / 100, // Convert from cents
-          currency: point.currency
-        })));
+        setPriceHistory(
+          response.data.map((point) => ({
+            date: point.date,
+            price: point.price / 100, // Convert from cents
+            currency: point.currency,
+          }))
+        );
       }
     } catch (err) {
       console.error('Failed to load price history:', err);
@@ -92,11 +106,15 @@ const ProductPage: React.FC = () => {
 
   const loadRelatedProducts = async (category: string) => {
     try {
-      const response = await apiClient.search(category, 4);
-      if (response.data) {
+      const response = await apiClient.search({
+        query: category,
+        maxResults: 4,
+      });
+      if (response.data && (response.data as any).results) {
         // Filter out the current product and limit to 3
-        const related = response.data
-          .filter(p => p.id !== product?.id)
+        const results = ((response.data as any).results ?? []) as Product[];
+        const related = results
+          .filter((p: Product) => p.id !== product?.id)
           .slice(0, 3);
         setRelatedProducts(related);
       }
@@ -174,7 +192,7 @@ const ProductPage: React.FC = () => {
       lowest: minPrice,
       highest: maxPrice,
       average: avgPrice,
-      currentChange: product.priceChange || 0,
+      currentChange: 0,
     };
   };
 
@@ -235,28 +253,21 @@ const ProductPage: React.FC = () => {
                   <span className="text-4xl font-bold text-foreground">
                     ${product.price.toFixed(2)}
                   </span>
-                  {product.originalPrice &&
-                    product.originalPrice > product.price && (
-                      <span className="text-2xl text-muted-foreground line-through">
-                        ${product.originalPrice.toFixed(2)}
-                      </span>
-                    )}
+                  {false && (
+                    <span className="text-2xl text-muted-foreground line-through">
+                      $0.00
+                    </span>
+                  )}
                 </div>
 
-                {product.originalPrice &&
-                  product.originalPrice > product.price && (
-                    <Badge
-                      variant="secondary"
-                      className="bg-green-100 text-green-800"
-                    >
-                      {Math.round(
-                        ((product.originalPrice - product.price) /
-                          product.originalPrice) *
-                          100
-                      )}
-                      % off
-                    </Badge>
-                  )}
+                {false && (
+                  <Badge
+                    variant="secondary"
+                    className="bg-green-100 text-green-800"
+                  >
+                    0 % off
+                  </Badge>
+                )}
               </div>
 
               {/* Action Buttons */}
@@ -268,14 +279,30 @@ const ProductPage: React.FC = () => {
                   <ShoppingCart className="h-4 w-4 mr-2" />
                   Buy from {product.source}
                 </Button>
-                <Button variant="outline" size="lg">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => setShowAlertForm(!showAlertForm)}
+                >
                   <Bell className="h-4 w-4 mr-2" />
-                  Set Alert
+                  {showAlertForm ? 'Hide Alert' : 'Set Alert'}
                 </Button>
                 <Button variant="outline" size="lg">
                   <Share2 className="h-4 w-4" />
                 </Button>
               </div>
+
+              {/* Anonymous Price Alert Form */}
+              {showAlertForm && (
+                <div className="mt-4 p-4 border rounded-lg bg-muted/50">
+                  <AnonymousPriceAlert
+                    productId={product.id}
+                    productName={product.name}
+                    currentPrice={product.price}
+                    onSuccess={() => setShowAlertForm(false)}
+                  />
+                </div>
+              )}
 
               {/* Rating & Reviews */}
               <div className="flex items-center space-x-2">
