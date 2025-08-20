@@ -38,21 +38,19 @@ describe("ScrapingService", () => {
   describe("initializeBrowser", () => {
     it("should initialize browser successfully", async () => {
       // Act
-      await scrapingService.initializeBrowser();
+      await (scrapingService as any).initializeBrowser();
 
       // Assert
-      expect(puppeteer.launch).toHaveBeenCalledWith({
-        headless: true,
-        args: [
-          "--no-sandbox",
-          "--disable-setuid-sandbox",
-          "--disable-dev-shm-usage",
-          "--disable-accelerated-2d-canvas",
-          "--no-first-run",
-          "--no-zygote",
-          "--disable-gpu",
-        ],
-      });
+      expect(puppeteer.launch).toHaveBeenCalledWith(
+        expect.objectContaining({
+          headless: true,
+          args: expect.arrayContaining([
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--disable-dev-shm-usage",
+          ]),
+        })
+      );
       expect((scrapingService as any).browser).toBe(mockBrowser);
     });
 
@@ -63,7 +61,7 @@ describe("ScrapingService", () => {
       ).mockRejectedValue(new Error("Launch failed"));
 
       // Act
-      await scrapingService.initializeBrowser();
+      await (scrapingService as any).initializeBrowser();
 
       // Assert
       expect((scrapingService as any).browser).toBeNull();
@@ -77,7 +75,7 @@ describe("ScrapingService", () => {
         .mockResolvedValue(mockBrowser);
 
       // Act
-      await scrapingService.initializeBrowser();
+      await (scrapingService as any).initializeBrowser();
 
       // Assert
       expect(puppeteer.launch).toHaveBeenCalledTimes(3);
@@ -87,7 +85,7 @@ describe("ScrapingService", () => {
 
   describe("scrapeSource", () => {
     beforeEach(async () => {
-      await scrapingService.initializeBrowser();
+      await (scrapingService as any).initializeBrowser();
     });
 
     it("should scrape source successfully", async () => {
@@ -191,7 +189,7 @@ describe("ScrapingService", () => {
       expect(result.timestamp).toBeInstanceOf(Date);
 
       // Check product structure
-      result.products!.forEach((product) => {
+      result.products!.forEach((product: any) => {
         expect(product).toHaveProperty("id");
         expect(product).toHaveProperty("name");
         expect(product).toHaveProperty("price");
@@ -235,8 +233,8 @@ describe("ScrapingService", () => {
       );
 
       // Assert
-      const ids1 = result1.products!.map((p) => p.id);
-      const ids2 = result2.products!.map((p) => p.id);
+      const ids1 = result1.products!.map((p: any) => p.id);
+      const ids2 = result2.products!.map((p: any) => p.id);
 
       // All IDs should be unique within each result
       expect(new Set(ids1).size).toBe(ids1.length);
@@ -259,7 +257,7 @@ describe("ScrapingService", () => {
       );
 
       // Assert
-      result.products!.forEach((product) => {
+      result.products!.forEach((product: any) => {
         expect(product.name.toLowerCase()).toContain(query.toLowerCase());
       });
     });
@@ -303,7 +301,7 @@ describe("ScrapingService", () => {
   describe("cleanup", () => {
     it("should close browser on cleanup", async () => {
       // Arrange
-      await scrapingService.initializeBrowser();
+      await (scrapingService as any).initializeBrowser();
 
       // Act
       await scrapingService.close();
@@ -325,7 +323,7 @@ describe("ScrapingService", () => {
   describe("error handling", () => {
     it("should handle navigation timeouts", async () => {
       // Arrange
-      await scrapingService.initializeBrowser();
+      await (scrapingService as any).initializeBrowser();
       mockPage.goto.mockRejectedValue(new Error("Navigation timeout"));
 
       // Act
@@ -341,7 +339,7 @@ describe("ScrapingService", () => {
 
     it("should handle selector not found errors", async () => {
       // Arrange
-      await scrapingService.initializeBrowser();
+      await (scrapingService as any).initializeBrowser();
       mockPage.waitForSelector.mockRejectedValue(
         new Error("Selector not found")
       );

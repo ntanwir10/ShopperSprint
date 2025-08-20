@@ -52,7 +52,7 @@ describe("Search Routes", () => {
             name: "Smartphone 1",
             price: 25000,
             currency: "USD",
-            availability: "in_stock",
+            availability: "in_stock" as const,
             source: "Test Store",
             imageUrl: "https://example.com/image1.jpg",
             rating: 4.5,
