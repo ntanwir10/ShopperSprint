@@ -33,11 +33,6 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "functions": {
-    "backend/src/vercel.ts": {
-      "maxDuration": 30
-    }
-  },
   "regions": ["iad1"],
   "cleanUrls": true,
   "trailingSlash": false
