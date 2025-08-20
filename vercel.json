@@ -33,7 +33,5 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "regions": ["iad1"],
-  "cleanUrls": true,
-  "trailingSlash": false
+  "regions": ["iad1"]
 }
