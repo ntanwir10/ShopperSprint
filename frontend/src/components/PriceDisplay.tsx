@@ -1,5 +1,4 @@
 import React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
 import { Product } from '../lib/api';
 
 interface PriceDisplayProps {

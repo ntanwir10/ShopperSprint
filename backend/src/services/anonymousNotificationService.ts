@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from "uuid";
 import { getDb } from "../database/connection";
 import { anonymousPriceAlerts, products } from "../database/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, lt } from "drizzle-orm";
 import { EmailService } from "./emailService";
 
 export interface AnonymousPriceAlert {
@@ -410,8 +410,10 @@ export class AnonymousNotificationService {
     const deleted = await getDb()
       .delete(anonymousPriceAlerts)
       .where(
-        ({ sql }) =>
-          sql`${anonymousPriceAlerts.isVerified} = false AND ${anonymousPriceAlerts.createdAt} < ${twentyFourHoursAgo}` as any
+        and(
+          eq(anonymousPriceAlerts.isVerified, false),
+          lt(anonymousPriceAlerts.createdAt, twentyFourHoursAgo)
+        )
       );
 
     // Drizzle's delete() without returning doesn't provide count; best-effort return

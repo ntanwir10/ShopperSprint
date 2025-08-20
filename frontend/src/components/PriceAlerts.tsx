@@ -4,14 +4,21 @@ import { apiClient, PriceAlert, CreatePriceAlertRequest } from '../lib/api';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent } from './ui/card';
 import { Alert, AlertDescription } from './ui/alert';
 import { Badge } from './ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
-import { Loader2, Plus, Bell, Trash2, Edit, AlertTriangle, CheckCircle } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from './ui/dialog';
+import { Loader2, Plus, Bell, Trash2, Edit, AlertTriangle } from 'lucide-react';
 
 const PriceAlerts: React.FC = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const [alerts, setAlerts] = useState<PriceAlert[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,13 +41,13 @@ const PriceAlerts: React.FC = () => {
 
   const loadAlerts = async () => {
     if (!isAuthenticated) return;
-    
+
     setLoading(true);
     setError(null);
 
     try {
       const response = await apiClient.getPriceAlerts();
-      
+
       if (response.error) {
         setError(response.error);
       } else if (response.data) {
@@ -64,11 +71,11 @@ const PriceAlerts: React.FC = () => {
 
     try {
       const response = await apiClient.createPriceAlert(formData);
-      
+
       if (response.error) {
         setError(response.error);
       } else if (response.data) {
-        setAlerts(prev => [...prev, response.data]);
+        setAlerts((prev) => [...prev, response.data!]);
         setIsCreateDialogOpen(false);
         setFormData({
           productId: '',
@@ -97,13 +104,15 @@ const PriceAlerts: React.FC = () => {
         alertType: formData.alertType,
         threshold: formData.threshold,
       });
-      
+
       if (response.error) {
         setError(response.error);
       } else if (response.data) {
-        setAlerts(prev => prev.map(alert => 
-          alert.id === editingAlert.id ? response.data : alert
-        ));
+        setAlerts((prev) =>
+          prev.map((alert) =>
+            alert.id === editingAlert.id ? response.data! : alert
+          )
+        );
         setIsEditDialogOpen(false);
         setEditingAlert(null);
       }
@@ -122,11 +131,11 @@ const PriceAlerts: React.FC = () => {
 
     try {
       const response = await apiClient.deletePriceAlert(alertId);
-      
+
       if (response.error) {
         setError(response.error);
       } else {
-        setAlerts(prev => prev.filter(alert => alert.id !== alertId));
+        setAlerts((prev) => prev.filter((alert) => alert.id !== alertId));
       }
     } catch (err) {
       setError('Failed to delete price alert');
@@ -166,7 +175,9 @@ const PriceAlerts: React.FC = () => {
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <Bell className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-foreground mb-2">Sign in to manage alerts</h2>
+          <h2 className="text-2xl font-bold text-foreground mb-2">
+            Sign in to manage alerts
+          </h2>
           <p className="text-muted-foreground mb-4">
             Create and manage price alerts to never miss a great deal
           </p>
@@ -188,8 +199,11 @@ const PriceAlerts: React.FC = () => {
               Manage your price alerts and never miss a great deal
             </p>
           </div>
-          
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+
+          <Dialog
+            open={isCreateDialogOpen}
+            onOpenChange={setIsCreateDialogOpen}
+          >
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
@@ -209,17 +223,22 @@ const PriceAlerts: React.FC = () => {
                     <AlertDescription>{error}</AlertDescription>
                   </Alert>
                 )}
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="productId">Product ID</Label>
                   <Input
                     id="productId"
                     placeholder="Enter product ID"
                     value={formData.productId}
-                    onChange={(e) => setFormData(prev => ({ ...prev, productId: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        productId: e.target.value,
+                      }))
+                    }
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="targetPrice">Target Price</Label>
                   <Input
@@ -228,24 +247,34 @@ const PriceAlerts: React.FC = () => {
                     step="0.01"
                     placeholder="0.00"
                     value={formData.targetPrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, targetPrice: parseFloat(e.target.value) || 0 }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        targetPrice: parseFloat(e.target.value) || 0,
+                      }))
+                    }
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="alertType">Alert Type</Label>
                   <select
                     id="alertType"
                     className="w-full border border-border rounded-lg px-3 py-2 bg-background"
                     value={formData.alertType}
-                    onChange={(e) => setFormData(prev => ({ ...prev, alertType: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        alertType: e.target.value,
+                      }))
+                    }
                   >
                     <option value="below">Price drops below</option>
                     <option value="above">Price goes above</option>
                     <option value="percentage">Percentage change</option>
                   </select>
                 </div>
-                
+
                 {formData.alertType === 'percentage' && (
                   <div className="space-y-2">
                     <Label htmlFor="threshold">Threshold (%)</Label>
@@ -255,11 +284,16 @@ const PriceAlerts: React.FC = () => {
                       step="0.1"
                       placeholder="5.0"
                       value={formData.threshold || ''}
-                      onChange={(e) => setFormData(prev => ({ ...prev, threshold: parseFloat(e.target.value) || undefined }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          threshold: parseFloat(e.target.value) || undefined,
+                        }))
+                      }
                     />
                   </div>
                 )}
-                
+
                 <div className="flex gap-2">
                   <Button
                     onClick={handleCreateAlert}
@@ -323,21 +357,28 @@ const PriceAlerts: React.FC = () => {
                       {getAlertStatusIcon(alert)}
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-medium">Product {alert.productId}</h3>
-                          <Badge variant={alert.isActive ? 'default' : 'secondary'}>
+                          <h3 className="font-medium">
+                            Product {alert.productId}
+                          </h3>
+                          <Badge
+                            variant={alert.isActive ? 'default' : 'secondary'}
+                          >
                             {getAlertStatusText(alert)}
                           </Badge>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                          Alert when price {alert.alertType} ${(alert.targetPrice / 100).toFixed(2)}
-                          {alert.threshold && ` (${alert.threshold}% threshold)`}
+                          Alert when price {alert.alertType} $
+                          {(alert.targetPrice / 100).toFixed(2)}
+                          {alert.threshold &&
+                            ` (${alert.threshold}% threshold)`}
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Created: {new Date(alert.createdAt).toLocaleDateString()}
+                          Created:{' '}
+                          {new Date(alert.createdAt).toLocaleDateString()}
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -377,7 +418,7 @@ const PriceAlerts: React.FC = () => {
                   <AlertDescription>{error}</AlertDescription>
                 </Alert>
               )}
-              
+
               <div className="space-y-2">
                 <Label htmlFor="edit-targetPrice">Target Price</Label>
                 <Input
@@ -386,24 +427,34 @@ const PriceAlerts: React.FC = () => {
                   step="0.01"
                   placeholder="0.00"
                   value={formData.targetPrice}
-                  onChange={(e) => setFormData(prev => ({ ...prev, targetPrice: parseFloat(e.target.value) || 0 }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      targetPrice: parseFloat(e.target.value) || 0,
+                    }))
+                  }
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="edit-alertType">Alert Type</Label>
                 <select
                   id="edit-alertType"
                   className="w-full border border-border rounded-lg px-3 py-2 bg-background"
                   value={formData.alertType}
-                  onChange={(e) => setFormData(prev => ({ ...prev, alertType: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      alertType: e.target.value,
+                    }))
+                  }
                 >
                   <option value="below">Price drops below</option>
                   <option value="above">Price goes above</option>
                   <option value="percentage">Percentage change</option>
                 </select>
               </div>
-              
+
               {formData.alertType === 'percentage' && (
                 <div className="space-y-2">
                   <Label htmlFor="edit-threshold">Threshold (%)</Label>
@@ -413,11 +464,16 @@ const PriceAlerts: React.FC = () => {
                     step="0.1"
                     placeholder="5.0"
                     value={formData.threshold || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, threshold: parseFloat(e.target.value) || undefined }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        threshold: parseFloat(e.target.value) || undefined,
+                      }))
+                    }
                   />
                 </div>
               )}
-              
+
               <div className="flex gap-2">
                 <Button
                   onClick={handleUpdateAlert}

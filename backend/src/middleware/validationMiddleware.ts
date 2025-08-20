@@ -43,7 +43,7 @@ export const validateRequest = (schemas: {
         req.headers = await schemas.headers.parseAsync(req.headers);
       }
 
-      next();
+      return next();
     } catch (error) {
       if (error instanceof ZodError) {
         return handleApiError(error, res, req);
@@ -156,7 +156,7 @@ export const validateRateLimit = (
       "X-RateLimit-Reset": Math.ceil(clientData.resetTime / 1000).toString(),
     });
 
-    next();
+    return next();
   };
 };
 
