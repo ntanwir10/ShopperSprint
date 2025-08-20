@@ -1,6 +1,6 @@
 import request from "supertest";
 import express from "express";
-import { searchRouter } from "../search";
+import searchRouter from "../search";
 import { SearchService } from "../../services/SearchService";
 
 // Mock SearchService

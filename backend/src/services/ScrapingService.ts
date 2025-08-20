@@ -65,7 +65,7 @@ export class ScrapingService {
     }
   }
 
-  private async initializeBrowser(): Promise<void> {
+  protected async initializeBrowser(): Promise<void> {
     if (this.isInitialized && this.browser) return;
 
     try {
@@ -256,7 +256,7 @@ export class ScrapingService {
     }
   }
 
-  private async getSourceConfiguration(
+  protected async getSourceConfiguration(
     sourceId: string
   ): Promise<Source | null> {
     // This would typically come from the database
@@ -290,7 +290,7 @@ export class ScrapingService {
     return genericSource;
   }
 
-  private generateMockScrapingResult(
+  protected generateMockScrapingResult(
     sourceId: string,
     query: string
   ): ScrapingResult {
