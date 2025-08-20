@@ -1,34 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
   ExternalLink,
+  Share2,
   Star,
+  TrendingDown,
+  TrendingUp,
+  Minus,
+  Heart,
   Store,
   Clock,
-  TrendingUp,
-  TrendingDown,
-  Minus,
-  AlertCircle,
-  Heart,
-  Share2,
   BarChart3,
+  AlertCircle,
 } from 'lucide-react';
+import { Button } from './ui/button';
+import { Product, apiClient } from '../lib/api';
 import PriceDisplay from './PriceDisplay';
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  availability: 'in_stock' | 'out_of_stock' | 'limited' | 'unknown';
-  source: string;
-  imageUrl?: string;
-  rating?: number;
-  reviewCount?: number;
-  url: string;
-  lastScraped: string;
-}
 
 interface PriceHistoryPoint {
   date: string;
@@ -38,74 +26,101 @@ interface PriceHistoryPoint {
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
   const location = useLocation();
+  const navigate = useNavigate();
   const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [priceHistory, setPriceHistory] = useState<PriceHistoryPoint[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'history' | 'specs' | 'reviews'
-  >('overview');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('overview');
 
   useEffect(() => {
-    if (location.state?.product) {
-      setProduct(location.state.product);
-      generateMockPriceHistory(location.state.product);
-      generateMockRelatedProducts(location.state.product);
-      setLoading(false);
-    } else {
-      // In a real app, fetch product by ID from API
-      setError('Product not found');
-      setLoading(false);
-    }
+    const loadProduct = async () => {
+      if (location.state?.product) {
+        setProduct(location.state.product);
+        await loadPriceHistory(location.state.product.id);
+        await loadRelatedProducts(location.state.product.category);
+        setLoading(false);
+      } else if (id) {
+        try {
+          // Try to fetch product by ID from API
+          const searchResult = await apiClient.search({
+            query: id,
+            maxResults: 1,
+          });
+          if (
+            searchResult.data &&
+            (searchResult.data as any).results &&
+            (searchResult.data as any).results.length > 0
+          ) {
+            const foundProduct = (searchResult.data as any).results[0];
+            setProduct(foundProduct);
+            await loadPriceHistory(foundProduct.id);
+            await loadRelatedProducts(foundProduct.category);
+          } else {
+            setError('Product not found');
+          }
+        } catch (err) {
+          setError('Failed to load product');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setError('Product not found');
+        setLoading(false);
+      }
+    };
+
+    loadProduct();
   }, [location.state, id]);
 
-  const generateMockPriceHistory = (product: Product) => {
-    const history: PriceHistoryPoint[] = [];
-    const sources = ['Amazon', 'Best Buy', 'Walmart', 'Target'];
-
-    for (let i = 30; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-
-      const basePrice = product.price;
-      const variation = (Math.random() - 0.5) * 0.2; // ±10% variation
-      const price = Math.round(basePrice * (1 + variation));
-      const source = sources[Math.floor(Math.random() * sources.length)];
-
-      history.push({
-        date: date.toISOString(),
-        price,
-        source,
-      });
+  const loadPriceHistory = async (productId: string) => {
+    try {
+      const response = await apiClient.getPriceHistory(productId, '30d');
+      if (response.data) {
+        setPriceHistory(
+          response.data.map((point) => ({
+            date: point.date,
+            price: point.price,
+            source: 'API', // We'll need to add source to the API response
+          }))
+        );
+      } else {
+        // Fallback to empty history if API fails
+        setPriceHistory([]);
+      }
+    } catch (err) {
+      console.error('Failed to load price history:', err);
+      setPriceHistory([]);
     }
-
-    setPriceHistory(history);
   };
 
-  const generateMockRelatedProducts = (currentProduct: Product) => {
-    const related: Product[] = [];
-    const basePrice = currentProduct.price;
-
-    for (let i = 1; i <= 4; i++) {
-      const priceVariation = (Math.random() - 0.5) * 0.4; // ±20% variation
-      const price = Math.round(basePrice * (1 + priceVariation));
-
-      related.push({
-        ...currentProduct,
-        id: `related-${i}`,
-        name: `${currentProduct.name} - Model ${i}`,
-        price,
-        rating: (currentProduct.rating || 4.5) + (Math.random() - 0.5) * 0.6,
-        reviewCount: Math.floor(
-          (currentProduct.reviewCount || 100) * (0.5 + Math.random() * 0.5)
-        ),
-      });
+  const loadRelatedProducts = async (category?: string) => {
+    if (!category) {
+      setRelatedProducts([]);
+      return;
     }
 
-    setRelatedProducts(related);
+    try {
+      const response = await apiClient.search({
+        query: category,
+        maxResults: 4,
+      });
+      if (response.data && (response.data as any).results) {
+        // Filter out the current product and limit to 4
+        const results = ((response.data as any).results ?? []) as Product[];
+        const related = results
+          .filter((p: Product) => p.id !== product?.id)
+          .slice(0, 4);
+        setRelatedProducts(related);
+      } else {
+        setRelatedProducts([]);
+      }
+    } catch (err) {
+      console.error('Failed to load related products:', err);
+      setRelatedProducts([]);
+    }
   };
 
   const getAvailabilityColor = (availability: string) => {
@@ -216,12 +231,20 @@ const ProductDetail: React.FC = () => {
               Product Details
             </h1>
             <div className="flex items-center space-x-3">
-              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 <Heart className="h-5 w-5" />
-              </button>
-              <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors duration-200">
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
                 <Share2 className="h-5 w-5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -235,12 +258,9 @@ const ProductDetail: React.FC = () => {
               {/* Product Image */}
               <div className="mb-6">
                 <img
-                  src={
-                    product.imageUrl ||
-                    'https://via.placeholder.com/400x400?text=No+Image'
-                  }
+                  src={product.image || '/placeholder-product.jpg'}
                   alt={product.name}
-                  className="w-full h-80 object-cover rounded-lg border border-gray-200"
+                  className="w-full h-full object-cover rounded-lg"
                 />
               </div>
 
@@ -253,8 +273,7 @@ const ProductDetail: React.FC = () => {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-2">
                   <PriceDisplay
-                    price={product.price}
-                    currency={product.currency}
+                    product={product}
                     className="text-3xl font-bold text-gray-900"
                   />
                   <div className="flex items-center space-x-2">
@@ -590,7 +609,7 @@ const ProductDetail: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <img
                         src={
-                          relatedProduct.imageUrl ||
+                          relatedProduct.image ||
                           'https://via.placeholder.com/60x60?text=No+Image'
                         }
                         alt={relatedProduct.name}
@@ -602,8 +621,7 @@ const ProductDetail: React.FC = () => {
                         </h4>
                         <div className="flex items-center space-x-2 mt-1">
                           <PriceDisplay
-                            price={relatedProduct.price}
-                            currency={relatedProduct.currency}
+                            product={relatedProduct}
                             className="text-sm font-semibold text-gray-900"
                           />
                           {relatedProduct.rating && (

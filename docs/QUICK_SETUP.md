@@ -69,6 +69,24 @@ npm run env:setup        # Copies .env.example to .env
 - Frontend URL for CORS
 - API keys (when needed)
 
+If integrating Supabase (recommended):
+
+```bash
+# Backend (backend/.env)
+SUPABASE_URL=https://<project-ref>.supabase.co
+SUPABASE_ANON_KEY=<anon_key>
+SUPABASE_SERVICE_ROLE_KEY=<service_role_key>
+
+# Point DATABASE_URL to Supabase Postgres (staging/production)
+DATABASE_URL=postgresql://<user>:<password>@db.<project-ref>.supabase.co:5432/postgres?sslmode=require
+
+# Frontend (frontend/.env)
+VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_ANON_KEY=<anon_key>
+```
+
+See `docs/SUPABASE_INTEGRATION_PLAN.md` for phased rollout and RLS guidance.
+
 ## 🔄 Common Commands
 
 ### 🚀 Quick Reference

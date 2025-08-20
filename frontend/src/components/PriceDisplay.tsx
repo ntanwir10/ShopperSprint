@@ -1,29 +1,52 @@
 import React from 'react';
+import { Product } from '../lib/api';
 
 interface PriceDisplayProps {
-  price: number; // Price in cents
-  currency: string;
+  product: Product;
   className?: string;
 }
 
 const PriceDisplay: React.FC<PriceDisplayProps> = ({
-  price,
-  currency,
+  product,
   className = '',
 }) => {
-  // Convert cents to dollars
-  const dollars = price / 100;
-  const formattedPrice = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: currency || 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(dollars);
+  const formatPrice = (price: number, currency: string) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency || 'USD',
+    }).format(price);
+  };
+
+  // Price change/original price not available; simplified display
 
   return (
-    <span className={`font-semibold text-gray-900 ${className}`}>
-      {formattedPrice}
-    </span>
+    <div className={`space-y-2 ${className}`}>
+      {/* Current Price */}
+      <div className="flex items-center gap-2">
+        <span className="text-2xl font-bold text-foreground">
+          {formatPrice(product.price, product.currency)}
+        </span>
+
+        {/* Price Change Indicator */}
+        {/* price change not available in Product; hiding */}
+      </div>
+
+      {/* Price Details */}
+      <div className="space-y-1">
+        {/* Original Price (if different) */}
+        {/* original price not provided; hiding */}
+
+        {/* Source and Last Updated */}
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <span>from {product.source}</span>
+          {product.lastScraped && (
+            <span>
+              Updated {new Date(product.lastScraped).toLocaleDateString()}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 

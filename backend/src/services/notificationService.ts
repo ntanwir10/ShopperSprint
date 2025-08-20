@@ -300,7 +300,7 @@ export class NotificationService {
         data: {
           alertId: alert.id,
           productId: alert.productId,
-          productName: alert.product.name,
+          productName: (alert as any).product?.name || "",
           targetPrice: alert.targetPrice,
           currentPrice,
           currency: alert.currency,
@@ -315,7 +315,9 @@ export class NotificationService {
     if (preferences.notificationEmail) {
       // Implement email notification logic
       console.log(
-        `Email notification sent to user ${alert.userId} for product ${alert.product.name}`
+        `Email notification sent to user ${alert.userId} for product ${
+          (alert as any).product?.name || ""
+        }`
       );
     }
   }

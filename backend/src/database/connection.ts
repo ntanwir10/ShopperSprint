@@ -12,9 +12,9 @@ function createPostgresConnection() {
   const postgresConfig = {
     host: process.env["DB_HOST"] || "localhost",
     port: parseInt(process.env["DB_PORT"] || "5432"),
-    user: process.env["DB_USER"] || "pricetracker",
-    password: process.env["DB_PASSWORD"] || "pricetracker123",
-    database: process.env["DB_NAME"] || "price_tracker",
+    user: process.env["DB_USER"] || "pricepulse",
+    password: process.env["DB_PASSWORD"] || "pricepulse123",
+    database: process.env["DB_NAME"] || "pricepulse",
     max: 10,
     idle_timeout: 20,
     connect_timeout: 10,

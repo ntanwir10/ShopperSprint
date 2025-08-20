@@ -36,6 +36,10 @@ export class CachingService {
     evictions: number;
   } = { hits: 0, misses: 0, evictions: 0 };
   private cleanupInterval: NodeJS.Timeout | null = null;
+  private operationCounts: Map<string, { count: number; resetTime: number }> =
+    new Map();
+  private readonly RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
+  private readonly MAX_OPERATIONS_PER_MINUTE = 1000; // Limit operations per minute
 
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
@@ -47,6 +51,90 @@ export class CachingService {
 
     // Don't initialize Redis immediately - lazy initialize when needed
     this.redis = null;
+  }
+
+  /**
+<<<<<<< HEAD
+   * SCAN helper to iterate keys without blocking Redis
+   * Security: Limit maximum keys returned and add timeout protection
+   */
+  private async scanKeys(
+    pattern: string,
+    count: number = 100,
+    maxKeys: number = 1000
+  ): Promise<string[]> {
+    await this.ensureRedis();
+    if (!this.redis) return [];
+
+    let cursor = 0;
+    const keys: string[] = [];
+    let iterations = 0;
+    const maxIterations = Math.ceil(maxKeys / count); // Prevent infinite loops
+
+    do {
+      if (iterations >= maxIterations || keys.length >= maxKeys) break;
+
+      const [nextCursor, batch] = await this.redis.scan(cursor, {
+        MATCH: pattern,
+        COUNT: count,
+      } as any);
+      cursor =
+        typeof nextCursor === "string" ? parseInt(nextCursor, 10) : nextCursor;
+      if (Array.isArray(batch)) {
+        keys.push(...batch.slice(0, maxKeys - keys.length));
+      }
+      iterations++;
+    } while (cursor !== 0 && keys.length < maxKeys);
+
+    return keys;
+  }
+
+  /**
+   * Delete keys in batches to avoid large commands
+   * Security: Limit batch size and total operations
+   */
+  private async deleteKeysInBatches(
+    keys: string[],
+    batchSize: number = 100, // Reduced batch size for security
+    maxKeys: number = 1000 // Maximum keys to delete in one operation
+  ): Promise<void> {
+    await this.ensureRedis();
+    if (!this.redis || keys.length === 0) return;
+
+    // Security limit: Don't delete more than maxKeys at once
+    const limitedKeys = keys.slice(0, maxKeys);
+
+    for (let i = 0; i < limitedKeys.length; i += batchSize) {
+      const slice = limitedKeys.slice(i, i + batchSize);
+      if (slice.length > 0) {
+        await this.redis.del(...slice);
+      }
+    }
+  }
+
+  /**
+   * Check rate limiting for cache operations
+   * Security: Prevent abuse of cache operations
+   */
+  private checkRateLimit(clientId: string = "default"): boolean {
+    const now = Date.now();
+    const record = this.operationCounts.get(clientId);
+
+    if (!record || now > record.resetTime) {
+      // Reset or create new record
+      this.operationCounts.set(clientId, {
+        count: 1,
+        resetTime: now + this.RATE_LIMIT_WINDOW,
+      });
+      return true;
+    }
+
+    if (record.count >= this.MAX_OPERATIONS_PER_MINUTE) {
+      return false; // Rate limit exceeded
+    }
+
+    record.count++;
+    return true;
   }
 
   /**
@@ -94,6 +182,12 @@ export class CachingService {
     sources?: string[]
   ): Promise<T | null> {
     try {
+      // Rate limiting check
+      if (!this.checkRateLimit()) {
+        console.warn("Cache operation rate limit exceeded");
+        return null;
+      }
+
       await this.ensureRedis();
       if (!this.redis) return null;
 
@@ -140,6 +234,12 @@ export class CachingService {
     sources?: string[]
   ): Promise<boolean> {
     try {
+      // Rate limiting check
+      if (!this.checkRateLimit()) {
+        console.warn("Cache operation rate limit exceeded");
+        return false;
+      }
+
       await this.ensureRedis();
       if (!this.redis) return false;
 
@@ -196,16 +296,24 @@ export class CachingService {
 
   /**
    * Invalidate all cache entries
+   * Security: Rate limited and size limited
    */
   async clearAll(): Promise<boolean> {
     try {
+      // Rate limiting check
+      if (!this.checkRateLimit()) {
+        console.warn("Cache operation rate limit exceeded");
+        return false;
+      }
+
       await this.ensureRedis();
       if (!this.redis) return false;
 
-      const keys = await this.redis.keys("search:*");
-      if (keys.length > 0) {
-        await this.redis.del(...keys);
-      }
+      // Use more specific pattern and limit results
+      const keys = await this.scanKeys("search:*", 50, 500);
+      if (keys.length > 0) await this.deleteKeysInBatches(keys);
+
+      console.log(`Cleared ${keys.length} cache entries`);
       return true;
     } catch (error) {
       console.error("Cache clear error:", error);
@@ -241,7 +349,7 @@ export class CachingService {
       await this.ensureRedis();
       if (!this.redis) return;
 
-      const keys = await this.redis.keys("search:*");
+      const keys = await this.scanKeys("search:*");
 
       if (keys.length >= this.config.maxCacheSize) {
         // Get all cache items with their metadata
@@ -270,7 +378,7 @@ export class CachingService {
           .map((item) => item.key);
 
         if (keysToRemove.length > 0) {
-          await this.redis.del(...keysToRemove);
+          await this.deleteKeysInBatches(keysToRemove);
           this.stats.evictions += keysToRemove.length;
           console.log(
             `Evicted ${keysToRemove.length} cache items to maintain size limit`
@@ -303,7 +411,7 @@ export class CachingService {
       await this.ensureRedis();
       if (!this.redis) return;
 
-      const keys = await this.redis.keys("search:*");
+      const keys = await this.scanKeys("search:*");
       let cleanedCount = 0;
 
       for (const key of keys) {
@@ -338,7 +446,7 @@ export class CachingService {
     try {
       await this.ensureRedis();
       if (!this.redis) return [];
-      return await this.redis.keys(pattern);
+      return await this.scanKeys(pattern);
     } catch (error) {
       console.error("Cache keys error:", error);
       return [];

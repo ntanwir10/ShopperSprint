@@ -1,35 +1,25 @@
-# 🔌 API Reference
+# 📚 API Reference
 
-The PricePulse API provides comprehensive endpoints for product search, price comparison, and price alerts. **The system works without user authentication - all features are available anonymously.**
+This document provides comprehensive documentation for all PricePulse API endpoints. The system works without user authentication and uses email-based management for price alerts.
 
-## Base URL
+## 🔗 Base URL
 
-```url
-http://localhost:3001/api
+- **Development**: `http://localhost:3001`
+- **Production**: `https://your-domain.com`
+
+## 🔐 Authentication
+
+**No authentication required** - The system works completely anonymously. Price alerts are managed through secure email tokens.
+
+## 📋 API Endpoints
+
+### 🔍 Search API
+
+#### Search Products
+
+```http
+POST /api/search
 ```
-
-## Authentication
-
-**No authentication required** - The system operates anonymously without user accounts.
-
-## Endpoints
-
-### GET /health
-
-Check application health status.
-
-**Response:**
-
-```json
-{
-  "status": "OK",
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
-
-### POST /api/search
-
-Search for products across multiple sources.
 
 **Request Body:**
 
@@ -38,10 +28,15 @@ Search for products across multiple sources.
   "query": "laptop",
   "maxResults": 50,
   "filters": {
-    "minPrice": 100,
+    "minPrice": 500,
     "maxPrice": 2000,
-    "sources": ["amazon", "walmart"],
-    "availability": "in_stock"
+    "availability": "in_stock",
+    "minRating": 4.0,
+    "sources": ["amazon", "bestbuy"]
+  },
+  "sort": {
+    "field": "price",
+    "direction": "asc"
   }
 }
 ```
@@ -50,154 +45,315 @@ Search for products across multiple sources.
 
 ```json
 {
-  "status": "success",
-  "data": {
-    "results": [
-      {
-        "id": "1",
-        "name": "MacBook Pro 13-inch",
-        "price": 1299.99,
-        "currency": "USD",
-        "availability": "in_stock",
-        "source": "Amazon",
-        "imageUrl": "https://example.com/image.jpg",
-        "rating": 4.5,
-        "reviewCount": 1250,
-        "url": "https://amazon.com/product",
-        "lastScraped": "2024-01-01T00:00:00Z"
-      }
-    ],
-    "totalResults": 1,
-    "searchId": "search_123",
-    "cached": false
+  "searchId": "uuid",
+  "results": [
+    {
+      "id": "product-uuid",
+      "name": "MacBook Pro 13-inch",
+      "price": 129999,
+      "currency": "USD",
+      "availability": "in_stock",
+      "source": "Amazon",
+      "imageUrl": "https://example.com/image.jpg",
+      "rating": 4.5,
+      "reviewCount": 1250,
+      "url": "https://amazon.com/product",
+      "lastScraped": "2024-01-15T10:30:00Z"
+    }
+  ],
+  "metadata": {
+    "totalSources": 5,
+    "successfulSources": 4,
+    "searchDuration": 1250,
+    "cacheHit": false
   }
 }
 ```
 
-### GET /api/search/:id
+#### Get Search Suggestions
 
-Get search results by search ID.
+```http
+GET /api/search/suggestions?query=laptop&limit=10
+```
 
-**Parameters:**
+**Response:**
 
-- `id` (string): Search ID from previous search
+```json
+[
+  "laptop best price",
+  "laptop on sale",
+  "laptop reviews",
+  "laptop comparison",
+  "laptop deals"
+]
+```
+
+#### Get Popular Searches
+
+```http
+GET /api/search/popular?timeRange=7d&limit=20
+```
+
+**Response:**
+
+```json
+[
+  {
+    "term": "laptop",
+    "count": 1250
+  },
+  {
+    "term": "smartphone",
+    "count": 980
+  }
+]
+```
+
+### 🔔 Anonymous Notifications API
+
+#### Create Price Alert
+
+```http
+POST /api/anonymous-notifications/alerts
+```
+
+**Request Body (dollars):**
+
+```json
+{
+  "email": "user@example.com",
+  "productId": "product-uuid",
+  "targetPrice": 999.99,
+  "currency": "USD",
+  "alertType": "below",
+  "threshold": 5
+}
+```
 
 **Response:**
 
 ```json
 {
-  "status": "success",
+  "message": "Price alert created successfully. Please check your email to verify.",
+  "statusCode": 201,
   "data": {
-    "searchId": "search_123",
-    "query": "laptop",
-    "results": [...],
-    "createdAt": "2024-01-01T00:00:00Z",
-    "lastUpdated": "2024-01-01T00:00:00Z"
+    "id": "alert-uuid",
+    "email": "user@example.com",
+    "targetPrice": 999.99,
+    "currency": "USD",
+    "alertType": "below",
+    "threshold": 5,
+    "isVerified": false
   }
 }
 ```
 
-### POST /api/search/refresh-prices
+#### Verify Price Alert
 
-Refresh prices for existing search results.
+```http
+GET /api/anonymous-notifications/verify/:verificationToken
+```
+
+**Response (dollars):**
+
+```json
+{
+  "message": "Price alert verified successfully!",
+  "statusCode": 200,
+  "data": {
+    "id": "alert-uuid",
+    "email": "user@example.com",
+    "targetPrice": 999.99,
+    "currency": "USD",
+    "alertType": "below",
+    "threshold": 5,
+    "isVerified": true,
+    "managementToken": "token"
+  }
+}
+```
+
+#### Get Alert Details (Management)
+
+```http
+GET /api/anonymous-notifications/alerts/:managementToken
+```
+
+**Response (dollars):**
+
+```json
+{
+  "message": "Alert retrieved successfully",
+  "statusCode": 200,
+  "data": {
+    "id": "alert-uuid",
+    "email": "user@example.com",
+    "targetPrice": 999.99,
+    "currency": "USD",
+    "alertType": "below",
+    "threshold": 5,
+    "isVerified": true,
+    "isActive": true,
+    "createdAt": "2024-01-15T10:30:00Z",
+    "updatedAt": "2024-01-15T10:31:00Z"
+  }
+}
+```
+
+#### Update Price Alert
+
+```http
+PUT /api/anonymous-notifications/alerts/:managementToken
+```
+
+**Request Body (dollars):**
+
+```json
+{
+  "targetPrice": 899.99,
+  "alertType": "below",
+  "threshold": 10
+}
+```
+
+**Response (dollars):**
+
+```json
+{
+  "message": "Price alert updated successfully",
+  "statusCode": 200,
+  "data": {
+    "id": "alert-uuid",
+    "email": "user@example.com",
+    "targetPrice": 899.99,
+    "currency": "USD",
+    "alertType": "below",
+    "threshold": 10,
+    "isVerified": true,
+    "isActive": true,
+    "updatedAt": "2024-01-15T11:00:00Z"
+  }
+}
+```
+
+#### Delete Price Alert
+
+```http
+DELETE /api/anonymous-notifications/alerts/:managementToken
+```
+
+**Response:**
+
+```json
+{
+  "message": "Price alert deleted successfully",
+  "statusCode": 200
+}
+```
+
+#### Test Email (non-production)
+
+```http
+POST /api/anonymous-notifications/test-email
+```
 
 **Request Body:**
 
 ```json
-{
-  "searchId": "search_123",
-  "productIds": ["1", "2", "3"]
-}
+{ "email": "user@example.com" }
+```
+
+**Success Response:**
+
+```json
+{ "message": "Test email sent successfully", "statusCode": 200 }
+```
+
+**Error Response (example):**
+
+```json
+{ "error": "SMTPVerifyFailed", "message": "Missing credentials for \"PLAIN\"", "statusCode": 500 }
+```
+
+### 🔍 Product Details API
+
+#### Get Product Details
+
+```http
+GET /api/search/products/:productId
 ```
 
 **Response:**
 
 ```json
 {
-  "status": "success",
+  "message": "Product details retrieved successfully",
+  "statusCode": 200,
   "data": {
-    "jobId": "job_456",
-    "message": "Price refresh job queued successfully",
-    "estimatedCompletion": "2024-01-01T00:05:00Z"
-  }
-}
-```
-
-### GET /api/search/status/:jobId
-
-Get the status of a background job.
-
-**Parameters:**
-
-- `jobId` (string): Job ID from price refresh or search operation
-
-**Response:**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "jobId": "job_456",
-    "status": "completed",
-    "progress": 100,
-    "result": {
-      "updatedProducts": 3,
-      "errors": []
-    },
-    "createdAt": "2024-01-01T00:00:00Z",
-    "completedAt": "2024-01-01T00:05:00Z"
-  }
-}
-```
-
-### GET /api/ads
-
-Get advertisements for display.
-
-**Query Parameters:**
-
-- `category` (string, optional): Product category for targeted ads
-- `limit` (number, optional): Maximum number of ads to return (default: 5)
-
-**Response:**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "ads": [
-      {
-        "id": "ad_1",
-        "title": "Special Offer on Electronics",
-        "description": "Get 20% off on all electronics",
-        "imageUrl": "https://example.com/ad.jpg",
-        "targetUrl": "https://example.com/offer",
-        "category": "electronics",
-        "priority": 1,
-        "active": true
-      }
+    "id": "product-uuid",
+    "name": "MacBook Pro 13-inch",
+    "currentPrice": 1299.99,
+    "currency": "USD",
+    "listings": [
+      { "source": "Amazon", "price": 1299.99, "currency": "USD" }
     ]
   }
 }
 ```
 
-### POST /api/ads/track
+### 📊 Price History API
 
-Track advertisement events (clicks, impressions, etc.).
+#### Get Product Price History
+
+```http
+GET /api/price-history/:productId?timeRange=30d&source=amazon
+```
+
+**Query Parameters:**
+- `timeRange`: `7d`, `30d`, `90d`, `1y`
+- `source`: Optional source filter
+
+**Response:**
+
+```json
+{
+  "productId": "product-uuid",
+  "priceHistory": [
+    {
+      "date": "2024-01-01",
+      "price": 129999,
+      "source": "Amazon",
+      "availability": "in_stock"
+    },
+    {
+      "date": "2024-01-02",
+      "price": 124999,
+      "source": "Amazon",
+      "availability": "in_stock"
+    }
+  ],
+  "statistics": {
+    "lowestPrice": 119999,
+    "highestPrice": 139999,
+    "averagePrice": 127499,
+    "priceChange": -5000,
+    "priceChangePercent": -3.8
+  }
+}
+```
+
+#### Compare Product Prices
+
+```http
+POST /api/price-history/compare
+```
 
 **Request Body:**
 
 ```json
 {
-  "adId": "ad_1",
-  "eventType": "click",
-  "userId": "user_123",
-  "sessionId": "session_456",
-  "metadata": {
-    "userAgent": "Mozilla/5.0...",
-    "referrer": "https://example.com",
-    "timestamp": "2024-01-01T00:00:00Z"
-  }
+  "productIds": ["product-uuid-1", "product-uuid-2"],
+  "timeRange": "30d"
 }
 ```
 
@@ -205,110 +361,97 @@ Track advertisement events (clicks, impressions, etc.).
 
 ```json
 {
-  "status": "success",
-  "data": {
-    "tracked": true,
-    "eventId": "event_789"
-  }
+  "comparison": [
+    {
+      "productId": "product-uuid-1",
+      "name": "MacBook Pro 13-inch",
+      "currentPrice": 129999,
+      "priceHistory": [...],
+      "statistics": {...}
+    },
+    {
+      "productId": "product-uuid-2",
+      "name": "Dell XPS 13",
+      "currentPrice": 99999,
+      "priceHistory": [...],
+      "statistics": {...}
+    }
+  ]
 }
 ```
 
-### GET /api/ads/stats/:adId
+### 📢 Advertisement API
 
-Get statistics for a specific advertisement.
+#### Get Advertisements
 
-**Parameters:**
-
-- `adId` (string): Advertisement ID
+```http
+GET /api/ads?category=electronics&limit=5
+```
 
 **Query Parameters:**
-
-- `startDate` (string, optional): Start date for statistics (ISO 8601)
-- `endDate` (string, optional): End date for statistics (ISO 8601)
-
-**Response:**
-
-```json
-{
-  "status": "success",
-  "data": {
-    "adId": "ad_1",
-    "title": "Special Offer on Electronics",
-    "stats": {
-      "impressions": 1500,
-      "clicks": 75,
-      "clickThroughRate": 5.0,
-      "revenue": 150.00,
-      "costPerClick": 2.00
-    },
-    "period": {
-      "startDate": "2024-01-01T00:00:00Z",
-      "endDate": "2024-01-31T23:59:59Z"
-    }
-  }
-}
-```
-
-### GET /api/ads/stats
-
-Get overall advertisement statistics.
-
-**Query Parameters:**
-
-- `startDate` (string, optional): Start date for statistics (ISO 8601)
-- `endDate` (string, optional): End date for statistics (ISO 8601)
-- `groupBy` (string, optional): Group by category, source, etc.
+- `category`: Advertisement category
+- `limit`: Maximum number of ads to return
 
 **Response:**
 
 ```json
 {
-  "status": "success",
-  "data": {
-    "overview": {
-      "totalImpressions": 5000,
-      "totalClicks": 250,
-      "overallCTR": 5.0,
-      "totalRevenue": 500.00,
-      "averageCPC": 2.00
-    },
-    "byCategory": [
-      {
-        "category": "electronics",
-        "impressions": 2000,
-        "clicks": 100,
-        "ctr": 5.0,
-        "revenue": 200.00
-      }
-    ],
-    "period": {
-      "startDate": "2024-01-01T00:00:00Z",
-      "endDate": "2024-01-31T23:59:59Z"
+  "advertisements": [
+    {
+      "id": "ad-uuid",
+      "title": "Save on Electronics",
+      "description": "Up to 50% off on selected items",
+      "imageUrl": "https://example.com/ad.jpg",
+      "targetUrl": "https://example.com/deal",
+      "category": "electronics"
     }
-  }
+  ]
 }
 ```
 
-## 🔌 WebSocket API
+#### Track Advertisement Click
 
-### Connection
+```http
+POST /api/ads/:adId/click
+```
 
-Connect to WebSocket server for real-time updates:
+**Response:**
 
-```javascript
-const ws = new WebSocket('ws://localhost:3001');
+```json
+{
+  "message": "Click tracked successfully"
+}
+```
 
-ws.onopen = () => {
-  console.log('Connected to WebSocket server');
-};
+### 📈 Monitoring API
+
+Monitoring endpoints are temporarily disabled. This section will be re-enabled once the monitoring router is restored.
+
+### 🌐 WebSocket Events
+
+Connect to WebSocket endpoint for real-time updates:
+
+```typescript
+const ws = new WebSocket('ws://localhost:3001/ws')
 
 ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  console.log('Received:', data);
-};
+  const data = JSON.parse(event.data)
+  
+  switch (data.type) {
+    case 'price_update':
+      console.log('Price updated:', data.data)
+      break
+    case 'price_alert':
+      console.log('Price alert triggered:', data.data)
+      break
+    case 'scraping_status':
+      console.log('Scraping status:', data.data)
+      break
+  }
+}
 ```
 
-### Message Types
+**Event Types:**
 
 #### Price Update
 
@@ -316,68 +459,44 @@ ws.onmessage = (event) => {
 {
   "type": "price_update",
   "data": {
-    "productId": "1",
-    "newPrice": 1199.99,
-    "oldPrice": 1299.99,
+    "productId": "product-uuid",
+    "newPrice": 124999,
     "source": "Amazon",
-    "timestamp": "2024-01-01T00:00:00Z"
+    "timestamp": "2024-01-15T10:30:00Z"
   }
 }
 ```
 
-#### Search Progress
+#### Price Alert Triggered
 
 ```json
 {
-  "type": "search_progress",
+  "type": "price_alert",
   "data": {
-    "searchId": "search_123",
-    "progress": 75,
-    "status": "in_progress",
-    "message": "Scraping Walmart..."
+    "alertId": "alert-uuid",
+    "productId": "product-uuid",
+    "productName": "MacBook Pro 13-inch",
+    "targetPrice": 99999,
+    "currentPrice": 124999,
+    "currency": "USD"
   }
 }
 ```
 
-#### Job Status
+#### Scraping Status
 
 ```json
 {
-  "type": "job_status",
+  "type": "scraping_status",
   "data": {
-    "jobId": "job_456",
+    "sourceId": "source-uuid",
+    "sourceName": "Amazon",
     "status": "completed",
-    "result": {
-      "updatedProducts": 3
-    }
+    "productsFound": 25,
+    "duration": 5000
   }
 }
 ```
-
-## 🚨 Error Codes
-
-| Status Code | Error Type            | Description               |
-| ----------- | --------------------- | ------------------------- |
-| 400         | `ValidationError`     | Request validation failed |
-| 401         | `UnauthorizedError`   | Authentication required   |
-| 403         | `ForbiddenError`      | Access denied             |
-| 404         | `NotFoundError`       | Resource not found        |
-| 409         | `ConflictError`       | Resource conflict         |
-| 429         | `RateLimitError`      | Too many requests         |
-| 500         | `InternalServerError` | Server error              |
-
-## 📊 Rate Limiting
-
-- **Window**: 15 minutes
-- **Limit**: 100 requests per IP address
-- **Headers**: `X-RateLimit-Limit`, `X-RateLimit-Remaining`, `X-RateLimit-Reset`
-
-## 🔒 CORS Configuration
-
-- **Origin**: Configurable via `FRONTEND_URL` environment variable
-- **Credentials**: Supported
-- **Methods**: GET, POST, PUT, DELETE, OPTIONS
-- **Headers**: Content-Type, Authorization
 
 ## 📝 Data Types
 
@@ -385,319 +504,266 @@ ws.onmessage = (event) => {
 
 ```typescript
 interface Product {
-  id: string;
-  name: string;
-  price: number;
-  currency: string;
-  availability: 'in_stock' | 'limited' | 'out_of_stock';
-  source: string;
-  imageUrl: string;
-  rating?: number;
-  reviewCount?: number;
-  url: string;
-  lastScraped: string;
+  id: string
+  name: string
+  price: number // Price in cents
+  currency: string
+  availability: 'in_stock' | 'out_of_stock' | 'limited' | 'unknown'
+  source: string
+  imageUrl?: string
+  rating?: number
+  reviewCount?: number
+  url: string
+  lastScraped: string
 }
 ```
 
-### Search Filters
+### Anonymous Price Alert
 
 ```typescript
-interface SearchFilters {
-  minPrice?: number;
-  maxPrice?: number;
-  sources?: string[];
-  availability?: 'in_stock' | 'limited' | 'out_of_stock';
-  rating?: number;
-  category?: string;
+interface AnonymousPriceAlert {
+  id: string
+  email: string
+  productId: string
+  targetPrice: number // Price in cents
+  currency: string
+  alertType: 'below' | 'above' | 'percentage'
+  threshold?: number
+  verificationToken: string
+  managementToken: string
+  isVerified: boolean
+  isActive: boolean
+  createdAt: string
+  updatedAt: string
 }
 ```
 
-### Advertisement
+### Search Request
 
 ```typescript
-interface Advertisement {
-  id: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  targetUrl: string;
-  category: string;
-  priority: number;
-  active: boolean;
+interface SearchRequest {
+  query: string
+  maxResults?: number
+  filters?: {
+    minPrice?: number
+    maxPrice?: number
+    availability?: string
+    minRating?: number
+    sources?: string[]
+    category?: string
+  }
+  sort?: {
+    field: 'price' | 'rating' | 'reviewCount' | 'lastScraped'
+    direction: 'asc' | 'desc'
+  }
 }
+```
+
+### Search Response
+
+```typescript
+interface SearchResponse {
+  searchId: string
+  results: Product[]
+  metadata: {
+    totalSources: number
+    successfulSources: number
+    searchDuration: number
+    cacheHit: boolean
+  }
+}
+```
+
+## 🔒 Rate Limiting
+
+- **Search API**: 100 requests per 15 minutes per IP
+- **Alert Creation**: 10 alerts per hour per email
+- **General API**: 100 requests per 15 minutes per IP
+
+## 🚨 Error Handling
+
+All API endpoints return consistent error responses:
+
+```json
+{
+  "error": "Error Type",
+  "message": "Human-readable error message",
+  "statusCode": 400,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+**Common HTTP Status Codes:**
+- `200` - Success
+- `201` - Created
+- `400` - Bad Request
+- `404` - Not Found
+- `429` - Too Many Requests
+- `500` - Internal Server Error
+
+## 📧 Email Templates
+
+### Price Alert Verification
+
+```html
+<h2>Verify Your Price Alert</h2>
+<p>Click the link below to verify your price alert for {{productName}}:</p>
+<a href="{{verificationUrl}}">Verify Alert</a>
+<p>Or copy this link: {{verificationUrl}}</p>
+<p>This link will expire in 24 hours.</p>
+```
+
+### Price Alert Management
+
+```html
+<h2>Manage Your Price Alert</h2>
+<p>Use the link below to manage your price alert for {{productName}}:</p>
+<a href="{{managementUrl}}">Manage Alert</a>
+<p>Or copy this link: {{managementUrl}}</p>
+<p>This link will never expire.</p>
+```
+
+### Price Alert Triggered
+
+```html
+<h2>Price Alert Triggered!</h2>
+<p>Your price alert for {{productName}} has been triggered!</p>
+<p>Target Price: ${{targetPrice}}</p>
+<p>Current Price: ${{currentPrice}}</p>
+<p>View the product: <a href="{{productUrl}}">{{productUrl}}</a></p>
+<p>To manage your alerts: <a href="{{managementUrl}}">Manage Alerts</a></p>
 ```
 
 ## 🧪 Testing
 
-Test the API endpoints using the provided test suite:
+### Test Endpoints
+- **Health Check**: `GET /health`
+- **Ping**: `GET /ping`
+- **API Health**: `GET /api/health`
+
+### Test Data
+The system includes mock data for development and testing. Set `NODE_ENV=development` to enable mock data.
+
+## 📚 SDKs and Libraries
+
+### JavaScript/TypeScript
 
 ```bash
-# Backend tests
-cd backend
-npm run test
-
-# Frontend tests
-cd frontend
-npm run test
+npm install pricepulse-client
 ```
 
-## 📚 Additional Resources
+```typescript
+import { PricePulseClient } from 'pricepulse-client'
 
-- **[Environment Setup](ENVIRONMENT_SETUP.md)** - Configuration guide
-- **[Development Workflow](DEVELOPMENT_WORKFLOW.md)** - Development process
-- **[README.md](../README.md)** - Main project documentation
+const client = new PricePulseClient({
+  baseUrl: 'http://localhost:3001'
+})
 
-## 🔔 Notifications API
+const results = await client.search({
+  query: 'laptop',
+  maxResults: 20
+})
+```
 
-### POST /api/notifications/alerts
+### Python
 
-Create a new price alert (anonymous, no user account required).
+```bash
+pip install pricepulse-python
+```
+
+```python
+from pricepulse import PricePulseClient
+
+client = PricePulseClient(base_url='http://localhost:3001')
+results = client.search(query='laptop', max_results=20)
+```
+
+## 🔄 Webhooks
+
+Configure webhooks to receive real-time updates:
+
+```http
+POST /api/webhooks/configure
+```
 
 **Request Body:**
 
 ```json
 {
-  "productId": "string",
-  "productName": "string",
-  "targetPrice": "number",
-  "sourceId": "string",
-  "sourceName": "string",
-  "currentPrice": "number"
+  "url": "https://your-domain.com/webhook",
+  "events": ["price_update", "price_alert"],
+  "secret": "your-webhook-secret"
 }
 ```
 
-**Response:**
+**Webhook Payload:**
 
 ```json
 {
-  "message": "Price alert created successfully",
-  "alert": {
-    "id": "alert_123",
-    "productId": "product_1",
-    "productName": "Sample Product",
-    "targetPrice": 25000,
-    "sourceId": "source_1",
-    "sourceName": "Mock Source",
-    "currentPrice": 29999,
-    "isActive": true,
-    "createdAt": "2025-08-13T18:30:00.000Z"
-  }
-}
-```
-
-### GET /api/notifications/alerts
-
-Get all price alerts (anonymous system).
-
-**Response:**
-
-```json
-{
-  "message": "Alerts retrieved successfully",
-  "alerts": [
-    {
-      "id": "alert_123",
-      "productId": "product_1",
-      "productName": "Sample Product",
-      "targetPrice": 25000,
-      "sourceId": "source_1",
-      "sourceName": "Mock Source",
-      "currentPrice": 29999,
-      "isActive": true,
-      "createdAt": "2025-08-13T18:30:00.000Z"
-    }
-  ],
-  "count": 1
-}
-```
-
-### PUT /api/notifications/alerts/:alertId
-
-Update an existing price alert.
-
-**Parameters:**
-
-- `alertId` (string): Alert ID to update
-
-**Request Body:**
-
-```json
-{
-  "targetPrice": 20000,
-  "isActive": false
-}
-```
-
-### DELETE /api/notifications/alerts/:alertId
-
-Delete a price alert.
-
-**Parameters:**
-
-- `alertId` (string): Alert ID to delete
-
-### GET /api/notifications/preferences
-
-Get notification preferences (system-wide defaults).
-
-**Response:**
-
-```json
-{
-  "message": "Preferences retrieved successfully",
-  "preferences": {
-    "id": "default",
-    "emailNotifications": true,
-    "pushNotifications": true,
-    "quietHoursStart": "22:00",
-    "quietHoursEnd": "08:00",
-    "timezone": "UTC"
-  }
-}
-```
-
-### PUT /api/notifications/preferences
-
-Update notification preferences (system-wide defaults).
-
-**Request Body:**
-
-```json
-{
-  "quietHoursStart": "23:00",
-  "quietHoursEnd": "07:00"
-}
-```
-
-### GET /api/notifications/stats
-
-Get notification statistics.
-
-**Response:**
-
-```json
-{
-  "message": "Statistics retrieved successfully",
-  "stats": {
-    "activeAlerts": 2,
-    "triggeredAlerts": 1,
-    "totalAlerts": 3
-  }
-}
-```
-
-## 🔍 Monitoring Endpoints
-
-### GET /ping
-
-Ultra-fast ping endpoint for frontend health checks.
-
-**Response:**
-
-```json
-{
-  "pong": true,
-  "timestamp": "2024-01-01T00:00:00Z"
-}
-```
-
-### GET /health
-
-Lightweight health check for frontend.
-
-**Response:**
-
-```json
-{
-  "status": "OK",
-  "timestamp": "2024-01-01T00:00:00Z",
-  "websocketClients": 5
-}
-```
-
-### GET /api/monitoring/health
-
-Lightweight health check for frontend (no heavy operations).
-
-**Response:**
-
-```json
-{
-  "timestamp": "2024-01-01T00:00:00Z",
-  "status": "healthy",
-  "uptime": 3600,
-  "version": "1.0.0"
-}
-```
-
-### GET /api/monitoring/health/detailed
-
-Detailed health check for admin/monitoring purposes.
-
-**Response:**
-
-```json
-{
-  "timestamp": "2024-01-01T00:00:00Z",
-  "status": "healthy",
-  "uptime": 3600,
-  "memory": { "rss": 123456, "heapUsed": 98765 },
-  "system": {
-    "totalSources": 5,
-    "healthySources": 4,
-    "criticalSources": 0,
-    "overallStatus": "healthy"
+  "event": "price_update",
+  "timestamp": "2024-01-15T10:30:00Z",
+  "data": {
+    "productId": "product-uuid",
+    "newPrice": 124999
   },
-  "redis": {
-    "status": "connected",
-    "connected": true
-  }
+  "signature": "sha256=..."
 }
 ```
 
-### GET /api/monitoring/metrics
+## 📊 Analytics
 
-Get all scraping metrics and cache statistics.
+### Search Analytics
 
-**Response:**
-
-```json
-{
-  "timestamp": "2024-01-01T00:00:00Z",
-  "scraping": [...],
-  "cache": {
-    "totalItems": 150,
-    "hitRate": 0.85,
-    "memoryUsage": "45MB"
-  }
-}
+```http
+GET /api/analytics/search?timeRange=7d
 ```
 
-### GET /api/monitoring/alerts
+### Alert Analytics
 
-Get all active monitoring alerts.
-
-**Response:**
-
-```json
-{
-  "timestamp": "2024-01-01T00:00:00Z",
-  "alerts": [...],
-  "count": 2
-}
+```http
+GET /api/analytics/alerts?timeRange=7d
 ```
 
-### GET /api/monitoring/cache
+### Performance Metrics
 
-Get cache information and statistics.
-
-**Response:**
-
-```json
-{
-  "timestamp": "2024-01-01T00:00:00Z",
-  "stats": {...},
-  "totalKeys": 150,
-  "sampleKeys": ["search:laptop", "search:phone"]
-}
+```http
+GET /api/analytics/performance?timeRange=24h
 ```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+```env
+# Server
+PORT=3001
+NODE_ENV=development
+
+# Database
+DATABASE_URL=postgresql://user:pass@localhost:5432/pricepulse
+
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# Email
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+
+# Scraping
+SCRAPING_DELAY=1000
+MAX_CONCURRENT_SCRAPES=3
+SCRAPING_TIMEOUT=30000
+```
+
+## 📞 Support
+
+For API support and questions:
+- **Documentation**: Check this document and project README
+- **Issues**: Report bugs on GitHub
+- **Discussions**: Use GitHub Discussions for questions
+
+## 📄 License
+
+This API is part of the PricePulse project and is available under the MIT License.

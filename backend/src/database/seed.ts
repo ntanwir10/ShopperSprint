@@ -1,4 +1,4 @@
-import { getDb } from "./connection";
+import { getDb, initializeConnections } from "./connection";
 import {
   sources,
   products,
@@ -7,6 +7,7 @@ import {
   userPreferences,
 } from "./schema";
 import bcrypt from "bcryptjs";
+import { eq } from "drizzle-orm";
 
 async function seed() {
   try {
@@ -19,6 +20,10 @@ async function seed() {
 
     console.log("🌱 Starting database seeding for DEVELOPMENT environment...");
     console.log(`🔧 Environment: ${process.env["NODE_ENV"] || "development"}`);
+
+    // Initialize database connections first
+    console.log("🔌 Initializing database connections...");
+    initializeConnections();
 
     // Create sources
     console.log("📡 Creating sources...");
@@ -187,81 +192,105 @@ async function seed() {
 
     // Create test admin user
     console.log("👤 Creating test admin user...");
-    const hashedPassword = await bcrypt.hash("AdminPass123!", 12);
 
-    const [adminUser] = await getDb()
-      .insert(users)
-      .values({
-        email: "admin@example.com",
-        username: "admin",
-        passwordHash: hashedPassword,
-        firstName: "Admin",
-        lastName: "User",
-        role: "admin",
-        isActive: true,
-        emailVerified: true,
-      })
-      .returning();
+    // Check if admin user already exists
+    const existingAdmin = await getDb()
+      .select()
+      .from(users)
+      .where(eq(users.email, "admin@example.com"))
+      .limit(1);
 
-    if (!adminUser) {
-      throw new Error("Failed to create admin user");
+    if (existingAdmin.length === 0) {
+      const hashedPassword = await bcrypt.hash("AdminPass123!", 12);
+
+      const [adminUser] = await getDb()
+        .insert(users)
+        .values({
+          email: "admin@example.com",
+          username: "admin",
+          passwordHash: hashedPassword,
+          firstName: "Admin",
+          lastName: "User",
+          role: "admin",
+          isActive: true,
+          emailVerified: true,
+        })
+        .returning();
+
+      if (!adminUser) {
+        throw new Error("Failed to create admin user");
+      }
+
+      // Create admin user preferences
+      await getDb().insert(userPreferences).values({
+        userId: adminUser.id,
+        notificationEmail: true,
+        notificationPush: true,
+        quietHoursStart: "22:00",
+        quietHoursEnd: "08:00",
+        timezone: "UTC",
+        language: "en",
+        currency: "USD",
+      });
+
+      console.log("✅ Test admin user created successfully");
+      console.log(`   Email: admin@example.com`);
+      console.log(`   Username: admin`);
+      console.log(`   Password: AdminPass123!`);
+    } else {
+      console.log("✅ Admin user already exists, skipping creation");
     }
-
-    // Create admin user preferences
-    await getDb().insert(userPreferences).values({
-      userId: adminUser.id,
-      notificationEmail: true,
-      notificationPush: true,
-      quietHoursStart: "22:00",
-      quietHoursEnd: "08:00",
-      timezone: "UTC",
-      language: "en",
-      currency: "USD",
-    });
-
-    console.log("✅ Test admin user created successfully");
-    console.log(`   Email: admin@example.com`);
-    console.log(`   Username: admin`);
-    console.log(`   Password: AdminPass123!`);
 
     // Create test regular user
     console.log("👤 Creating test regular user...");
-    const regularUserPassword = await bcrypt.hash("UserPass123!", 12);
 
-    const [regularUser] = await getDb()
-      .insert(users)
-      .values({
-        email: "user@example.com",
-        username: "testuser",
-        passwordHash: regularUserPassword,
-        firstName: "Test",
-        lastName: "User",
-        role: "user",
-        isActive: true,
-        emailVerified: true,
-      })
-      .returning();
+    // Check if regular user already exists
+    const existingRegularUser = await getDb()
+      .select()
+      .from(users)
+      .where(eq(users.email, "user@example.com"))
+      .limit(1);
 
-    if (!regularUser) {
-      throw new Error("Failed to create regular user");
+    if (existingRegularUser.length === 0) {
+      const regularUserPassword = await bcrypt.hash("UserPass123!", 12);
+
+      const [regularUser] = await getDb()
+        .insert(users)
+        .values({
+          email: "user@example.com",
+          username: "testuser",
+          passwordHash: regularUserPassword,
+          firstName: "Test",
+          lastName: "User",
+          role: "user",
+          isActive: true,
+          emailVerified: true,
+        })
+        .returning();
+
+      if (!regularUser) {
+        throw new Error("Failed to create regular user");
+      }
+
+      // Create regular user preferences
+      await getDb().insert(userPreferences).values({
+        userId: regularUser.id,
+        notificationEmail: true,
+        notificationPush: false,
+        quietHoursStart: "23:00",
+        quietHoursEnd: "07:00",
+        timezone: "America/New_York",
+        language: "en",
+        currency: "USD",
+      });
+
+      console.log("✅ Test regular user created successfully");
+      console.log(`   Email: user@example.com`);
+      console.log(`   Username: testuser`);
+      console.log(`   Password: UserPass123!`);
+    } else {
+      console.log("✅ Regular user already exists, skipping creation");
     }
-
-    // Create regular user preferences
-    await getDb().insert(userPreferences).values({
-      userId: regularUser.id,
-      notificationEmail: true,
-      notificationPush: false,
-      quietHoursStart: "23:00",
-      quietHoursEnd: "07:00",
-      timezone: "America/New_York",
-      language: "en",
-      currency: "USD",
-    });
-
-    console.log("✅ Test regular user created successfully");
-    console.log(`   Email: user@example.com`);
-    console.log(`   Username: testuser`);
-    console.log(`   Password: UserPass123!`);
 
     console.log("🎉 Database seeding completed successfully!");
     console.log("\n📋 Test Accounts:");

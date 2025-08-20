@@ -7,6 +7,8 @@ import {
   jsonb,
   uuid,
   pgEnum,
+  index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -21,76 +23,6 @@ export const sourceCategoryEnum = pgEnum("source_category", [
   "popular",
   "alternative",
 ]);
-export const userRoleEnum = pgEnum("user_role", [
-  "user",
-  "admin",
-  "moderator",
-]);
-
-// Users table
-export const users = pgTable("users", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  email: text("email").notNull().unique(),
-  username: text("username").notNull().unique(),
-  passwordHash: text("password_hash").notNull(),
-  firstName: text("first_name"),
-  lastName: text("last_name"),
-  role: userRoleEnum("role").notNull().default("user"),
-  isActive: boolean("is_active").notNull().default(true),
-  emailVerified: boolean("email_verified").notNull().default(false),
-  lastLogin: timestamp("last_login"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// User Sessions table
-export const userSessions = pgTable("user_sessions", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  token: text("token").notNull().unique(),
-  expiresAt: timestamp("expires_at").notNull(),
-  userAgent: text("user_agent"),
-  ipAddress: text("ip_address"),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Price Alerts table
-export const priceAlerts = pgTable("price_alerts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  productId: uuid("product_id")
-    .notNull()
-    .references(() => products.id, { onDelete: "cascade" }),
-  targetPrice: integer("target_price").notNull(), // Store in cents
-  currency: text("currency").notNull().default("USD"),
-  isActive: boolean("is_active").notNull().default(true),
-  alertType: text("alert_type").notNull().default("below"), // below, above, percentage
-  threshold: integer("threshold"), // For percentage-based alerts
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-// User Preferences table
-export const userPreferences = pgTable("user_preferences", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: uuid("user_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  notificationEmail: boolean("notification_email").notNull().default(true),
-  notificationPush: boolean("notification_push").notNull().default(true),
-  quietHoursStart: text("quiet_hours_start"), // HH:MM format
-  quietHoursEnd: text("quiet_hours_end"), // HH:MM format
-  timezone: text("timezone").notNull().default("UTC"),
-  language: text("language").notNull().default("en"),
-  currency: text("currency").notNull().default("USD"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
 
 // Products table
 export const products = pgTable("products", {
@@ -139,6 +71,40 @@ export const productListings = pgTable("product_listings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Anonymous Price Alerts table
+export const anonymousPriceAlerts = pgTable(
+  "anonymous_price_alerts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    productId: uuid("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    targetPrice: integer("target_price").notNull(), // Store in cents
+    currency: text("currency").notNull().default("USD"),
+    alertType: text("alert_type").notNull().default("below"), // below, above, percentage
+    threshold: integer("threshold"), // For percentage-based alerts
+    verificationToken: text("verification_token").notNull().unique(),
+    managementToken: text("management_token").notNull().unique(),
+    isVerified: boolean("is_verified").notNull().default(false),
+    isActive: boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      uqEmailProductActive: uniqueIndex(
+        "uq_anonymous_alert_email_product_active"
+      ).on(table.email, table.productId, table.isActive),
+      idxByProductActive: index("idx_anonymous_alert_product_active").on(
+        table.productId,
+        table.isActive
+      ),
+      idxByEmail: index("idx_anonymous_alert_email").on(table.email),
+    };
+  }
+);
+
 // Searches table
 export const searches = pgTable("searches", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -179,7 +145,7 @@ export const advertisements = pgTable("advertisements", {
 // Relations
 export const productsRelations = relations(products, ({ many }) => ({
   listings: many(productListings),
-  priceAlerts: many(priceAlerts),
+  anonymousAlerts: many(anonymousPriceAlerts),
 }));
 
 export const sourcesRelations = relations(sources, ({ many }) => ({
@@ -216,37 +182,115 @@ export const searchResultsRelations = relations(searchResults, ({ one }) => ({
   }),
 }));
 
-// User Relations
-export const usersRelations = relations(users, ({ one, many }) => ({
-  sessions: many(userSessions),
-  priceAlerts: many(priceAlerts),
-  preferences: one(userPreferences, {
-    fields: [users.id],
-    references: [userPreferences.userId],
-  }),
-}));
+export const anonymousPriceAlertsRelations = relations(
+  anonymousPriceAlerts,
+  ({ one }) => ({
+    product: one(products, {
+      fields: [anonymousPriceAlerts.productId],
+      references: [products.id],
+    }),
+  })
+);
 
-export const userSessionsRelations = relations(userSessions, ({ one }) => ({
-  user: one(users, {
-    fields: [userSessions.userId],
-    references: [users.id],
-  }),
-}));
+// ===== Authentication & Notifications (minimal schemas to satisfy services) =====
 
-export const priceAlertsRelations = relations(priceAlerts, ({ one }) => ({
-  user: one(users, {
-    fields: [priceAlerts.userId],
-    references: [users.id],
-  }),
-  product: one(products, {
-    fields: [priceAlerts.productId],
-    references: [products.id],
-  }),
-}));
+// Users table
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  username: text("username").notNull().unique(),
+  passwordHash: text("password_hash").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  role: text("role").notNull().default("user"),
+  isActive: boolean("is_active").notNull().default(true),
+  emailVerified: boolean("email_verified").notNull().default(false),
+  verificationToken: text("verification_token"),
+  verificationExpires: timestamp("verification_expires"),
+  resetToken: text("reset_token"),
+  resetExpires: timestamp("reset_expires"),
+  lastLogin: timestamp("last_login"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
-export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
-  user: one(users, {
-    fields: [userPreferences.userId],
-    references: [users.id],
-  }),
-}));
+// User sessions
+export const userSessions = pgTable("user_sessions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// OAuth accounts
+export const oauthAccounts = pgTable(
+  "oauth_accounts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: text("provider").notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    accessToken: text("access_token"),
+    refreshToken: text("refresh_token"),
+    scope: text("scope"),
+    expiresAt: timestamp("expires_at"),
+  },
+  (t) => ({
+    uqProviderUser: uniqueIndex("uq_oauth_provider_user").on(
+      t.provider,
+      t.providerUserId
+    ),
+  })
+);
+
+// User preferences
+export const userPreferences = pgTable("user_preferences", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  notificationEmail: boolean("notification_email").notNull().default(true),
+  notificationPush: boolean("notification_push").notNull().default(true),
+  quietHoursStart: text("quiet_hours_start"),
+  quietHoursEnd: text("quiet_hours_end"),
+  timezone: text("timezone").notNull().default("UTC"),
+  language: text("language").notNull().default("en"),
+  currency: text("currency").notNull().default("USD"),
+  // Search preferences
+  defaultSources: text("default_sources").array(),
+  defaultSort: text("default_sort"),
+  defaultSortDirection: text("default_sort_direction"),
+  defaultFilters: jsonb("default_filters"),
+  savedSearches: jsonb("saved_searches"),
+  searchHistory: jsonb("search_history"),
+  // Alert preferences
+  alertFrequency: text("alert_frequency"),
+  priceChangeThreshold: integer("price_change_threshold"),
+  maxAlertsPerDay: integer("max_alerts_per_day"),
+  alertCategories: jsonb("alert_categories"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Price alerts (for authenticated users)
+export const priceAlerts = pgTable("price_alerts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  productId: uuid("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  targetPrice: integer("target_price").notNull(),
+  currency: text("currency").notNull().default("USD"),
+  alertType: text("alert_type").notNull().default("below"),
+  threshold: integer("threshold"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

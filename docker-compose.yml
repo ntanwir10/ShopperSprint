@@ -5,9 +5,9 @@ services:
     image: postgres:15-alpine
     container_name: pricepulse-postgres
     environment:
-      POSTGRES_DB: pricepulse
-      POSTGRES_USER: pricepulse
-      POSTGRES_PASSWORD: pricepulse123
+      POSTGRES_DB: ${POSTGRES_DB:-pricepulse}
+      POSTGRES_USER: ${POSTGRES_USER:-pricepulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5432:5432"
     volumes:
@@ -19,9 +19,9 @@ services:
     image: postgres:15-alpine
     container_name: pricepulse-postgres-test
     environment:
-      POSTGRES_DB: pricepulse_test
-      POSTGRES_USER: pricepulse
-      POSTGRES_PASSWORD: pricepulse123
+      POSTGRES_DB: ${POSTGRES_TEST_DB:-pricepulse_test}
+      POSTGRES_USER: ${POSTGRES_USER:-pricepulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "5433:5432"
     volumes:
@@ -32,6 +32,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: pricepulse-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD:-devpassword123}
     ports:
       - "6379:6379"
     volumes:
@@ -43,8 +44,8 @@ services:
     image: dpage/pgadmin4:latest
     container_name: pricepulse-pgadmin
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@pricepulse.com
-      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-admin@pricepulse.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
     ports:
       - "8080:80"
     volumes:

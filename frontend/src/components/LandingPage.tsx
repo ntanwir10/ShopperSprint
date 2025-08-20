@@ -1,208 +1,241 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, TrendingUp, Shield, Zap, AlertCircle } from 'lucide-react';
-import BannerAd from './BannerAd';
+import { Button } from './ui/button';
 import SearchInput from './SearchInput';
-import { apiClient } from '../lib/api';
+import PriceAlertSignup from './PriceAlertSignup';
+import { TrendingUp, Shield, Zap, BarChart3, Star } from 'lucide-react';
 
-const LandingPage: React.FC = () => {
+interface LandingPageProps {}
+
+const LandingPage: React.FC<LandingPageProps> = () => {
+  const [searchValue, setSearchValue] = useState('');
+  // Removed public API health indicator
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [apiStatus, setApiStatus] = useState<
-    'checking' | 'connected' | 'disconnected'
-  >('checking');
 
-  // Prevent duplicate API status checks
-  const statusCheckInProgress = useRef(false);
-
-  // Check API connectivity on component mount
-  useEffect(() => {
-    const checkApiStatus = async () => {
-      if (statusCheckInProgress.current) {
-        console.log('🔒 API status check already in progress, skipping...');
-        return;
-      }
-
-      statusCheckInProgress.current = true;
-      console.log('🔍 Checking API status...');
-
-      try {
-        const isConnected = await apiClient.testConnection();
-        console.log('📡 API connection result:', isConnected);
-        setApiStatus(isConnected ? 'connected' : 'disconnected');
-      } catch (error) {
-        console.error('❌ API status check failed:', error);
-        setApiStatus('disconnected');
-      } finally {
-        statusCheckInProgress.current = false;
-      }
-    };
-
-    checkApiStatus();
-  }, []);
+  // Removed API health fetch for cleaner UX
 
   const handleSearch = (query: string) => {
-    if (query.trim().length >= 3) {
-      navigate('/search', { state: { query } });
-    }
+    navigate(`/search/${encodeURIComponent(query)}`);
   };
 
+  const features = [
+    {
+      icon: <TrendingUp className="h-6 w-6" />,
+      title: 'Price Tracking',
+      description:
+        'Monitor product prices across multiple retailers in real-time.',
+    },
+    {
+      icon: <Shield className="h-6 w-6" />,
+      title: 'Price Alerts',
+      description: 'Get notified instantly when prices drop below your target.',
+    },
+    {
+      icon: <Zap className="h-6 w-6" />,
+      title: 'Smart Comparisons',
+      description: 'Compare prices, features, and availability across stores.',
+    },
+    {
+      icon: <BarChart3 className="h-6 w-6" />,
+      title: 'Price History',
+      description: 'View historical price trends to make informed decisions.',
+    },
+  ];
+
+  const testimonials = [
+    {
+      name: 'Sarah M.',
+      role: 'Smart Shopper',
+      content: 'PricePulse helped me save over $200 on my laptop purchase!',
+      rating: 5,
+    },
+    {
+      name: 'Mike R.',
+      role: 'Tech Enthusiast',
+      content: 'The price alerts are incredibly accurate and timely.',
+      rating: 5,
+    },
+    {
+      name: 'Lisa K.',
+      role: 'Budget Conscious',
+      content: 'I never overpay for electronics anymore thanks to PricePulse.',
+      rating: 5,
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <TrendingUp className="h-8 w-8 text-primary-600" />
-              <h1 className="ml-2 text-2xl font-bold text-gray-900">
-                PricePulse
-              </h1>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-gray-900">
-                Features
-              </a>
-              <a href="#about" className="text-gray-600 hover:text-gray-900">
-                About
-              </a>
-            </nav>
-          </div>
-        </div>
-      </header>
-
-      {/* API Status Banner */}
-      {apiStatus === 'disconnected' && (
-        <div className="bg-red-50 border-b border-red-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-            <div className="flex items-center">
-              <AlertCircle className="h-5 w-5 text-red-400 mr-2" />
-              <p className="text-sm text-red-700">
-                ⚠️ Backend API is not accessible. Search functionality may not
-                work properly. Please ensure the backend server is running on
-                port 3001.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-
+    <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <main className="flex-1">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center">
-            <h2 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Find the Best Prices
-              <span className="text-primary-600"> Online</span>
-            </h2>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              PricePulse searches across multiple e-commerce sites and compares
-              prices in real-time. Save money by finding the best deals on the
-              products you want.
+      <section className="relative py-20 px-4 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20" />
+        <div className="relative container mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-6">
+              Never Overpay
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">
+                {' '}
+                Again
+              </span>
+            </h1>
+            <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
+              Track prices, set alerts, and save money on your favorite
+              products. PricePulse monitors prices across major retailers so you
+              don't have to.
             </p>
 
-            {/* Search Input */}
-            <div className="max-w-2xl mx-auto mb-12">
+            {/* Search Bar */}
+            <div className="max-w-2xl mx-auto mb-8">
               <SearchInput
-                value={searchQuery}
-                onChange={setSearchQuery}
+                value={searchValue}
+                onChange={setSearchValue}
                 onSearch={handleSearch}
-                placeholder="Search for products (e.g., iPhone, laptop, headphones)..."
-                className="text-lg"
+                placeholder="Search for products to track..."
+                size="large"
+                showSuggestions={true}
               />
-              {apiStatus === 'disconnected' && (
-                <p className="mt-2 text-sm text-red-600">
-                  ⚠️ Search may not work - backend server is not accessible
-                </p>
-              )}
             </div>
 
-            {/* Banner Advertisement */}
-            <div className="mb-12">
-              <BannerAd />
+            {/* API status pill removed */}
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button size="lg" onClick={() => navigate('/compare')}>
+              Start Comparing
+            </Button>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => {
+                // Scroll to price alert section
+                document
+                  .getElementById('price-alerts')
+                  ?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Set Price Alerts
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Why Choose PricePulse?
+            </h2>
+            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+              Our comprehensive price tracking platform gives you the tools you
+              need to make smart purchasing decisions.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => (
+              <div
+                key={index}
+                className="text-center p-6 rounded-lg border bg-card hover:shadow-lg transition-shadow"
+              >
+                <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-4 text-primary">
+                  {feature.icon}
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">
+                  {feature.title}
+                </h3>
+                <p className="text-muted-foreground">{feature.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Price Alert Signup Section */}
+      <section id="price-alerts" className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-4xl">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Get Price Alerts
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Stay informed about price drops without creating an account
+            </p>
+          </div>
+
+          <PriceAlertSignup />
+        </div>
+      </section>
+
+      {/* Testimonials Section */}
+      <section className="py-20 px-4">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              What Our Users Say
+            </h2>
+            <p className="text-xl text-muted-foreground">
+              Join thousands of satisfied customers who save money every day
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="p-6 rounded-lg border bg-card">
+                <div className="flex items-center mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star
+                      key={i}
+                      className="h-5 w-5 fill-yellow-400 text-yellow-400"
+                    />
+                  ))}
+                </div>
+                <p className="text-muted-foreground mb-4">
+                  "{testimonial.content}"
+                </p>
+                <div>
+                  <p className="font-semibold text-foreground">
+                    {testimonial.name}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {testimonial.role}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-20 px-4 bg-muted/30">
+        <div className="container mx-auto max-w-6xl">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 text-center">
+            <div>
+              <div className="text-3xl font-bold text-foreground mb-2">
+                10K+
+              </div>
+              <div className="text-muted-foreground">Active Users</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-foreground mb-2">
+                $2M+
+              </div>
+              <div className="text-muted-foreground">Money Saved</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-foreground mb-2">50+</div>
+              <div className="text-muted-foreground">Retailers Tracked</div>
+            </div>
+            <div>
+              <div className="text-3xl font-bold text-foreground mb-2">
+                99.9%
+              </div>
+              <div className="text-muted-foreground">Uptime</div>
             </div>
           </div>
         </div>
-
-        {/* Features Section */}
-        <section id="features" className="py-16 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                Why Choose PricePulse?
-              </h3>
-              <p className="text-lg text-gray-600">
-                Get comprehensive price comparisons across multiple sources
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="bg-primary-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Search className="h-8 w-8 text-primary-600" />
-                </div>
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                  Smart Search
-                </h4>
-                <p className="text-gray-600">
-                  Find products across popular retailers and alternative sources
-                  with intelligent matching.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="bg-primary-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Zap className="h-8 w-8 text-primary-600" />
-                </div>
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                  Real-time Updates
-                </h4>
-                <p className="text-gray-600">
-                  Get the latest prices and availability information in
-                  real-time.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="bg-primary-100 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                  <Shield className="h-8 w-8 text-primary-600" />
-                </div>
-                <h4 className="text-xl font-semibold text-gray-900 mb-2">
-                  Trusted Sources
-                </h4>
-                <p className="text-gray-600">
-                  Compare prices from verified retailers with reliable data
-                  validation.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* About Section */}
-        <section id="about" className="py-16 bg-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h3 className="text-3xl font-bold text-gray-900 mb-4">
-                About PricePulse
-              </h3>
-              <p className="text-lg text-gray-600 max-w-4xl mx-auto">
-                PricePulse is a comprehensive platform that helps you find the
-                best prices across multiple online retailers. Our advanced web
-                scraping technology ensures you always get the most up-to-date
-                pricing information.
-              </p>
-            </div>
-          </div>
-        </section>
-      </main>
-
-      {/* Footer */}
-      <footer className="bg-gray-800 text-white py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; 2024 PricePulse. All rights reserved.</p>
-        </div>
-      </footer>
+      </section>
     </div>
   );
 };

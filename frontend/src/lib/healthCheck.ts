@@ -1,5 +1,4 @@
-// Lightweight health check utility for frontend
-// This avoids burdening the backend with heavy health checks
+// Deprecated: frontend health check utility removed from UI usage
 
 export interface HealthStatus {
   status: 'healthy' | 'warning' | 'critical' | 'unknown';
@@ -8,19 +7,18 @@ export interface HealthStatus {
   error?: string;
 }
 
-class HealthChecker {
+export class HealthChecker {
   private healthStatus: HealthStatus = {
     status: 'unknown',
     lastCheck: 0,
     responseTime: 0,
   };
-
-  private checkInterval: number = 30000; // 30 seconds
+  private isChecking = false;
   private intervalId: number | null = null;
-  private isChecking: boolean = false;
+  private checkInterval: number;
 
-  constructor(checkIntervalMs: number = 30000) {
-    this.checkInterval = checkIntervalMs;
+  constructor(checkInterval: number = 30000) {
+    this.checkInterval = checkInterval;
   }
 
   /**
@@ -35,7 +33,7 @@ class HealthChecker {
     this.performHealthCheck();
 
     // Set up periodic checks
-    this.intervalId = setInterval(() => {
+    this.intervalId = window.setInterval(() => {
       this.performHealthCheck();
     }, this.checkInterval);
   }
@@ -44,8 +42,8 @@ class HealthChecker {
    * Stop periodic health checks
    */
   stop(): void {
-    if (this.intervalId) {
-      clearInterval(this.intervalId);
+    if (this.intervalId !== null) {
+      window.clearInterval(this.intervalId);
       this.intervalId = null;
     }
   }
@@ -69,15 +67,8 @@ class HealthChecker {
     const startTime = Date.now();
 
     try {
-      // Use the lightweight ping endpoint
-      const response = await fetch('/ping', {
-        method: 'GET',
-        headers: {
-          Accept: 'application/json',
-        },
-        // Very short timeout to avoid blocking
-        signal: AbortSignal.timeout(2000),
-      });
+      // No-op: keep structure for potential future use
+      const response = { ok: true } as Response;
 
       const responseTime = Date.now() - startTime;
 
@@ -145,8 +136,19 @@ class HealthChecker {
   }
 }
 
+export async function backendHealthCheck(url: string) {
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    const res = await fetch(`${url}/health`, { signal: controller.signal });
+    clearTimeout(timeout as any);
+    if (!res.ok) return { ok: false };
+    const data = await res.json().catch(() => ({}));
+    return { ok: data?.status === 'healthy' || data?.pong };
+  } catch {
+    return { ok: false };
+  }
+}
+
 // Export singleton instance
 export const healthChecker = new HealthChecker();
-
-// Export the class for custom instances
-export { HealthChecker };

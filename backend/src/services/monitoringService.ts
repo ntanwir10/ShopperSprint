@@ -275,11 +275,15 @@ export class MonitoringService extends EventEmitter {
     const now = new Date();
 
     // Check if source is too old (no recent activity)
-    if (
-      source.lastCheck &&
-      now.getTime() - source.lastCheck.getTime() > 30 * 60 * 1000
-    ) {
-      return { status: "unknown" };
+    if (source.lastCheck) {
+      // Ensure lastCheck is a Date object
+      const lastCheckDate =
+        source.lastCheck instanceof Date
+          ? source.lastCheck
+          : new Date(source.lastCheck);
+      if (now.getTime() - lastCheckDate.getTime() > 30 * 60 * 1000) {
+        return { status: "unknown" };
+      }
     }
 
     // Check success rate
