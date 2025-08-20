@@ -26,7 +26,7 @@ Add these in Vercel → Project Settings → Environment Variables:
 DATABASE_URL=postgresql://postgres:[your-password]@[your-host]:5432/postgres
 JWT_SECRET=e2bce49dd14f840252d5a6b455c2570fd327691df8ac15fc5c1e52bd7abb47d7a58f1fbe425f9f0e80fd6a132c094000e177fca4e78f70e1d3b949e0c54cc430
 NODE_ENV=production
-AUTH_ENABLED=false
+AUTH_ENABLED=true
 FRONTEND_URL=https://your-vercel-app.vercel.app
 
 # Optional for Testing (disable features that need Redis)
@@ -35,12 +35,13 @@ WEBSOCKET_ENABLED=false
 EMAIL_NOTIFICATIONS_ENABLED=false
 ```
 
-## What This Setup Gives You:
+## What This Setup Gives You
 
 - ✅ Working frontend
 - ✅ Product search functionality  
 - ✅ Basic API endpoints
 - ✅ Database connectivity
+- ✅ User authentication (existing JWT system)
 - ❌ Real-time features (disabled)
 - ❌ Advanced caching (disabled)
 - ❌ Email notifications (disabled)

@@ -12,7 +12,13 @@ const emailService = new EmailService();
 // Validation schemas
 const createAlertValidation = [
   body("email").isEmail().withMessage("Valid email address is required"),
-  body("productId").isUUID().withMessage("Valid product ID is required"),
+  body("productId")
+    .isString()
+    .isLength({ min: 1, max: 255 })
+    .matches(/^[a-zA-Z0-9_-]+$/)
+    .withMessage(
+      "Valid product ID is required (alphanumeric, underscore, hyphen allowed)"
+    ),
   body("targetPrice")
     .isFloat({ min: 0.01 })
     .withMessage("Target price must be a positive number"),
@@ -464,8 +470,42 @@ router.get("/stats", async (_req: Request, res: Response) => {
   }
 });
 
-// POST /api/anonymous-notifications/test-email - Test email service (non-production)
+// POST /api/anonymous-notifications/validate-product - Validate product ID format (non-production)
 const isNonProd = (process.env["NODE_ENV"] || "development") !== "production";
+if (isNonProd) {
+  router.post(
+    "/validate-product",
+    [
+      body("productId")
+        .isString()
+        .isLength({ min: 1, max: 255 })
+        .matches(/^[a-zA-Z0-9_-]+$/)
+        .withMessage(
+          "Valid product ID is required (alphanumeric, underscore, hyphen allowed)"
+        ),
+    ],
+    async (req: Request, res: Response) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({
+          valid: false,
+          error: "Validation failed",
+          details: errors.array(),
+          statusCode: 400,
+        });
+      }
+
+      return res.status(200).json({
+        valid: true,
+        productId: req.body.productId,
+        message: "Product ID format is valid",
+        statusCode: 200,
+      });
+    }
+  );
+}
+
+// POST /api/anonymous-notifications/test-email - Test email service (non-production)
 if (isNonProd) {
   router.post(
     "/test-email",

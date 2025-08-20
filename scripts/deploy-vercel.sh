@@ -29,12 +29,12 @@ echo "🏗️  Building project..."
 npm run build:frontend
 
 # Check if .env.vercel.example exists
-if [ -f ".env.vercel.example" ]; then
-    echo "📋 Environment variables example found at .env.vercel.example"
+if [ -f "config/examples/.env.vercel.example" ]; then
+    echo "📋 Environment variables example found at config/examples/.env.vercel.example"
     echo "⚠️  Please set up your environment variables in Vercel dashboard:"
     echo "   1. Go to your Vercel project settings"
     echo "   2. Navigate to Environment Variables"
-    echo "   3. Add the variables from .env.vercel.example"
+    echo "   3. Add the variables from config/examples/.env.vercel.example"
     echo ""
     echo "🔗 Required services:"
     echo "   - PostgreSQL database (Neon, Supabase, or Railway)"

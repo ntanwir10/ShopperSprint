@@ -128,16 +128,32 @@ export class WebSocketService {
         timestamp: new Date(),
       });
 
-      // Set authentication timeout
+      // Set authentication timeout - allow anonymous connections for public features
       const authTimeout = setTimeout(() => {
         const client = this.authenticatedClients.get(clientId);
         if (client && !client.authenticated) {
-          logger.warn(
-            `Client ${clientId} failed to authenticate, disconnecting`
+          // Instead of disconnecting, mark as anonymous user
+          logger.info(
+            `Client ${clientId} continuing as anonymous user (no authentication provided)`
           );
-          ws.close(1008, "Authentication required");
+
+          // Update client to anonymous mode
+          client.userId = "anonymous";
+          client.authenticated = false; // Keep as false to indicate anonymous
+
+          // Send anonymous confirmation
+          this.sendToClient(clientId, {
+            type: "ping",
+            data: {
+              message:
+                "Connected as anonymous user. Some features may be limited.",
+              authenticated: false,
+              anonymous: true,
+            },
+            timestamp: new Date(),
+          });
         }
-      }, 30000); // 30 second auth timeout
+      }, 60000); // Extended to 60 seconds for better UX
 
       // Set up ping/pong to keep connection alive
       const pingInterval = setInterval(() => {

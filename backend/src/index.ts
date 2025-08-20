@@ -7,6 +7,7 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { json } from "body-parser";
+import path from "path";
 import { logger } from "./middleware/logger";
 import { errorHandler } from "./middleware/errorHandler";
 import {
@@ -158,17 +159,58 @@ if (AUTH_ENABLED) {
 // Monitoring endpoints always available (re-enabled)
 app.use("/api/monitoring", monitoringRouter);
 
+// Serve static frontend files in production (Railway single-service deployment)
+const SERVE_FRONTEND =
+  process.env["SERVE_FRONTEND"] === "true" ||
+  process.env["RAILWAY_ENVIRONMENT"];
+if (SERVE_FRONTEND && IS_PRODUCTION) {
+  const frontendPath = path.join(__dirname, "public");
+
+  // Serve static files
+  app.use(
+    express.static(frontendPath, {
+      maxAge: "1y", // Cache static assets for 1 year
+      etag: true,
+      lastModified: true,
+    })
+  );
+
+  // Handle client-side routing - serve index.html for non-API routes
+  app.get("*", (req, res) => {
+    // Don't serve index.html for API routes
+    if (req.path.startsWith("/api/")) {
+      return res.status(404).json({
+        error: "API Not Found",
+        message: `API route ${req.originalUrl} not found`,
+        statusCode: 404,
+      });
+    }
+
+    // Serve index.html for all other routes (SPA routing)
+    res.sendFile(path.join(frontendPath, "index.html"), (err) => {
+      if (err) {
+        console.error("Error serving index.html:", err);
+        res.status(500).json({
+          error: "Internal Server Error",
+          message: "Could not serve frontend application",
+          statusCode: 500,
+        });
+      }
+    });
+  });
+} else {
+  // API-only mode - 404 handler for all non-API routes
+  app.use("*", (req, res) => {
+    res.status(404).json({
+      error: "Not Found",
+      message: `Route ${req.originalUrl} not found`,
+      statusCode: 404,
+    });
+  });
+}
+
 // Error handling middleware
 app.use(errorHandler);
-
-// 404 handler
-app.use("*", (req, res) => {
-  res.status(404).json({
-    error: "Not Found",
-    message: `Route ${req.originalUrl} not found`,
-    statusCode: 404,
-  });
-});
 
 // Graceful shutdown
 const gracefulShutdown = async (signal: string) => {

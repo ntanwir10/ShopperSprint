@@ -9,6 +9,19 @@ import { ScrapingService } from "./ScrapingService";
 import { cachingService } from "./cachingService";
 import { monitoringService } from "./monitoringService";
 
+// Enhanced logger utility
+const logger = {
+  info: (message: string, ...args: any[]) =>
+    console.log(`[SEARCH-INFO] ${message}`, ...args),
+  error: (message: string, ...args: any[]) =>
+    console.error(`[SEARCH-ERROR] ${message}`, ...args),
+  warn: (message: string, ...args: any[]) =>
+    console.warn(`[SEARCH-WARN] ${message}`, ...args),
+  debug: (message: string, ...args: any[]) =>
+    process.env["NODE_ENV"] === "development" &&
+    console.log(`[SEARCH-DEBUG] ${message}`, ...args),
+};
+
 // Define types from schemas
 type SearchRequest = z.infer<typeof searchRequestSchema>;
 type SearchResponse = z.infer<typeof searchResponseSchema>;
@@ -28,6 +41,8 @@ export interface SearchSortOptions {
 }
 
 export class SearchService {
+  private activeSearches: Map<string, Promise<SearchResponse>> = new Map();
+
   constructor(private sourceRepository: SourceRepository) {}
 
   async search(
@@ -38,8 +53,30 @@ export class SearchService {
   ): Promise<SearchResponse> {
     const startTime = Date.now();
     const searchId = uuidv4();
+    
+    // Create a unique key for this search request
+    const searchKey = `search:${JSON.stringify({
+      query: request.query.toLowerCase().trim(),
+      filters: request.filters || null,
+      sort: request.sort || null,
+      sources: request.sources || null,
+      maxResults: request.maxResults || 50
+    })}`;
 
     try {
+      // Check if an identical search is already in progress
+      if (this.activeSearches.has(searchKey)) {
+        logger.info("⚡ Deduplicating identical search request:", request.query);
+        const existingSearch = this.activeSearches.get(searchKey);
+        if (existingSearch) {
+          const result = await existingSearch;
+          return {
+            ...result,
+            searchId, // Give it a new searchId but same results
+          };
+        }
+      }
+
       // Check cache first
       const cachedResult = await cachingService.get<SearchResponse>(
         request.query,
@@ -53,7 +90,7 @@ export class SearchService {
         cachedResult.results &&
         Array.isArray(cachedResult.results)
       ) {
-        console.log("✅ Cache hit for search query:", request.query);
+        logger.info("✅ Cache hit for search query:", request.query);
         return {
           ...cachedResult,
           searchId,
@@ -65,14 +102,41 @@ export class SearchService {
         };
       }
 
-      console.log("🔄 Cache miss, performing fresh search for:", request.query);
+      logger.info("🔄 Cache miss, performing fresh search for:", request.query);
+      
+      // Start the actual search and store the promise
+      const searchPromise = this.performSearch(request, searchId, startTime);
+      this.activeSearches.set(searchKey, searchPromise);
+      
+      try {
+        const result = await searchPromise;
+        return result;
+      } finally {
+        // Clean up the active search when done
+        this.activeSearches.delete(searchKey);
+      }
+    } catch (error) {
+      // Clean up on error too
+      this.activeSearches.delete(searchKey);
+      throw error;
+    }
+  }
 
+  private async performSearch(
+    request: SearchRequest & {
+      filters?: SearchFilters;
+      sort?: SearchSortOptions;
+    },
+    searchId: string,
+    startTime: number
+  ): Promise<SearchResponse> {
+    try {
       // Get all active sources
       const sources = await this.sourceRepository.getActiveSources();
       const totalSources = sources.length;
 
       if (totalSources === 0) {
-        console.warn("No active sources found for scraping");
+        logger.warn("No active sources found for scraping");
         return {
           searchId,
           results: [],
@@ -94,14 +158,14 @@ export class SearchService {
       const scrapingService = new ScrapingService();
       const scrapingResults: any[] = [];
 
-      // Scrape each source in parallel with rate limiting
+      // Scrape each source with improved concurrency control
+      // Use Promise.allSettled to handle individual failures gracefully
       const scrapingPromises = targetSources.map(
         async (source: any, index: number) => {
-          // Add delay between requests to respect rate limits
-          if (index > 0) {
-            const config = source.configuration as any;
-            const rateLimit = config?.rateLimit || 1000;
-            await new Promise((resolve) => setTimeout(resolve, rateLimit));
+          // Add staggered delay to prevent thundering herd
+          const staggerDelay = index * 500; // 500ms stagger between sources
+          if (staggerDelay > 0) {
+            await new Promise((resolve) => setTimeout(resolve, staggerDelay));
           }
 
           try {
@@ -112,7 +176,7 @@ export class SearchService {
                 totalRequests: 1,
               });
             } catch (monitoringError) {
-              console.warn(
+              logger.warn(
                 `Failed to update monitoring metrics for source ${source.id}:`,
                 monitoringError
               );
@@ -133,14 +197,14 @@ export class SearchService {
                   totalRequests: 1,
                 });
               } catch (monitoringError) {
-                console.warn(
+                logger.warn(
                   `Failed to update success metrics for source ${source.id}:`,
                   monitoringError
                 );
               }
             }
           } catch (error) {
-            console.error(`Failed to scrape source ${source.name}:`, error);
+            logger.error(`Failed to scrape source ${source.name}:`, error);
 
             // Update error metrics
             try {
@@ -151,7 +215,7 @@ export class SearchService {
                 errorCount: 1,
               });
             } catch (monitoringError) {
-              console.warn(
+              logger.warn(
                 `Failed to update error metrics for source ${source.id}:`,
                 monitoringError
               );
@@ -160,7 +224,17 @@ export class SearchService {
         }
       );
 
-      await Promise.all(scrapingPromises);
+      // Use Promise.allSettled to handle individual source failures gracefully
+      const results = await Promise.allSettled(scrapingPromises);
+      
+      // Log any rejected promises
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const source = targetSources[index];
+          logger.warn(`Source ${source?.name} failed:`, result.reason);
+        }
+      });
+      
       await scrapingService.close();
 
       // Apply filters
@@ -215,13 +289,13 @@ export class SearchService {
           request.sources
         );
       } catch (cacheError) {
-        console.warn("Failed to cache search results:", cacheError);
+        logger.warn("Failed to cache search results:", cacheError);
         // Continue without caching - this is not critical
       }
 
       return response;
     } catch (error) {
-      console.error("Search service error:", error);
+      logger.error("Search service error:", error);
       throw new Error("Failed to perform search");
     }
   }
@@ -276,7 +350,7 @@ export class SearchService {
 
       return suggestions;
     } catch (error) {
-      console.error("Error generating search suggestions:", error);
+      logger.error("Error generating search suggestions:", error);
       return [];
     }
   }
@@ -328,7 +402,7 @@ export class SearchService {
 
       return filteredSearches.slice(0, limit);
     } catch (error) {
-      console.error("Error getting popular searches:", error);
+      logger.error("Error getting popular searches:", error);
       return [];
     }
   }
@@ -351,7 +425,7 @@ export class SearchService {
       // In a real implementation, this would aggregate data from search history
       return analytics;
     } catch (error) {
-      console.error("Error getting search analytics:", error);
+      logger.error("Error getting search analytics:", error);
       return null;
     }
   }

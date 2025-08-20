@@ -1,0 +1,18 @@
+# Nixpacks configuration for Railway backend-only deployment
+# Use this when deploying backend as a separate service
+
+[phases.setup]
+nixPkgs = ["nodejs-18_x", "npm-9_x"]
+
+[phases.install]
+cmds = ["npm ci", "cd backend && npm ci"]
+
+[phases.build]
+cmds = ["cd backend && npm run build"]
+
+[start]
+cmd = "cd backend && npm start"
+
+[variables]
+NODE_ENV = "production"
+SERVE_FRONTEND = "false"

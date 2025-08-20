@@ -56,7 +56,7 @@ check_prerequisites() {
     
     # Check if .env.production exists
     if [[ ! -f ".env.production" ]]; then
-        error ".env.production file not found. Please create it from .env.production.example"
+        error ".env.production file not found. Please create it from config/examples/.env.example"
         exit 1
     fi
     

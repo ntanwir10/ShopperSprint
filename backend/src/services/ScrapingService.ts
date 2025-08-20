@@ -47,6 +47,10 @@ export interface ScrapingMetrics {
 export class ScrapingService {
   private browser: Browser | null = null;
   private isInitialized = false;
+  private browserLock = false;
+  private concurrencyLimit = 3; // Max concurrent scraping operations
+  private activeScrapes = 0;
+  private scrapeQueue: (() => void)[] = [];
   private userAgentPool: string[] = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -65,15 +69,58 @@ export class ScrapingService {
     }
   }
 
+  private async acquireConcurrencySlot(): Promise<void> {
+    return new Promise((resolve) => {
+      if (this.activeScrapes < this.concurrencyLimit) {
+        this.activeScrapes++;
+        resolve();
+      } else {
+        this.scrapeQueue.push(() => {
+          this.activeScrapes++;
+          resolve();
+        });
+      }
+    });
+  }
+
+  private releaseConcurrencySlot(): void {
+    this.activeScrapes--;
+    if (this.scrapeQueue.length > 0) {
+      const nextResolve = this.scrapeQueue.shift();
+      if (nextResolve) {
+        nextResolve();
+      }
+    }
+  }
+
   protected async initializeBrowser(): Promise<void> {
     if (this.isInitialized && this.browser) return;
-
+    
+    // Prevent concurrent browser initialization
+    if (this.browserLock) {
+      // Wait for ongoing initialization
+      while (this.browserLock) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      return;
+    }
+    
+    this.browserLock = true;
+    
     try {
-      // Simplified, reliable launch settings (works well on macOS/Linux)
+      // Use new headless mode to avoid deprecation warnings
       const headlessEnv = (
-        process.env["PUPPETEER_HEADLESS"] || "true"
+        process.env["PUPPETEER_HEADLESS"] || "new"
       ).toLowerCase();
-      const headless = headlessEnv === "true" || headlessEnv === "1";
+      let headless: boolean | "new" = "new";
+      if (headlessEnv === "false" || headlessEnv === "0") {
+        headless = false;
+      } else if (headlessEnv === "true" || headlessEnv === "1") {
+        headless = "new"; // Use new headless mode by default
+      } else {
+        headless = headlessEnv as "new";
+      }
+      
       const executablePath =
         process.env["PUPPETEER_EXECUTABLE_PATH"] || puppeteer.executablePath();
       const launchTimeout = parseInt(
@@ -87,26 +134,56 @@ export class ScrapingService {
           "--no-sandbox",
           "--disable-setuid-sandbox",
           "--disable-dev-shm-usage",
+          "--disable-background-timer-throttling",
+          "--disable-backgrounding-occluded-windows",
+          "--disable-renderer-backgrounding",
+          "--disable-features=TranslateUI",
+          "--disable-ipc-flooding-protection",
+          "--disable-extensions",
+          "--disable-plugins",
+          "--disable-default-apps",
+          "--disable-component-updates",
+          "--disable-sync",
+          "--no-first-run",
+          "--no-default-browser-check",
+          "--single-process",
+          "--memory-pressure-off",
+          "--max_old_space_size=2048"
         ],
-        timeout: launchTimeout,
-        protocolTimeout: launchTimeout,
+        timeout: 30000, // Reduced timeout to fail faster
+        protocolTimeout: 15000, // Reduced protocol timeout
+        ignoreHTTPSErrors: true,
+        defaultViewport: { width: 1366, height: 768 },
       });
+      
+      // Handle browser crashes and disconnections
+      this.browser.on('disconnected', () => {
+        logger.warn('Browser disconnected, resetting initialization state');
+        this.isInitialized = false;
+        this.browser = null;
+      });
+      
       this.isInitialized = true;
       logger.info(
         `Puppeteer initialized. headless=${headless} exec=${executablePath} timeout=${launchTimeout}`
       );
     } catch (error) {
-      logger.error("All Puppeteer launch attempts failed:", error);
+      logger.error("Browser initialization failed:", error);
 
-      // For development, we can fall back to mock data
-      if (process.env["NODE_ENV"] === "development") {
-        logger.warn("Falling back to mock data mode for development");
+      // For development or when Chrome is unavailable, fall back to mock data
+      if (process.env["NODE_ENV"] === "development" || process.env["SCRAPING_ENABLED"] === "false") {
+        logger.warn("Falling back to mock data mode due to browser initialization failure");
         this.isInitialized = true;
         this.browser = null; // Explicitly set to null to indicate fallback mode
-        return;
+      } else {
+        // In production, temporarily disable scraping to prevent crashes
+        logger.error("Browser unavailable in production, temporarily disabling scraping");
+        process.env["SCRAPING_ENABLED"] = "false";
+        this.isInitialized = true;
+        this.browser = null;
       }
-
-      throw new Error("Failed to initialize web scraping browser");
+    } finally {
+      this.browserLock = false;
     }
   }
 
@@ -131,6 +208,10 @@ export class ScrapingService {
       return this.generateMockScrapingResult(sourceId, query);
     }
 
+    // Acquire concurrency slot to prevent resource exhaustion
+    await this.acquireConcurrencySlot();
+    let page: Page | null = null;
+    
     try {
       // Initialize browser if not already done
       await this.initializeBrowser();
@@ -139,10 +220,10 @@ export class ScrapingService {
       }
 
       // Create a new page for this scraping session
-      const page = await this.browser.newPage();
+      page = await this.browser.newPage();
       // Set generous timeouts per page
-      page.setDefaultNavigationTimeout(60000);
-      page.setDefaultTimeout(60000);
+      page.setDefaultNavigationTimeout(30000); // Reduced timeout to prevent hanging
+      page.setDefaultTimeout(30000);
 
       try {
         // Set user agent and other anti-detection measures
@@ -209,7 +290,13 @@ export class ScrapingService {
           },
         };
       } finally {
-        await page.close();
+        if (page) {
+          try {
+            await page.close();
+          } catch (pageCloseError) {
+            logger.warn("Failed to close page properly:", pageCloseError);
+          }
+        }
       }
     } catch (error) {
       const errorMessage =
@@ -219,6 +306,22 @@ export class ScrapingService {
       // Always fall back to mock data if real scraping fails
       logger.warn(`Falling back to mock data for source: ${source.name}`);
       return this.generateMockScrapingResult(sourceId, query);
+    } finally {
+      // Always release the concurrency slot
+      this.releaseConcurrencySlot();
+    }
+  }
+
+  async close(): Promise<void> {
+    if (this.browser) {
+      try {
+        await this.browser.close();
+        logger.info("Browser closed successfully");
+      } catch (error) {
+        logger.warn("Error closing browser:", error);
+      }
+      this.browser = null;
+      this.isInitialized = false;
     }
   }
 
@@ -464,15 +567,6 @@ export class ScrapingService {
   }
 
   // Note: buildSearchUrl and parsing helpers removed after refactor
-
-  async close(): Promise<void> {
-    if (this.browser) {
-      await this.browser.close();
-      this.browser = null;
-      this.isInitialized = false;
-      logger.info("Puppeteer browser closed");
-    }
-  }
 
   private async scrapeAmazon(query: string, page: Page): Promise<any[]> {
     try {

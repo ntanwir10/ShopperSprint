@@ -27,6 +27,7 @@ function App() {
               {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
               <Route path="/search" element={<SearchResults />} />
+              <Route path="/search/:query" element={<SearchResults />} />
               <Route path="/product/:id" element={<ProductPage />} />
               <Route path="/compare" element={<ComparePage />} />
 

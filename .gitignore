@@ -135,3 +135,6 @@ dev-debug.log
 # tasks/ 
 .taskmaster/
 .vercel
+
+# Temporary deployment config files (generated during deployment)
+/nixpacks.toml
