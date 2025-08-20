@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "buildCommand": "npm run build:frontend",
+  "outputDirectory": "frontend/dist",
+  "installCommand": "npm run install:all",
+  "builds": [
+    {
+      "src": "backend/src/vercel.ts",
+      "use": "@vercel/node",
+      "config": {
+        "maxDuration": 30
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/health",
+      "dest": "/backend/src/vercel.ts"
+    },
+    {
+      "src": "/ping",
+      "dest": "/backend/src/vercel.ts"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/backend/src/vercel.ts"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/dist/$1"
+    }
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "backend/src/vercel.ts": {
+      "maxDuration": 30
+    }
+  },
+  "regions": ["iad1"],
+  "cleanUrls": true,
+  "trailingSlash": false
+}
