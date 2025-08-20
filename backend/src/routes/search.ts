@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express";
 import { body, validationResult } from "express-validator";
-import { SearchService } from "../services/searchService";
+import { SearchService } from "../services/SearchService";
 import { SourceRepository } from "../repositories/sourceRepository";
 import { getDb } from "../database/connection";
 import { products, productListings } from "../database/schema";

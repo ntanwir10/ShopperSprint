@@ -5,7 +5,7 @@ import {
 } from "../validation/schemas";
 import type { z } from "zod";
 import { SourceRepository } from "../repositories/sourceRepository";
-import { ScrapingService } from "./scrapingService";
+import { ScrapingService } from "./ScrapingService";
 import { cachingService } from "./cachingService";
 import { monitoringService } from "./monitoringService";
 

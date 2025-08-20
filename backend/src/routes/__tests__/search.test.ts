@@ -1,12 +1,12 @@
-import request from 'supertest';
-import express from 'express';
-import { searchRouter } from '../search';
-import { SearchService } from '../../services/searchService';
+import request from "supertest";
+import express from "express";
+import { searchRouter } from "../search";
+import { SearchService } from "../../services/SearchService";
 
 // Mock SearchService
-jest.mock('../../services/searchService');
+jest.mock("../../services/SearchService");
 
-describe('Search Routes', () => {
+describe("Search Routes", () => {
   let app: express.Application;
   let mockSearchService: jest.Mocked<SearchService>;
 
@@ -22,42 +22,42 @@ describe('Search Routes', () => {
     // Create Express app
     app = express();
     app.use(express.json());
-    app.use('/api/search', searchRouter);
+    app.use("/api/search", searchRouter);
 
     // Mock the SearchService in the router
     (searchRouter as any).searchService = mockSearchService;
   });
 
-  describe('POST /api/search', () => {
-    it('should perform search successfully', async () => {
+  describe("POST /api/search", () => {
+    it("should perform search successfully", async () => {
       // Arrange
       const searchRequest = {
-        query: 'smartphone',
+        query: "smartphone",
         maxResults: 5,
         filters: {
           minPrice: 20000,
           maxPrice: 40000,
         },
         sort: {
-          field: 'price',
-          direction: 'asc',
+          field: "price",
+          direction: "asc",
         },
       };
 
       const mockSearchResponse = {
-        searchId: 'search_123',
+        searchId: "search_123",
         results: [
           {
-            id: 'product1',
-            name: 'Smartphone 1',
+            id: "product1",
+            name: "Smartphone 1",
             price: 25000,
-            currency: 'USD',
-            availability: 'in_stock',
-            source: 'Test Store',
-            imageUrl: 'https://example.com/image1.jpg',
+            currency: "USD",
+            availability: "in_stock",
+            source: "Test Store",
+            imageUrl: "https://example.com/image1.jpg",
             rating: 4.5,
             reviewCount: 100,
-            url: 'https://example.com/product1',
+            url: "https://example.com/product1",
             lastScraped: new Date().toISOString(),
           },
         ],
@@ -73,7 +73,7 @@ describe('Search Routes', () => {
 
       // Act
       const response = await request(app)
-        .post('/api/search')
+        .post("/api/search")
         .send(searchRequest)
         .expect(200);
 
@@ -82,25 +82,22 @@ describe('Search Routes', () => {
       expect(mockSearchService.search).toHaveBeenCalledWith(searchRequest);
     });
 
-    it('should handle search service errors', async () => {
+    it("should handle search service errors", async () => {
       // Arrange
       const searchRequest = {
-        query: 'smartphone',
+        query: "smartphone",
         maxResults: 5,
       };
 
-      mockSearchService.search.mockRejectedValue(new Error('Search failed'));
+      mockSearchService.search.mockRejectedValue(new Error("Search failed"));
 
       // Act & Assert
-      await request(app)
-        .post('/api/search')
-        .send(searchRequest)
-        .expect(500);
+      await request(app).post("/api/search").send(searchRequest).expect(500);
 
       expect(mockSearchService.search).toHaveBeenCalledWith(searchRequest);
     });
 
-    it('should validate required fields', async () => {
+    it("should validate required fields", async () => {
       // Arrange
       const invalidRequest = {
         maxResults: 5,
@@ -108,49 +105,40 @@ describe('Search Routes', () => {
       };
 
       // Act & Assert
-      await request(app)
-        .post('/api/search')
-        .send(invalidRequest)
-        .expect(400);
+      await request(app).post("/api/search").send(invalidRequest).expect(400);
     });
 
-    it('should handle empty query', async () => {
+    it("should handle empty query", async () => {
       // Arrange
       const searchRequest = {
-        query: '',
+        query: "",
         maxResults: 5,
       };
 
       // Act & Assert
-      await request(app)
-        .post('/api/search')
-        .send(searchRequest)
-        .expect(400);
+      await request(app).post("/api/search").send(searchRequest).expect(400);
     });
 
-    it('should handle invalid maxResults', async () => {
+    it("should handle invalid maxResults", async () => {
       // Arrange
       const searchRequest = {
-        query: 'smartphone',
+        query: "smartphone",
         maxResults: -1, // Invalid negative value
       };
 
       // Act & Assert
-      await request(app)
-        .post('/api/search')
-        .send(searchRequest)
-        .expect(400);
+      await request(app).post("/api/search").send(searchRequest).expect(400);
     });
 
-    it('should handle large maxResults gracefully', async () => {
+    it("should handle large maxResults gracefully", async () => {
       // Arrange
       const searchRequest = {
-        query: 'smartphone',
+        query: "smartphone",
         maxResults: 1000, // Very large value
       };
 
       const mockSearchResponse = {
-        searchId: 'search_123',
+        searchId: "search_123",
         results: [],
         metadata: {
           totalSources: 2,
@@ -164,7 +152,7 @@ describe('Search Routes', () => {
 
       // Act
       const response = await request(app)
-        .post('/api/search')
+        .post("/api/search")
         .send(searchRequest)
         .expect(200);
 
@@ -173,27 +161,27 @@ describe('Search Routes', () => {
       expect(mockSearchService.search).toHaveBeenCalledWith(searchRequest);
     });
 
-    it('should handle complex filters', async () => {
+    it("should handle complex filters", async () => {
       // Arrange
       const searchRequest = {
-        query: 'laptop',
+        query: "laptop",
         maxResults: 10,
         filters: {
           minPrice: 50000,
           maxPrice: 150000,
-          availability: 'in_stock',
+          availability: "in_stock",
           minRating: 4.0,
-          sources: ['source1', 'source2'],
-          category: 'electronics',
+          sources: ["source1", "source2"],
+          category: "electronics",
         },
         sort: {
-          field: 'rating',
-          direction: 'desc',
+          field: "rating",
+          direction: "desc",
         },
       };
 
       const mockSearchResponse = {
-        searchId: 'search_456',
+        searchId: "search_456",
         results: [],
         metadata: {
           totalSources: 2,
@@ -207,7 +195,7 @@ describe('Search Routes', () => {
 
       // Act
       const response = await request(app)
-        .post('/api/search')
+        .post("/api/search")
         .send(searchRequest)
         .expect(200);
 
@@ -216,15 +204,15 @@ describe('Search Routes', () => {
       expect(mockSearchService.search).toHaveBeenCalledWith(searchRequest);
     });
 
-    it('should handle missing optional fields', async () => {
+    it("should handle missing optional fields", async () => {
       // Arrange
       const searchRequest = {
-        query: 'smartphone',
+        query: "smartphone",
         // No maxResults, filters, or sort
       };
 
       const mockSearchResponse = {
-        searchId: 'search_789',
+        searchId: "search_789",
         results: [],
         metadata: {
           totalSources: 2,
@@ -238,7 +226,7 @@ describe('Search Routes', () => {
 
       // Act
       const response = await request(app)
-        .post('/api/search')
+        .post("/api/search")
         .send(searchRequest)
         .expect(200);
 
@@ -248,14 +236,14 @@ describe('Search Routes', () => {
     });
   });
 
-  describe('GET /api/search', () => {
-    it('should handle GET requests with query parameters', async () => {
+  describe("GET /api/search", () => {
+    it("should handle GET requests with query parameters", async () => {
       // Arrange
-      const query = 'smartphone';
+      const query = "smartphone";
       const maxResults = 5;
 
       const mockSearchResponse = {
-        searchId: 'search_get_123',
+        searchId: "search_get_123",
         results: [],
         metadata: {
           totalSources: 2,
@@ -269,7 +257,7 @@ describe('Search Routes', () => {
 
       // Act
       const response = await request(app)
-        .get('/api/search')
+        .get("/api/search")
         .query({ query, maxResults })
         .expect(200);
 
@@ -281,16 +269,16 @@ describe('Search Routes', () => {
       });
     });
 
-    it('should handle GET requests with filters', async () => {
+    it("should handle GET requests with filters", async () => {
       // Arrange
-      const query = 'laptop';
+      const query = "laptop";
       const minPrice = 50000;
       const maxPrice = 100000;
-      const sort = 'price';
-      const direction = 'asc';
+      const sort = "price";
+      const direction = "asc";
 
       const mockSearchResponse = {
-        searchId: 'search_get_456',
+        searchId: "search_get_456",
         results: [],
         metadata: {
           totalSources: 2,
@@ -304,7 +292,7 @@ describe('Search Routes', () => {
 
       // Act
       const response = await request(app)
-        .get('/api/search')
+        .get("/api/search")
         .query({
           query,
           minPrice,
@@ -329,50 +317,47 @@ describe('Search Routes', () => {
       });
     });
 
-    it('should validate GET query parameters', async () => {
+    it("should validate GET query parameters", async () => {
       // Arrange
       // Missing required query parameter
 
       // Act & Assert
       await request(app)
-        .get('/api/search')
+        .get("/api/search")
         .query({ maxResults: 5 })
         .expect(400);
     });
   });
 
-  describe('Error handling', () => {
-    it('should handle malformed JSON', async () => {
+  describe("Error handling", () => {
+    it("should handle malformed JSON", async () => {
       // Act & Assert
       await request(app)
-        .post('/api/search')
-        .set('Content-Type', 'application/json')
+        .post("/api/search")
+        .set("Content-Type", "application/json")
         .send('{"query": "smartphone", "maxResults": 5') // Malformed JSON
         .expect(400);
     });
 
-    it('should handle unsupported content type', async () => {
+    it("should handle unsupported content type", async () => {
       // Act & Assert
       await request(app)
-        .post('/api/search')
-        .set('Content-Type', 'text/plain')
-        .send('query=smartphone&maxResults=5')
+        .post("/api/search")
+        .set("Content-Type", "text/plain")
+        .send("query=smartphone&maxResults=5")
         .expect(400);
     });
 
-    it('should handle very long queries', async () => {
+    it("should handle very long queries", async () => {
       // Arrange
-      const longQuery = 'a'.repeat(1000); // Very long query
+      const longQuery = "a".repeat(1000); // Very long query
       const searchRequest = {
         query: longQuery,
         maxResults: 5,
       };
 
       // Act & Assert
-      await request(app)
-        .post('/api/search')
-        .send(searchRequest)
-        .expect(400);
+      await request(app).post("/api/search").send(searchRequest).expect(400);
     });
   });
 });

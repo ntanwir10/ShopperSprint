@@ -1,4 +1,4 @@
-import { SearchService } from '../searchService';
+import { SearchService } from '../SearchService';
 import { SourceRepository } from '../../repositories/sourceRepository';
 
 // Mock dependencies
