@@ -54,6 +54,7 @@ export class CachingService {
   }
 
   /**
+<<<<<<< HEAD
    * SCAN helper to iterate keys without blocking Redis
    * Security: Limit maximum keys returned and add timeout protection
    */
