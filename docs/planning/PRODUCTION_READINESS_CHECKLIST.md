@@ -12,13 +12,13 @@ This comprehensive checklist ensures PricePulse is completely ready for producti
 
 ### 🔥 Domain & DNS Configuration
 
-- [ ] **Purchase production domain** (e.g., pricepulse.com)
+- [ ] **Purchase production domain** (e.g., shoppersprint.com)
 - [ ] **Configure DNS records:**
   - [ ] A record pointing to production server IP
   - [ ] CNAME for www subdomain
   - [ ] MX records for email (if hosting email)
   - [ ] TXT records for domain verification
-- [ ] **Configure staging subdomain** (e.g., staging.pricepulse.com)
+- [ ] **Configure staging subdomain** (e.g., staging.shoppersprint.com)
 - [ ] **Set up CDN** (CloudFlare, AWS CloudFront, or similar)
 - [ ] **Configure CNAME for static assets** (if using separate CDN)
 
@@ -33,8 +33,8 @@ This comprehensive checklist ensures PricePulse is completely ready for producti
   ```bash
   mkdir -p ssl/
   # Add certificate files:
-  # ssl/pricepulse.com.crt
-  # ssl/pricepulse.com.key
+  # ssl/shoppersprint.com.crt
+  # ssl/shoppersprint.com.key
   # ssl/intermediate.crt (if applicable)
   ```
 

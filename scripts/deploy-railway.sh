@@ -172,7 +172,7 @@ SERVE_FRONTEND       - Set to "false" (automatically configured)
 PORT                 - Railway will set this automatically
 
 Frontend Service:
-VITE_API_URL         - Your Railway backend URL (e.g., https://your-backend.railway.app)
+VITE_API_URL         - Your Railway backend URL (e.g., https://api.shoppersprint.com)
 VITE_SUPABASE_URL    - Your Supabase project URL
 VITE_SUPABASE_ANON_KEY - Your Supabase anon key
 NODE_ENV             - Set to "production"
@@ -471,8 +471,8 @@ show_deployment_info() {
         echo "  - Health: https://your-app.railway.app/health"
     else
         info "🔄 Separate Services Architecture:"
-        echo "  - Backend API: https://your-backend.railway.app"
-        echo "  - Frontend: https://your-frontend.railway.app"
+        echo "  - Backend API: https://api.shoppersprint.com"
+        echo "  - Frontend: https://shoppersprint.com"
         echo "  - Or use Vercel for frontend: npm run deploy:vercel"
     fi
     

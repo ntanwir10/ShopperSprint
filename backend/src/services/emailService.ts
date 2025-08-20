@@ -27,7 +27,9 @@ export class EmailService {
     token: string;
     firstName?: string;
   }): Promise<void> {
-    const verificationUrl = `${process.env["FRONTEND_URL"] || "http://localhost:5173"}/verify-email?token=${input.token}`;
+    const verificationUrl = `${
+      process.env["FRONTEND_URL"] || "http://localhost:5173"
+    }/verify-email?token=${input.token}`;
 
     const html = `
       <html>
@@ -42,7 +44,7 @@ export class EmailService {
     `;
 
     await this.transporter.sendMail({
-      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: input.email,
       subject: "Verify your PricePulse account",
       html,
@@ -57,7 +59,9 @@ export class EmailService {
     token: string;
     firstName?: string;
   }): Promise<void> {
-    const resetUrl = `${process.env["FRONTEND_URL"] || "http://localhost:5173"}/reset-password?token=${input.token}`;
+    const resetUrl = `${
+      process.env["FRONTEND_URL"] || "http://localhost:5173"
+    }/reset-password?token=${input.token}`;
 
     const html = `
       <html>
@@ -72,7 +76,7 @@ export class EmailService {
     `;
 
     await this.transporter.sendMail({
-      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: input.email,
       subject: "Reset your PricePulse password",
       html,
@@ -93,7 +97,7 @@ export class EmailService {
     );
 
     await this.transporter.sendMail({
-      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: alert.email,
       subject: "Verify Your Price Alert - PricePulse",
       html,
@@ -116,7 +120,7 @@ export class EmailService {
     );
 
     await this.transporter.sendMail({
-      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: alert.email,
       subject: "Price Alert Triggered! - PricePulse",
       html,
@@ -132,7 +136,7 @@ export class EmailService {
     const html = this.getManagementLinkTemplate(alert, managementUrl);
 
     await this.transporter.sendMail({
-      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: alert.email,
       subject: "Manage Your Price Alert - PricePulse",
       html,
@@ -170,7 +174,7 @@ export class EmailService {
     body: string
   ): Promise<void> {
     await this.transporter.sendMail({
-      from: process.env["SMTP_FROM"] || "noreply@pricepulse.com",
+      from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to,
       subject,
       text: body,

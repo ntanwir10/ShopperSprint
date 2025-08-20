@@ -1,10 +1,10 @@
-# PricePulse
+# ShopperSprint
 
 A comprehensive price tracking system that monitors product prices across multiple sources in real-time. Built with **Supabase** for authentication and database management, the system provides advanced search capabilities, price comparison, historical tracking, and both **user-authenticated features** and **anonymous price alerts** for maximum flexibility.
 
 ## 📋 Table of Contents
 
-- [PricePulse](#pricepulse)
+- [ShopperSprint](#shoppersprint)
   - [📋 Table of Contents](#-table-of-contents)
   - [✨ Key Features](#-key-features)
   - [🚀 Quick Start](#-quick-start)
@@ -175,8 +175,8 @@ A comprehensive price tracking system that monitors product prices across multip
 
 ```bash
 # Clone and setup everything
-git clone https://github.com/ntanwir10/pricepulse.git
-cd pricepulse
+git clone https://github.com/ntanwir10/shoppersprint.git
+cd shoppersprint
 npm run setup
 npm run dev
 ```
@@ -227,7 +227,7 @@ npm run dev
 
 ## 🔐 Authentication & Database Integration
 
-PricePulse leverages **Supabase** for a comprehensive backend-as-a-service solution:
+ShopperSprint leverages **Supabase** for a comprehensive backend-as-a-service solution:
 
 ### 🎯 Supabase Integration Features
 
@@ -290,7 +290,7 @@ PricePulse leverages **Supabase** for a comprehensive backend-as-a-service solut
 ## 📁 Project Structure
 
 ```tree
-pricepulse/
+shoppersprint/
 ├── .github/                 # CI/CD Pipeline & Workflows
 │   ├── workflows/          # GitHub Actions workflows
 │   │   ├── ci.yml         # Continuous Integration
@@ -378,7 +378,7 @@ pricepulse/
 
 ## 🚀 Automated Development & Deployment
 
-PricePulse features a **comprehensive automation system** that seamlessly integrates GitHub Actions, Docker, and local development. Everything is automated through intelligent scripts that work across all environments.
+ShopperSprint features a **comprehensive automation system** that seamlessly integrates GitHub Actions, Docker, and local development. Everything is automated through intelligent scripts that work across all environments.
 
 ### 🔄 **Complete Integration Architecture**
 
@@ -500,8 +500,8 @@ All operations are powered by a single, intelligent automation script:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-username/pricepulse.git
-cd pricepulse
+git clone https://github.com/ntanwir10/shoppersprint.git
+cd shoppersprint
 
 # One-command setup with interactive prompts
 npm run quick
@@ -639,7 +639,7 @@ npm run deploy:prod    # → Security gates → Docker images → Production
 - **PostgreSQL + Redis containers** for local development
 - **pgAdmin** for database management
 - **Automatic health checks** and service discovery
-- **Network isolation** with `pricepulse-network`
+- **Network isolation** with `shoppersprint-network`
 
 **Production Environment (`docker-compose.prod.yml`)**
 
@@ -832,7 +832,7 @@ cmd = "cd backend && npm start"
 **🎯 Single Service Architecture (Recommended):**
 
 - **Application**: Frontend + Backend in one Railway service
-- **Domain**: Single domain (e.g., `https://pricepulse.railway.app`)
+- **Domain**: Single domain (e.g., `https://shoppersprint.railway.app`)
 - **Frontend**: Served at `/` (SPA routing)
 - **API**: Served at `/api/*`
 - **Cost**: One Railway service
@@ -968,7 +968,7 @@ SMTP_HOST=smtp.gmail.com  # SMTP server host
 SMTP_PORT=587             # SMTP server port
 SMTP_USER=your-email@gmail.com  # SMTP username
 SMTP_PASS=your-app-password     # SMTP password
-SMTP_FROM=noreply@pricepulse.com # From email address
+SMTP_FROM=noreply@shoppersprint.com # From email address
 
 # Frontend Configuration (Vite)
 VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -1039,7 +1039,7 @@ npm run db:stop       # Stop databases
 
 ## 🚀 CI/CD & Deployment
 
-PricePulse features a comprehensive DevOps pipeline with automated testing, security scanning, and multi-environment deployments.
+ShopperSprint features a comprehensive DevOps pipeline with automated testing, security scanning, and multi-environment deployments.
 
 ### 📊 Pipeline Architecture
 
@@ -1134,7 +1134,7 @@ Our CI/CD pipeline consists of several automated workflows:
 
 #### Development Environment
 
-- **URL**: `dev.pricepulse.com`
+- **URL**: `dev.shoppersprint.com`
 - **Trigger**: Automatic on feature branch merges
 - **Database**: Development PostgreSQL instance
 - **Monitoring**: Basic health checks
@@ -1142,7 +1142,7 @@ Our CI/CD pipeline consists of several automated workflows:
 
 #### Staging Environment  
 
-- **URL**: `staging.pricepulse.com`
+- **URL**: `staging.shoppersprint.com`
 - **Trigger**: Manual promotion from development
 - **Database**: Production-like data (anonymized)
 - **Monitoring**: Full monitoring stack
@@ -1150,7 +1150,7 @@ Our CI/CD pipeline consists of several automated workflows:
 
 #### Production Environment
 
-- **URL**: `pricepulse.com`
+- **URL**: `shoppersprint.com`
 - **Trigger**: Manual approval with security gates
 - **Database**: Production PostgreSQL (NeonDB)
 - **Monitoring**: Comprehensive monitoring and alerting
@@ -1240,7 +1240,7 @@ REDIS_URL=redis://localhost:6379
 NODE_ENV=production
 DATABASE_URL=postgresql://user:pass@host:5432/db
 REDIS_URL=redis://redis-host:6379
-FRONTEND_URL=https://pricepulse.com
+FRONTEND_URL=https://shoppersprint.com
 ```
 
 ### 🔒 Security Features
@@ -1639,8 +1639,8 @@ This is a personal project maintained by a single developer. For questions or is
 - **[FAQ](docs/FAQ.md)** - Frequently asked questions
 - **[Support Guide](docs/SUPPORT.md)** - How to get help
 - **[Community Guidelines](docs/COMMUNITY.md)** - Community participation guidelines
-- **[GitHub Issues](https://github.com/your-username/pricepulse/issues)** - Bug reports and feature requests
-- **[Discussions](https://github.com/your-username/pricepulse/discussions)** - Community discussions and Q&A
+- **[GitHub Issues](https://github.com/your-username/shoppersprint/issues)** - Bug reports and feature requests
+- **[Discussions](https://github.com/your-username/shoppersprint/discussions)** - Community discussions and Q&A
 
 ### 📱 Tools & Utilities
 

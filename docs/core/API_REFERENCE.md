@@ -5,7 +5,7 @@ This document provides comprehensive documentation for all PricePulse API endpoi
 ## 🔗 Base URL
 
 - **Development**: `http://localhost:3001`
-- **Production**: `https://your-domain.com`
+- **Production**: `https://shoppersprint.com`
 
 ## 🔐 Authentication
 
@@ -690,7 +690,7 @@ POST /api/webhooks/configure
 
 ```json
 {
-  "url": "https://your-domain.com/webhook",
+  "url": "https://shoppersprint.com/webhook",
   "events": ["price_update", "price_alert"],
   "secret": "your-webhook-secret"
 }

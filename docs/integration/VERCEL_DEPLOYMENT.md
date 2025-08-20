@@ -35,7 +35,7 @@ SMTP_PASS=your-app-password
 # App Configuration
 NODE_ENV=production
 AUTH_ENABLED=true
-FRONTEND_URL=https://your-vercel-app.vercel.app
+FRONTEND_URL=https://shoppersprint.com
 
 # Rate Limiting & Security
 RATE_LIMIT_WINDOW=900000
@@ -147,7 +147,7 @@ npm i -g vercel
 vercel login
 
 # Run database migrations (if you have a migration endpoint)
-curl https://your-vercel-app.vercel.app/api/migrate
+curl https://shoppersprint.com/api/migrate
 ```
 
 ## Testing the Deployment

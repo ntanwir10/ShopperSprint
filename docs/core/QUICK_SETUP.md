@@ -45,7 +45,7 @@ The `npm run setup` command automatically:
 - **Backend API**: <http://localhost:3001>
 - **Database**: localhost:5432
 - **Redis**: localhost:6379
-- **pgAdmin**: <http://localhost:8080> (<admin@pricepulse.com> / admin123)
+- **pgAdmin**: <http://localhost:8080> (<admin@shoppersprint.com> / admin123)
 
 ## 🔧 Environment Configuration
 

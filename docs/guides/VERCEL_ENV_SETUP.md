@@ -52,7 +52,7 @@ REDIS_URL=redis://user:pass@host:port
 JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters-long
 NODE_ENV=production
 AUTH_ENABLED=true
-FRONTEND_URL=https://your-vercel-app.vercel.app
+FRONTEND_URL=https://shoppersprint.com
 ```
 
 ### Email Configuration (Optional):

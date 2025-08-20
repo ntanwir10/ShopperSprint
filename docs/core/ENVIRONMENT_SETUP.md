@@ -173,7 +173,7 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-SMTP_FROM=noreply@pricepulse.com
+SMTP_FROM=noreply@shoppersprint.com
 SMTP_SECURE=false
 
 # Scraping

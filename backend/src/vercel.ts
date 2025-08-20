@@ -69,7 +69,7 @@ app.use(
       if (!origin) return callback(null, true);
 
       const allowedOrigins = [
-        process.env["FRONTEND_URL"] || "https://your-vercel-app.vercel.app",
+        process.env["FRONTEND_URL"] || "https://shoppersprint.com",
         "http://localhost:5173", // Local development
         "http://localhost:3000",
         "http://localhost:5000",

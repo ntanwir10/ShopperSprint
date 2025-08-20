@@ -740,8 +740,8 @@ describe('SEO Meta Tags', () => {
 
 ```bash
 # Frontend .env additions
-VITE_SITE_URL=https://pricepulse.com
-VITE_CANONICAL_BASE=https://pricepulse.com
+VITE_SITE_URL=https://shoppersprint.com
+VITE_CANONICAL_BASE=https://shoppersprint.com
 VITE_DEFAULT_OG_IMAGE=/og-default.jpg
 ```
 

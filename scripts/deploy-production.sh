@@ -8,7 +8,7 @@ set -e  # Exit on any error
 # Configuration
 APP_NAME="price-tracker"
 DEPLOY_USER="deploy"
-DEPLOY_HOST="your-server.com"
+DEPLOY_HOST="shoppersprint.com"
 DEPLOY_PATH="/opt/price-tracker"
 BACKUP_PATH="/var/backups/price-tracker"
 LOG_PATH="/var/log/price-tracker"
