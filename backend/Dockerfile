@@ -20,6 +20,8 @@ RUN npm ci && npm cache clean --force
 COPY . .
 
 # Build the application
+# Note: Using TypeScript compiler (tsc) for backend builds
+# For type checking only: npm run type-check
 RUN npm run build
 
 # Production stage

@@ -20,6 +20,8 @@ RUN npm ci --only=production && npm cache clean --force
 COPY . .
 
 # Build the application
+# Note: Using Vite build (not tsc) for optimized frontend builds
+# For type checking in development: npm run type-check
 RUN npm run build
 
 # Production stage

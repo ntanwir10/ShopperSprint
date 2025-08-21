@@ -1,6 +1,6 @@
 # ShopperSprint
 
-A comprehensive price tracking system that monitors product prices across multiple sources in real-time. Built with **Supabase** for authentication and database management, the system provides advanced search capabilities, price comparison, historical tracking, and both **user-authenticated features** and **anonymous price alerts** for maximum flexibility.
+A comprehensive price tracking system that monitors product prices across multiple sources in real-time. Built with **Railway.com** for full-stack deployment and **PostgreSQL** with custom authentication, the system provides advanced search capabilities, price comparison, historical tracking, and both **user-authenticated features** and **anonymous price alerts** for maximum flexibility.
 
 ## 📋 Table of Contents
 
@@ -15,9 +15,9 @@ A comprehensive price tracking system that monitors product prices across multip
     - [🔒 Security \& Planning](#-security--planning)
   - [🚀 Features](#-features)
   - [🔐 Authentication \& Database Integration](#-authentication--database-integration)
-    - [🎯 Supabase Integration Features](#-supabase-integration-features)
+    - [🎯 Authentication \& Database Features](#-authentication--database-features)
     - [🔄 Architecture Benefits](#-architecture-benefits)
-    - [🎛️ Hybrid Approach](#️-hybrid-approach)
+    - [🎛️ Architecture Approach](#️-architecture-approach)
   - [🛠️ Technology Stack](#️-technology-stack)
     - [Backend](#backend)
     - [Frontend](#frontend)
@@ -63,9 +63,13 @@ A comprehensive price tracking system that monitors product prices across multip
       - [⚙️ **Backend Specific** (`cd backend && npm run <script>`)](#️-backend-specific-cd-backend--npm-run-script)
       - [🔧 **Database \& Infrastructure**](#-database--infrastructure)
   - [🔧 Configuration](#-configuration)
+    - [Local Development Configuration](#local-development-configuration)
+    - [Railway Production Configuration](#railway-production-configuration)
   - [🧪 Testing](#-testing)
   - [🔄 Development Workflow](#-development-workflow)
+    - [🚀 **Hybrid CI/CD System**](#-hybrid-cicd-system)
     - [Daily Development](#daily-development)
+    - [Common Development Commands](#common-development-commands)
     - [Common Scenarios](#common-scenarios)
     - [End of Day](#end-of-day)
   - [🚀 CI/CD \& Deployment](#-cicd--deployment)
@@ -98,10 +102,11 @@ A comprehensive price tracking system that monitors product prices across multip
     - [📊 Monitoring \& Observability](#-monitoring--observability)
     - [🚨 Rollback Procedures](#-rollback-procedures)
     - [🔗 Production Infrastructure](#-production-infrastructure)
-      - [Recommended Platforms](#recommended-platforms)
+      - [Current Platform Strategy](#current-platform-strategy)
+      - [Future Scaling Strategy](#future-scaling-strategy)
       - [Platform-Specific Deployment](#platform-specific-deployment)
-      - [Alternative Database Options](#alternative-database-options)
-      - [Self-Hosted Options](#self-hosted-options)
+      - [Database Strategy](#database-strategy)
+      - [Self-Hosted Options (Future)](#self-hosted-options-future)
     - [🎯 Deployment Metrics](#-deployment-metrics)
     - [🔧 Implementation Status \& Next Steps](#-implementation-status--next-steps)
       - [✅ Completed Components](#-completed-components)
@@ -124,7 +129,7 @@ A comprehensive price tracking system that monitors product prices across multip
     - [Phase 3: Advanced Features ✅ COMPLETED](#phase-3-advanced-features--completed)
       - [Core Functionality](#core-functionality)
       - [Technical Implementation](#technical-implementation)
-    - [Phase 4: Supabase Integration \& Production ✅ COMPLETED / 📋 IN PROGRESS](#phase-4-supabase-integration--production--completed---in-progress)
+    - [Phase 4: Production Features \& Deployment ✅ COMPLETED / 📋 IN PROGRESS](#phase-4-production-features--deployment--completed---in-progress)
     - [Phase 5: Advanced Features 📋 FUTURE](#phase-5-advanced-features--future)
   - [📊 Success Metrics](#-success-metrics)
     - [Technical Metrics](#technical-metrics)
@@ -157,6 +162,7 @@ A comprehensive price tracking system that monitors product prices across multip
       - [📚 Tutorials \& Guides](#-tutorials--guides)
       - [🎯 Best Practices](#-best-practices)
     - [📊 Reference Materials](#-reference-materials)
+- [Testing development environment deployment](#testing-development-environment-deployment)
 
 ## ✨ Key Features
 
@@ -164,9 +170,9 @@ A comprehensive price tracking system that monitors product prices across multip
 - **📊 Price Comparison**: Compare prices across different sources
 - **📈 Price History**: Track price changes over time
 - **🔔 Dual Alert System**: Both authenticated user alerts and anonymous price alerts
-- **🔐 Supabase Authentication**: Multi-provider OAuth and email/password authentication
+- **🔐 Custom Authentication**: JWT-based authentication with OAuth provider support
 - **📧 Email-Based Management**: Manage alerts through secure email links
-- **🌐 Real-time Updates**: Supabase Realtime + WebSocket-based live price updates
+- **🌐 Real-time Updates**: Custom WebSocket server for live price updates
 - **🤖 Web Scraping**: Automated price collection with fallback to mock data
 - **💾 Caching**: Redis-powered result caching for performance
 - **📱 Modern UI**: React-based responsive frontend
@@ -206,7 +212,7 @@ npm run dev
 
 - **[CI/CD Pipeline Documentation](.github/README.md)** - Complete pipeline overview
 - **[Vercel Deployment Guide](docs/integration/VERCEL_DEPLOYMENT.md)** - Vercel-specific deployment instructions
-- **[Supabase Integration](docs/integration/SUPABASE_INTEGRATION_PLAN.md)** - Supabase setup and configuration
+- **[Database Setup Guide](docs/integration/DATABASE_SETUP.md)** - PostgreSQL setup and configuration
 - **[Production Checklist](docs/planning/PRODUCTION_READINESS_CHECKLIST.md)** - Production deployment checklist
 
 ### 🔒 Security & Planning
@@ -222,34 +228,34 @@ npm run dev
 - **Web Scraping**: Automated scraping with rate limiting and error handling
 - **Advertisement System**: Revenue-generating ad platform with analytics
 - **Responsive Design**: Modern UI built with React, TypeScript, and Tailwind CSS
-- **Queue Management**: Bull Queue for managing scraping jobs and price refreshes
+- **Queue Management**: In-memory queues for managing scraping jobs and price refreshes (see [Queue Strategy](docs/architecture/QUEUE_STRATEGY.md))
 - **Anonymous Price Alerts**: Create and manage price alerts without user accounts
 
 ## 🔐 Authentication & Database Integration
 
-ShopperSprint leverages **Supabase** for a comprehensive backend-as-a-service solution:
+PricePulse uses a **custom backend architecture** for maximum control and flexibility:
 
-### 🎯 Supabase Integration Features
+### 🎯 Authentication & Database Features
 
-- **🔑 Supabase Auth**: Multi-provider OAuth (Google, Apple, GitHub), email/password authentication
-- **🗄️ Managed PostgreSQL**: Fully managed database with automatic backups and scaling
-- **🔒 Row Level Security (RLS)**: Database-level security policies for user data protection
-- **⚡ Real-time Subscriptions**: Live data updates via Supabase Realtime
-- **📁 Storage**: Secure file uploads and asset management
-- **🎛️ Admin Dashboard**: Built-in database management and monitoring tools
+- **🔑 Custom JWT Auth**: Secure JWT-based authentication with bcrypt password hashing
+- **🗄️ PostgreSQL**: Self-managed PostgreSQL database with Drizzle ORM for type safety
+- **🔒 Custom Authorization**: Role-based access control with JWT middleware
+- **⚡ Real-time Updates**: Custom WebSocket server for live price updates
+- **📁 File Management**: Configurable storage options (future implementation)
+- **🎛️ Admin Tools**: PgAdmin and Redis Insight for database management
 
 ### 🔄 Architecture Benefits
 
-- **Unified Backend**: Single platform for database, auth, real-time, and storage
-- **Scalability**: Automatic scaling based on usage patterns  
-- **Security**: Built-in security best practices and compliance
-- **Developer Experience**: Type-safe database queries and automatic API generation
-- **Cost Efficiency**: Pay-per-usage pricing model
+- **Full Control**: Complete control over backend logic and data flow
+- **Performance**: Optimized queries and caching strategies
+- **Security**: Custom security policies and authentication flow
+- **Developer Experience**: Type-safe database queries with Drizzle ORM
+- **Cost Efficiency**: Self-hosted infrastructure with predictable costs
 - **Migration Support**: Gradual migration from legacy systems with feature flags
 
-### 🎛️ Hybrid Approach
+### 🎛️ Architecture Approach
 
-- **Supabase**: Database, authentication, real-time, storage
+- **PostgreSQL**: Self-managed database with full control and optimization
 - **Redis**: High-performance caching for search results and session data
 - **Express.js**: Custom business logic and third-party integrations
 - **Drizzle ORM**: Type-safe database queries with schema management
@@ -260,19 +266,18 @@ ShopperSprint leverages **Supabase** for a comprehensive backend-as-a-service so
 
 - **Runtime**: Node.js with TypeScript
 - **Framework**: Express.js
-- **Database**: Supabase (Managed PostgreSQL) with Drizzle ORM
-- **Authentication**: Supabase Auth (JWT, OAuth, Email verification)
-- **Real-time**: Supabase Realtime + WebSocket fallback
-- **Storage**: Supabase Storage (for uploads and assets)
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Custom JWT (OAuth providers configured)
+- **Real-time**: Custom WebSocket server
 - **Caching**: Redis (ephemeral state and search results)
-- **Queue**: Bull Queue
-- **Web Scraping**: Puppeteer + Cheerio
+- **Queue**: In-memory queues (*[Migration to Bull Queue planned for scale](docs/architecture/QUEUE_STRATEGY.md)*)
+- **Web Scraping**: Puppeteer
 - **Validation**: Zod schemas
-- **Testing**: Vitest
+- **Testing**: Jest
 
 ### Frontend
 
-- **Framework**: React 19 with TypeScript
+- **Framework**: React 18 with TypeScript
 - **Build Tool**: Vite
 - **Styling**: Tailwind CSS + shadcn/ui
 - **State Management**: React hooks
@@ -280,12 +285,12 @@ ShopperSprint leverages **Supabase** for a comprehensive backend-as-a-service so
 
 ### Infrastructure
 
-- **Database**: Supabase (Managed PostgreSQL with built-in auth, real-time, and storage)
+- **Database**: PostgreSQL (Docker for dev, railway postgres for prod)
 - **Containerization**: Docker + Docker Compose
 - **Cache**: Redis 7
 - **Development**: Hot reloading, TypeScript compilation
-- **Authentication**: Supabase Auth with Row Level Security (RLS)
-- **Real-time**: Supabase Realtime for live data synchronization
+- **Authentication**: Custom JWT with bcrypt password hashing
+- **Real-time**: Custom WebSocket implementation
 
 ## 📁 Project Structure
 
@@ -305,16 +310,14 @@ shoppersprint/
 │   │   ├── services/       # Business logic (Search, Scraping, Notifications)
 │   │   ├── repositories/   # Data access layer
 │   │   ├── routes/         # API route definitions
-│   │   ├── middleware/     # Express middleware (includes Supabase auth)
-│   │   ├── database/       # Database schema and migrations (Drizzle + Supabase)
+│   │   ├── middleware/     # Express middleware (includes JWT auth)
+│   │   ├── database/       # Database schema and migrations (Drizzle + PostgreSQL)
 │   │   ├── validation/     # Zod validation schemas
-│   │   ├── lib/           # Supabase client and utilities
+│   │   ├── lib/           # Database client and utilities
 │   │   └── vercel.ts      # Vercel deployment configuration
 │   ├── tests/              # Test files
 │   ├── Dockerfile         # Backend container image
-│   ├── supabase/          # Supabase configuration and migrations
-│   │   ├── config.toml    # Supabase local development config
-│   │   ├── migrations/    # Database migrations
+│   ├── migrations/        # Database migrations and schema
 │   │   └── seed.sql       # Database seeding
 │   └── package.json
 ├── config/                  # ⚙️ Configuration Files
@@ -345,19 +348,19 @@ shoppersprint/
 │   ├── security/          # Security documentation
 │   │   └── SECURITY_AUDIT_REPORT.md # Security assessment
 │   ├── integration/       # Platform integration guides
-│   │   ├── SUPABASE_INTEGRATION_PLAN.md # Supabase guide
+│   │   ├── DATABASE_SETUP.md # PostgreSQL setup guide
 │   │   ├── VERCEL_DEPLOYMENT.md # Vercel deployment
 │   │   └── [other integration docs]
 │   └── images/            # Documentation images and diagrams
 ├── frontend/                # React frontend application
 │   ├── src/
 │   │   ├── components/     # Reusable UI components
-│   │   ├── contexts/       # React contexts (including Supabase AuthContext)
+│   │   ├── contexts/       # React contexts (including AuthContext)
 │   │   ├── lib/            # Utility libraries
-│   │   │   ├── supabase.ts # Supabase client configuration
-│   │   │   ├── api.ts     # API client with Supabase auth
+│   │   │   ├── api.ts     # API client with JWT auth
+│   │   │   ├── ws.ts      # WebSocket client
 │   │   │   └── utils.ts   # Utility functions
-│   │   ├── hooks/          # Custom React hooks (Supabase integration)
+│   │   ├── hooks/          # Custom React hooks
 │   │   └── test/           # Frontend tests
 │   ├── Dockerfile         # Frontend container image
 │   ├── nginx.conf         # Web server configuration
@@ -482,7 +485,7 @@ All operations are powered by a single, intelligent automation script:
 
 #### ⚙️ **Smart Configuration Management**
 
-- Automatic Supabase configuration validation
+- Automatic database configuration validation
 - Environment variable verification
 - Node.js version compatibility checks
 - Missing dependency detection
@@ -579,7 +582,7 @@ NODE_ENV=production npm run deploy:prod
 
 - ✅ **Dependency Installation** - All packages across frontend/backend
 - ✅ **Environment Setup** - Automatic .env file creation and validation
-- ✅ **Database Setup** - Supabase connection + local Docker containers
+- ✅ **Database Setup** - PostgreSQL connection + local Docker containers
 - ✅ **Health Monitoring** - Continuous service health validation
 - ✅ **Build Process** - Optimized production builds
 - ✅ **Testing** - Comprehensive test execution with coverage
@@ -737,7 +740,7 @@ npm run deploy:prod
 | ------------------------ | --------------------------- | ------------------------------ | ----------------------------- |
 | **🤖 Automation Scripts** | `npm run quick/dev/health`  | Triggered by git push          | `npm run deploy:prod`         |
 | **🐳 Docker**             | `docker-compose.yml`        | Service containers for testing | `docker-compose.prod.yml`     |
-| **🗄️ Database**           | Local PostgreSQL container  | PostgreSQL service container   | Supabase or production DB     |
+| **🗄️ Database**           | Local PostgreSQL container  | PostgreSQL service container   | External PostgreSQL DB        |
 | **📊 Monitoring**         | Basic health checks         | CI test result reporting       | Full monitoring stack         |
 | **🔒 Security**           | Local validation            | OWASP + secret scanning        | Enhanced security gates       |
 | **🚀 Deployment**         | Local containers            | Docker image builds            | GHCR → Production containers  |
@@ -763,6 +766,7 @@ Railway deployment requires specific configuration due to the monorepo structure
 #### **Quick Railway Deployment**
 
 **🎯 Option 1: Single Service (Recommended)**
+
 ```bash
 # Install Railway CLI
 npm install -g @railway/cli
@@ -770,11 +774,12 @@ npm install -g @railway/cli
 # Login to Railway
 railway login
 
-# Deploy frontend + backend as one service
+# Deploy frontend + backend as one service (current approach)
 npm run deploy:railway:single
 ```
 
 **🔄 Option 2: Separate Services**
+
 ```bash
 # Deploy backend and frontend as separate Railway services
 npm run deploy:railway:separate
@@ -785,19 +790,21 @@ npm run deploy:railway:frontend  # Frontend only
 ```
 
 **⚡ Interactive Deployment**
+
 ```bash
 # Choose deployment strategy interactively
 npm run deploy:railway
 ```
 
 #### **Manual Railway Setup**
+
 ```bash
 # 1. Create nixpacks.toml (already created)
 # 2. Add start command to root package.json (already added)  
 # 3. Configure environment variables
-railway variables set DATABASE_URL=your-supabase-url
-railway variables set SUPABASE_URL=https://your-project.supabase.co
-railway variables set SUPABASE_ANON_KEY=your-anon-key
+railway variables set DATABASE_URL=${{Postgres.DATABASE_URL}}
+railway variables set REDIS_URL=${{Redis.REDIS_URL}}  
+railway variables set JWT_SECRET=your-jwt-secret-key
 railway variables set NODE_ENV=production
 
 # 4. Deploy
@@ -807,6 +814,7 @@ railway up
 #### **Railway Configuration Files**
 
 **nixpacks.toml** (Railway build configuration):
+
 ```toml
 [phases.setup]
 nixPkgs = ["nodejs-18_x", "npm-9_x"]
@@ -824,40 +832,41 @@ cmd = "cd backend && npm start"
 **Environment Variables** (use `.env.railway.example`):
 
 - Set via Railway dashboard or CLI
-- Required: `DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`
-- Optional: `REDIS_URL`, `SMTP_*` for full features
+- Required: `DATABASE_URL`, `REDIS_URL`, `JWT_SECRET`
+- Optional: `SMTP_*` for email notifications
+- Auto-generated: Railway provides DATABASE_URL and REDIS_URL automatically
 
 #### **Railway Deployment Architectures**
 
-**🎯 Single Service Architecture (Recommended):**
+**🎯 Single Service Architecture (Current):**
 
 - **Application**: Frontend + Backend in one Railway service
-- **Domain**: Single domain (e.g., `https://shoppersprint.railway.app`)
+- **Domain**: Single domain (e.g., `https://pricepulse.railway.app`)
 - **Frontend**: Served at `/` (SPA routing)
 - **API**: Served at `/api/*`
-- **Cost**: One Railway service
-- **Database**: Supabase (recommended) or Railway PostgreSQL
-- **Cache**: Railway Redis or Upstash Redis
+- **Cost**: ~$15-25/month (Railway Pro plan)
+- **Database**: Railway PostgreSQL (included)
+- **Cache**: Railway Redis (included)
 
-**🔄 Separate Services Architecture:**
+**🖥️ VPS Architecture (Future Migration):**
 
-- **Backend**: Railway service (Node.js API only)
-- **Frontend**: Separate Railway service (static hosting) or Vercel
-- **Domains**: Two domains (backend + frontend)
-- **Cost**: Two Railway services
-- **Database**: Supabase (recommended) or Railway PostgreSQL
-- **Cache**: Railway Redis or Upstash Redis
+- **VPS**: Hostinger VPS (~$10-20/month)
+- **Application**: Docker Compose (frontend + backend + database)
+- **Domain**: Custom domain with Cloudflare
+- **Cost**: ~$15-30/month total (VPS + domain)
+- **Database**: Self-hosted PostgreSQL container
+- **Cache**: Self-hosted Redis container
 
-**📊 Architecture Comparison:**
+**📊 Deployment Strategy Comparison:**
 
-| Aspect         | Single Service      | Separate Services        |
-| -------------- | ------------------- | ------------------------ |
-| **Cost**       | 💰 Lower (1 service) | 💰💰 Higher (2+ services)  |
-| **Complexity** | 🟢 Simple            | 🟡 Moderate               |
-| **Scaling**    | 🔄 Coupled           | ⚖️ Independent            |
-| **CORS**       | ✅ No issues         | ⚠️ Requires configuration |
-| **Deployment** | 🚀 Single command    | 🔄 Multiple steps         |
-| **Domains**    | 🌐 One domain        | 🌐🌐 Multiple domains      |
+| Aspect          | Railway (Current)  | Hostinger VPS (Future)  |
+| --------------- | ------------------ | ----------------------- |
+| **Cost**        | 💰💰 $15-25/month    | 💰 $10-20/month          |
+| **Setup**       | 🟢 Simple (managed) | 🟡 Moderate (self-setup) |
+| **Scaling**     | 🔄 Auto-scaling     | ⚖️ Manual scaling        |
+| **Maintenance** | ✅ Fully managed    | ⚠️ Self-maintained       |
+| **Control**     | 🎛️ Limited          | 🔧 Full control          |
+| **Migration**   | 🚀 Easy deployment  | 🛠️ Custom setup required |
 
 ### 📋 Manual Script Reference
 
@@ -916,7 +925,7 @@ npm run db:reset        # Reset to clean state
 
 ## 🔧 Configuration
 
-The project uses environment files for configuration:
+### Local Development Configuration
 
 1. **`.env.example`**: Template with placeholders (tracked in git)
 2. **`.env`**: Your actual configuration (ignored by git)
@@ -928,28 +937,44 @@ npm run env:setup        # Copies .env.example to .env
 # Then edit backend/.env with your real values
 ```
 
-**Quick Supabase Setup:**
+### Railway Production Configuration
 
-1. **Create Supabase Project**:
-   - Go to [supabase.com](https://supabase.com)
-   - Create new project and note your project URL and API keys
+Configure directly in Railway dashboard or via CLI - no local .env files needed in production.
 
-2. **Get Connection Details**:
-   - Settings → Database → Connection string
-   - Settings → API → Project URL and anon/service_role keys
+**Quick Railway Setup:**
+
+1. **Create Railway Project**:
+   - Go to [railway.app](https://railway.app) and create new project
+   - Add PostgreSQL and Redis services to your project
+
+2. **Get Service URLs**:
+   - Railway auto-generates DATABASE_URL and REDIS_URL
+   - Copy these from Railway dashboard → Variables tab
 
 3. **Configure Environment**:
-   - Add Supabase URL and keys to your `.env` files
-   - Update `DATABASE_URL` to point to your Supabase instance
+   - Set environment variables in Railway dashboard
+   - Add JWT secrets and other configuration variables
+
+**Future VPS Setup:**
+
+1. **Get Hostinger VPS**:
+   - Purchase VPS plan when Railway scaling becomes expensive
+   - Install Docker and Docker Compose on VPS
+
+2. **Deploy to VPS**:
+   - Use custom deployment scripts for VPS deployment
+   - Set up PostgreSQL and Redis as Docker containers
 
 **Environment Variables to Configure:**
 
 ```env
-# Supabase Configuration
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here  # Server-side only
-DATABASE_URL=postgresql://postgres:password@host:5432/postgres  # Supabase connection
+# Database Configuration
+DATABASE_URL=postgresql://postgres:password@host:5432/postgres  # PostgreSQL connection
+DB_HOST=localhost         # Database host
+DB_PORT=5432             # Database port
+DB_USER=postgres         # Database username
+DB_PASSWORD=password     # Database password
+DB_NAME=pricepulse       # Database name
 
 # Redis Configuration
 REDIS_URL=redis://localhost:6379  # Development: localhost, Production: your-redis-host
@@ -960,20 +985,20 @@ NODE_ENV=development      # development or production
 FRONTEND_URL=http://localhost:5173  # Frontend URL for CORS
 
 # Authentication Configuration
-USE_SUPABASE_AUTH=true    # Enable Supabase Auth (true) or legacy auth (false)
-JWT_SECRET=your-fallback-jwt-secret  # Fallback for legacy auth during migration
+JWT_SECRET=your-jwt-secret-key      # JWT signing secret (required)
+AUTH_ENABLED=true                   # Enable authentication features
 
 # Email Configuration (for anonymous alerts)
 SMTP_HOST=smtp.gmail.com  # SMTP server host
 SMTP_PORT=587             # SMTP server port
 SMTP_USER=your-email@gmail.com  # SMTP username
 SMTP_PASS=your-app-password     # SMTP password
-SMTP_FROM=noreply@shoppersprint.com # From email address
+SMTP_FROM=noreply@pricepulse.com # From email address
 
 # Frontend Configuration (Vite)
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-VITE_API_URL=http://localhost:3001  # Backend API URL
+VITE_API_BASE_URL=/api    # API base URL (relative or absolute)
+VITE_BACKEND_URL=http://localhost:3001  # Backend API URL
+VITE_WS_URL=ws://localhost:3001         # WebSocket URL
 
 # Scraping Configuration
 SCRAPING_DELAY=1000       # Delay between scrapes (ms)
@@ -981,8 +1006,8 @@ MAX_CONCURRENT_SCRAPES=3  # Maximum concurrent scraping jobs
 SCRAPING_TIMEOUT=30000    # Scraping timeout (ms)
 
 # Feature Flags
-REALTIME_ENABLED=true     # Enable Supabase Realtime features
-STORAGE_ENABLED=true      # Enable Supabase Storage features
+SERVE_FRONTEND=false      # Serve frontend from backend (Railway single-service)
+MOCK_DATA_ENABLED=false   # Enable mock data for development
 ```
 
 **Environment Switching:**
@@ -1007,12 +1032,36 @@ npm run test
 
 ## 🔄 Development Workflow
 
-### 💡 New TypeScript Development Workflow
+### 🚀 **Hybrid CI/CD System**
 
-**For development:**
-- 🔍 **Type checking**: `npm run type-check` (verify types without building)
-- 🏗️ **Building**: `npm run build` (optimized builds - Vite for frontend, tsc for backend)  
-- 🧹 **Linting**: `npm run lint` (catch code quality issues)
+PricePulse uses a modern hybrid approach:
+
+- **Local Development**: Fast, free CI/CD using Docker
+- **Production Deployment**: Automated via GitHub Actions
+
+**Quick Start Commands:**
+
+```bash
+# 🔧 First time setup
+npm run ci:setup
+
+# 🚀 Daily development
+npm start                # Start all services
+npm run ci               # Full CI before committing
+
+# 🧪 Quick testing
+npm test                 # Type check + lint + tests
+npm run type-check       # TypeScript only  
+npm run lint             # ESLint only
+```
+
+**Complete Workflow:**
+
+1. **Development**: `npm start` - Starts databases + servers
+2. **Testing**: `npm run ci` - Full local CI pipeline  
+3. **Deployment**: Push to `main` - Auto-deploy to production
+
+[📖 **Full Documentation**: docs/LOCAL_CI_CD_SYSTEM.md](docs/LOCAL_CI_CD_SYSTEM.md)
 
 ### Daily Development
 
@@ -1172,26 +1221,26 @@ Our CI/CD pipeline consists of several automated workflows:
 
 #### Development Environment
 
-- **URL**: `dev.shoppersprint.com`
+- **URL**: `dev-pricepulse.railway.app`
 - **Trigger**: Automatic on feature branch merges
-- **Database**: Development PostgreSQL instance
-- **Monitoring**: Basic health checks
+- **Database**: Railway PostgreSQL (development instance)
+- **Monitoring**: Railway basic metrics + health checks
 - **Access**: Open for testing
 
 #### Staging Environment  
 
-- **URL**: `staging.shoppersprint.com`
+- **URL**: `staging-pricepulse.railway.app`
 - **Trigger**: Manual promotion from development
-- **Database**: Production-like data (anonymized)
-- **Monitoring**: Full monitoring stack
+- **Database**: Railway PostgreSQL (staging instance with anonymized data)
+- **Monitoring**: Railway metrics + enhanced health checks
 - **Access**: Internal team and stakeholders
 
 #### Production Environment
 
-- **URL**: `shoppersprint.com`
+- **URL**: `pricepulse.railway.app` (custom domain: `pricepulse.com`)
 - **Trigger**: Manual approval with security gates
-- **Database**: Production PostgreSQL (NeonDB)
-- **Monitoring**: Comprehensive monitoring and alerting
+- **Database**: Railway PostgreSQL (managed production instance)
+- **Monitoring**: Railway metrics + comprehensive health checks
 - **Access**: Public users
 
 ### 🛠️ Deployment Commands
@@ -1313,45 +1362,73 @@ npm run db:restore
 
 ### 🔗 Production Infrastructure
 
-For production deployment, we support multiple platforms:
+Our deployment strategy focuses on Railway.com with future migration planning:
 
-#### Recommended Platforms
+#### Current Platform Strategy
 
-- **Database & Auth**: [Supabase](https://supabase.com) (Managed PostgreSQL + Auth + Real-time + Storage)
-- **Cache**: [Upstash](https://upstash.com) (Redis as a service)
-- **Backend Hosting**: [Railway](https://railway.app) (Recommended) or [Vercel](https://vercel.com)
-- **Frontend Hosting**: [Vercel](https://vercel.com) (Recommended) or [Railway](https://railway.app)
-- **Monitoring**: Built-in health checks and logging
+- **Full-Stack Hosting**: [Railway.com](https://railway.app) (All-in-one deployment)
+- **Database**: Railway PostgreSQL (managed database service)
+- **Cache**: Railway Redis (managed Redis service)
+- **Application**: Single Railway service (frontend + backend combined)
+- **Monitoring**: Built-in Railway metrics + custom health checks
+
+#### Future Scaling Strategy
+
+- **Migration Target**: [Hostinger VPS](https://hostinger.com) when scaling beyond Railway limits
+- **Architecture**: Self-managed VPS with Docker containers
+- **Database**: Self-hosted PostgreSQL on VPS
+- **Cache**: Self-hosted Redis on VPS
+- **Deployment**: Docker Compose with custom CI/CD pipeline
 
 #### Platform-Specific Deployment
 
-**🚂 Railway.com (Recommended for Backend)**
+**🚂 Railway.com (Current Platform)**
 
 ```bash
-# One-command Railway deployment
+# One-command Railway deployment (full-stack)
 npm run deploy:railway
+
+# Railway deployment options
+npm run deploy:railway:single    # Single service (recommended)
+npm run deploy:railway:separate  # Separate services (if needed)
 
 # Or use the deployment script directly
 ./scripts/deploy-railway.sh
 ```
 
-**☁️ Vercel (Recommended for Frontend)**
+**🖥️ Hostinger VPS (Future Scaling)**
 
 ```bash
-# Vercel deployment
-npm run deploy:vercel
-
-# Or use the deployment script directly  
-./scripts/deploy-vercel.sh
+# Future VPS deployment (when implemented)
+npm run deploy:vps               # Full VPS deployment
+npm run deploy:vps:setup         # Initial VPS setup
+npm run deploy:vps:update        # Update existing VPS deployment
 ```
 
-#### Alternative Database Options
+#### Database Strategy
 
-- **Railway PostgreSQL**: Built-in Railway database service
-- **NeonDB**: [NeonDB](https://neon.tech) (PostgreSQL as a service - if not using Supabase)
-- **AWS RDS** or **Google Cloud SQL** (for enterprise deployments)
+**Current (Railway Ecosystem):**
 
-#### Self-Hosted Options
+- **Railway PostgreSQL**: Primary database (currently used)
+- **Railway Redis**: Caching layer (currently used)
+- **Railway Storage**: File storage (when needed)
+
+**Future (Hostinger VPS):**
+
+- **Self-hosted PostgreSQL**: On VPS with optimized configuration
+- **Self-hosted Redis**: On VPS for caching
+- **VPS Storage**: Direct file system storage
+
+#### Self-Hosted Options (Future)
+
+**Hostinger VPS Setup:**
+
+- **Single VPS**: Cost-effective self-hosting solution
+- **Docker Compose**: Container orchestration on VPS
+- **Nginx Proxy**: Reverse proxy and SSL termination
+- **Custom CI/CD**: GitHub Actions → VPS deployment
+
+**Enterprise Options (Much Later):**
 
 - **Docker Swarm**: Multi-node container orchestration
 - **Kubernetes**: Enterprise-grade container orchestration  
@@ -1478,7 +1555,7 @@ This is a personal project maintained by a single developer. For questions or is
 - [x] Product search and scraping infrastructure
 - [x] Repository pattern and service layer
 - [x] Redis caching system
-- [x] Bull Queue for background jobs
+- [x] In-memory queues for background jobs
 - [x] Advertisement system with analytics
 - [x] Comprehensive error handling and validation
 
@@ -1502,11 +1579,11 @@ This is a personal project maintained by a single developer. For questions or is
 - [x] Price history tracking and comparison
 - [x] Anonymous price alerts with email verification
 - [x] Redis caching for search results
-- [x] Bull queue for background scraping tasks
+- [x] In-memory queues for background scraping tasks
 - [x] Email notification service for price alerts
 - [x] Anonymous alert management through secure email links
 
-### Phase 4: Supabase Integration & Production ✅ COMPLETED / 📋 IN PROGRESS
+### Phase 4: Production Features & Deployment ✅ COMPLETED / 📋 IN PROGRESS
 
 - [x] Comprehensive testing suite
 - [x] CI/CD pipeline setup with GitHub Actions
@@ -1515,11 +1592,11 @@ This is a personal project maintained by a single developer. For questions or is
 - [x] Security scanning and vulnerability assessment
 - [x] Automated deployment scripts
 - [x] Health monitoring and rollback procedures
-- [x] **Supabase Database Migration** - PostgreSQL to Supabase managed database
-- [x] **Supabase Auth Integration** - Multi-provider OAuth and JWT management
-- [ ] **Supabase Realtime Implementation** 📋 IN PROGRESS - Live data synchronization
-- [ ] **Row Level Security (RLS) Policies** 📋 IN PROGRESS - Database security implementation
-- [ ] **Supabase Storage Integration** 📋 PLANNED - File uploads and asset management
+- [x] **Database Optimization** - PostgreSQL performance tuning and indexing
+- [x] **Authentication System** - JWT-based auth with OAuth provider support
+- [ ] **Real-time Enhancement** 📋 IN PROGRESS - WebSocket optimization and scaling
+- [ ] **Authorization Policies** 📋 IN PROGRESS - Role-based access control implementation
+- [ ] **File Storage System** 📋 PLANNED - Image uploads and asset management
 - [ ] **Performance optimization and monitoring** 📋 IN PROGRESS
 - [ ] **Blue-green deployment implementation** 📋 PLANNED  
 - [ ] **Database migration automation** 📋 PLANNED
@@ -1594,15 +1671,15 @@ This is a personal project maintained by a single developer. For questions or is
 ### 🚀 Deployment & DevOps
 
 - **[CI/CD Pipeline](docs/CICD_PIPELINE.md)** - Complete pipeline documentation
-- **[Vercel Deployment](docs/VERCEL_DEPLOYMENT.md)** - Vercel-specific deployment guide
-- **[Railway Deployment](docs/RAILWAY_DEPLOYMENT.md)** - Railway.com deployment guide
+- **[Railway Deployment](docs/RAILWAY_DEPLOYMENT.md)** - Primary deployment platform guide
+- **[VPS Migration Guide](docs/VPS_MIGRATION.md)** - Future Hostinger VPS migration
 - **[Docker Guide](docs/DOCKER_GUIDE.md)** - Containerization and orchestration
 - **[Environment Configuration](docs/ENVIRONMENT_CONFIG.md)** - Multi-environment setup
 
 ### 🔒 Security & Configuration
 
 - **[Security Guide](docs/SECURITY_GUIDE.md)** - Security best practices and implementation
-- **[Authentication Setup](docs/AUTHENTICATION.md)** - Supabase Auth configuration
+- **[Authentication Setup](docs/AUTHENTICATION.md)** - JWT Auth configuration
 - **[Database Security](docs/DATABASE_SECURITY.md)** - RLS policies and security practices
 - **[Environment Variables](docs/ENVIRONMENT_VARIABLES.md)** - Complete environment configuration
 
@@ -1619,11 +1696,11 @@ This is a personal project maintained by a single developer. For questions or is
 - **[Price Tracking](docs/PRICE_TRACKING.md)** - Price monitoring and alerts
 - **[Web Scraping](docs/WEB_SCRAPING.md)** - Scraping architecture and implementation
 - **[Caching Strategy](docs/CACHING_STRATEGY.md)** - Redis caching implementation
-- **[Real-time Features](docs/REALTIME_FEATURES.md)** - WebSocket and Supabase Realtime
+- **[Real-time Features](docs/REALTIME_FEATURES.md)** - WebSocket implementation and scaling
 
 ### 🛠️ Technical Guides
 
-- **[Supabase Integration](docs/SUPABASE_INTEGRATION.md)** - Complete Supabase setup and usage
+- **[Database Integration](docs/DATABASE_INTEGRATION.md)** - PostgreSQL setup and optimization
 - **[Database Migrations](docs/DATABASE_MIGRATIONS.md)** - Schema changes and migration strategies
 - **[Error Handling](docs/ERROR_HANDLING.md)** - Error management and logging
 - **[Monitoring & Observability](docs/MONITORING.md)** - Health checks and performance monitoring
@@ -1641,7 +1718,7 @@ This is a personal project maintained by a single developer. For questions or is
 
 #### 🛠️ Technology Documentation
 
-- **[Supabase Documentation](https://supabase.com/docs)** - Official Supabase docs
+- **[PostgreSQL Documentation](https://www.postgresql.org/docs/)** - Official PostgreSQL docs
 - **[React Documentation](https://react.dev)** - React framework documentation
 - **[TypeScript Handbook](https://www.typescriptlang.org/docs/)** - TypeScript language guide
 - **[Express.js Guide](https://expressjs.com/en/guide/routing.html)** - Express framework documentation
@@ -1649,8 +1726,8 @@ This is a personal project maintained by a single developer. For questions or is
 
 #### 🚀 Deployment Platforms
 
-- **[Vercel Documentation](https://vercel.com/docs)** - Vercel deployment and features
-- **[Railway Documentation](https://docs.railway.app)** - Railway platform guides
+- **[Railway Documentation](https://docs.railway.app)** - Primary deployment platform
+- **[Hostinger VPS](https://hostinger.com/vps-hosting)** - Future VPS hosting solution  
 - **[Docker Documentation](https://docs.docker.com)** - Container platform documentation
 - **[GitHub Actions](https://docs.github.com/en/actions)** - CI/CD workflow documentation
 
@@ -1706,7 +1783,7 @@ This is a personal project maintained by a single developer. For questions or is
 
 - **[React Tutorial](docs/tutorials/REACT_TUTORIAL.md)** - React fundamentals
 - **[TypeScript Guide](docs/tutorials/TYPESCRIPT_GUIDE.md)** - TypeScript best practices
-- **[Supabase Tutorial](docs/tutorials/SUPABASE_TUTORIAL.md)** - Supabase integration guide
+- **[Database Tutorial](docs/tutorials/DATABASE_TUTORIAL.md)** - PostgreSQL integration guide
 - **[Docker Tutorial](docs/tutorials/DOCKER_TUTORIAL.md)** - Containerization basics
 
 #### 🎯 Best Practices
@@ -1723,4 +1800,5 @@ This is a personal project maintained by a single developer. For questions or is
 - **[API Endpoints](docs/API_ENDPOINTS.md)** - Complete API endpoint reference
 - **[Database Tables](docs/DATABASE_TABLES.md)** - Database schema reference
 - **[Error Codes](docs/ERROR_CODES.md)** - Application error codes and meanings
+
 # Testing development environment deployment

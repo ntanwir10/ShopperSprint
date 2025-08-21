@@ -1,0 +1,81 @@
+version: 2
+updates:
+  # 📦 Root package.json
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ntanwir"
+    commit-message:
+      prefix: "⬆️"
+      include: "scope"
+
+  # 🎨 Frontend dependencies
+  - package-ecosystem: "npm"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ntanwir"
+    commit-message:
+      prefix: "⬆️ frontend:"
+      include: "scope"
+
+  # 🔧 Backend dependencies
+  - package-ecosystem: "npm"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "ntanwir"
+    commit-message:
+      prefix: "⬆️ backend:"
+      include: "scope"
+
+  # 🐳 Docker dependencies
+  - package-ecosystem: "docker"
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "ntanwir"
+    commit-message:
+      prefix: "⬆️ docker:"
+
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "ntanwir"
+    commit-message:
+      prefix: "⬆️ docker:"
+
+  # 🔄 GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "ntanwir"
+    commit-message:
+      prefix: "⬆️ actions:"

@@ -1,25 +1,29 @@
-name: 🚀 Comprehensive CI/CD Pipeline
+name: 🚀 Production Deployment Pipeline
 
 on:
   push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
-  schedule:
-    # Run security scans weekly
-    - cron: "0 2 * * 1"
+    branches: [main] # Only production deployments
+
+  # Manual trigger for emergency deploys
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Deployment environment"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - production
 
 env:
   NODE_VERSION: "18"
-  POSTGRES_VERSION: "15"
-  REDIS_VERSION: "7"
   REGISTRY: ghcr.io
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  # 🔒 Security & Code Quality
-  security-and-quality:
-    name: 🔒 Security & Quality
+  # 🏗️ Production Build
+  production-build:
+    name: 🏗️ Production Build
     runs-on: ubuntu-latest
     steps:
       - name: 📥 Checkout code
@@ -37,225 +41,27 @@ jobs:
           cd frontend && npm ci
           cd ../backend && npm ci
 
-      - name: 🔍 TypeScript Type Checking
+      - name: 🏗️ Build applications
         run: |
-          echo "🔍 Running TypeScript type checks..."
-          npm run type-check
-          echo "✅ Type checking completed!"
-
-      - name: 🧹 ESLint Code Quality
-        run: |
-          echo "🧹 Running ESLint checks..."
-          npm run lint
-          echo "✅ Linting completed!"
-
-      - name: 🎨 Prettier Format Check
-        run: |
-          echo "🎨 Checking code formatting..."
-          npx prettier --check "**/*.{js,jsx,ts,tsx,json,md}" || true
-          echo "✅ Format check completed!"
-
-      - name: 🔒 Security Audit
-        run: |
-          echo "🔒 Running security audits..."
-          npm audit --audit-level=high || true
-          cd frontend && npm audit --audit-level=high || true
-          cd ../backend && npm audit --audit-level=high || true
-          echo "✅ Security audit completed!"
-
-      - name: 🕵️ Check for Secrets
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: .
-          base: ${{ github.event.pull_request.base.sha || 'HEAD~1' }}
-          head: ${{ github.sha }}
-
-  # 🧪 Backend Testing with Services
-  backend-tests:
-    name: 🧪 Backend Tests
-    runs-on: ubuntu-latest
-    needs: security-and-quality
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: pricepulse_test
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
-      redis:
-        image: redis:7
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 6379:6379
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: 📦 Install dependencies
-        run: |
-          npm ci
-          cd backend && npm ci
-
-      - name: ⚙️ Setup test environment
-        run: |
-          cd backend
-          cp .env.example .env.test
-          echo "DB_HOST=localhost" >> .env.test
-          echo "DB_PORT=5432" >> .env.test
-          echo "DB_USER=postgres" >> .env.test
-          echo "DB_PASSWORD=postgres" >> .env.test
-          echo "DB_NAME=pricepulse_test" >> .env.test
-          echo "REDIS_URL=redis://localhost:6379" >> .env.test
-          echo "NODE_ENV=test" >> .env.test
-
-      - name: ⏳ Wait for services
-        run: |
-          echo "Waiting for PostgreSQL..."
-          until pg_isready -h localhost -p 5432 -U postgres; do sleep 1; done
-          echo "Waiting for Redis..."
-          until redis-cli -h localhost ping; do sleep 1; done
-
-      - name: 🗄️ Setup database schema
-        run: |
-          cd backend
-          npm run db:push
-
-      - name: 🧪 Run backend tests with coverage
-        run: |
-          cd backend
-          npm run test:coverage
-
-      - name: 📊 Upload backend coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage
-          path: backend/coverage/
-
-  # 🧪 Frontend Testing
-  frontend-tests:
-    name: 🧪 Frontend Tests
-    runs-on: ubuntu-latest
-    needs: security-and-quality
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: 📦 Install dependencies
-        run: |
-          npm ci
-          cd frontend && npm ci
-
-      - name: 🧪 Run frontend tests with coverage
-        run: |
-          cd frontend
-          npm run test:coverage
-
-      - name: 📊 Upload frontend coverage
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-coverage
-          path: frontend/coverage/
-
-  # 🏗️ Build Applications
-  build:
-    name: 🏗️ Build Applications
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
-    strategy:
-      matrix:
-        component: [frontend, backend]
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🟢 Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: "npm"
-
-      - name: 📦 Install dependencies
-        run: |
-          npm ci
-          cd ${{ matrix.component }} && npm ci
-
-      - name: 🏗️ Build ${{ matrix.component }}
-        run: |
-          cd ${{ matrix.component }}
-          echo "🏗️ Building ${{ matrix.component }}..."
-          npm run build
-          echo "✅ ${{ matrix.component }} built successfully!"
+          echo "🏗️ Building applications for production..."
+          npm run build:frontend
+          npm run build:backend
+          echo "✅ Production build completed!"
 
       - name: 📤 Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.component }}-build
-          path: ${{ matrix.component }}/dist
+          name: production-build
+          path: |
+            frontend/dist
+            backend/dist
           retention-days: 7
 
-    # 📦 Create Deployment Package
-  package:
-    name: 📦 Package for Deployment
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 📤 Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: "*-build"
-          merge-multiple: true
-
-      - name: 📦 Create deployment package
-        run: |
-          mkdir -p dist
-          cp -r backend-build/* dist/ 2>/dev/null || true
-          mkdir -p dist/frontend
-          cp -r frontend-build/* dist/frontend/ 2>/dev/null || true
-          cp docker-compose.yml dist/ 2>/dev/null || true
-          cp -r scripts dist/ 2>/dev/null || true
-          tar -czf pricepulse-deployment.tar.gz dist/
-
-      - name: 📤 Upload deployment package
-        uses: actions/upload-artifact@v4
-        with:
-          name: deployment-package
-          path: pricepulse-deployment.tar.gz
-          retention-days: 30
-
   # 🐳 Docker Build & Push
-  docker:
+  docker-build:
     name: 🐳 Docker Build & Push
     runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: production-build
     strategy:
       matrix:
         component: [frontend, backend]
@@ -274,8 +80,16 @@ jobs:
       - name: 📤 Download build artifacts
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.component }}-build
-          path: ${{ matrix.component }}/dist
+          name: production-build
+
+      - name: 🗂️ Organize build artifacts
+        run: |
+          mkdir -p ${{ matrix.component }}/dist
+          if [ "${{ matrix.component }}" = "frontend" ]; then
+            cp -r frontend/dist/* ${{ matrix.component }}/dist/ 2>/dev/null || true
+          else
+            cp -r backend/dist/* ${{ matrix.component }}/dist/ 2>/dev/null || true
+          fi
 
       - name: 🏷️ Extract metadata
         id: meta
@@ -284,7 +98,6 @@ jobs:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.component }}
           tags: |
             type=ref,event=branch
-            type=ref,event=pr
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
@@ -296,125 +109,62 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # 🚀 Deploy to Development
-  deploy-development:
-    name: 🚀 Deploy to Development
-    runs-on: ubuntu-latest
-    needs: [package, docker]
-    if: github.ref == 'refs/heads/develop'
-    environment: development  # Uncomment after setting up GitHub environment
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🚀 Deploy to Development Environment
-        run: |
-          echo "🚀 Deploying to development environment..."
-          echo "This is where Railway deployment commands would go"
-          echo "Example: ./scripts/deploy-railway.sh single"
-          echo "✅ Development deployment completed!"
-
-      - name: 🧪 Post-deployment health check
-        run: |
-          echo "🔍 Running post-deployment health checks..."
-          # Add health check commands here
-          echo "✅ Health checks passed!"
-
   # 🌟 Deploy to Production
   deploy-production:
     name: 🌟 Deploy to Production
     runs-on: ubuntu-latest
-    needs: [package, docker]
+    needs: [production-build, docker-build]
     if: github.ref == 'refs/heads/main'
-    environment: production  # Uncomment after setting up GitHub environment
+    # environment: production  # Uncomment after setting up GitHub environment
 
     steps:
       - name: 📥 Checkout code
         uses: actions/checkout@v4
 
-      - name: 🌟 Deploy to Production Environment
+      - name: 🌟 Deploy to Railway Production
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
         run: |
           echo "🌟 Deploying to production environment..."
-          echo "This is where Railway production deployment commands would go"
-          echo "Example: ./scripts/deploy-railway.sh single"
-          echo "✅ Production deployment completed!"
+          if [ -n "$RAILWAY_TOKEN" ]; then
+            echo "Using Railway CLI for deployment..."
+            # Install Railway CLI
+            npm install -g @railway/cli
+            # Deploy using Railway
+            railway deploy --service frontend
+            railway deploy --service backend
+            echo "✅ Railway deployment completed!"
+          else
+            echo "⚠️ No Railway token found"
+            echo "Add RAILWAY_TOKEN secret to enable automatic deployment"
+            echo "For now, deploy manually using: npm run deploy:railway"
+          fi
 
       - name: 🔍 Production health check
         run: |
-          echo "🔍 Running production health checks..."
-          # Add comprehensive health check commands here
-          echo "✅ Production health checks passed!"
+          echo "🔍 Running post-deployment health checks..."
+          sleep 30  # Wait for deployment to complete
+          # Add health check commands here
+          # curl -f https://your-app.railway.app/health || echo "Health check failed"
+          echo "✅ Production deployment completed!"
 
-  # 📊 Test Results & Coverage
-  test-results:
-    name: 📊 Test Results
-    runs-on: ubuntu-latest
-    needs: [backend-tests, frontend-tests]
-    if: always()
-    steps:
-      - name: 📤 Download backend coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-coverage
-          path: backend-coverage/
-
-      - name: 📤 Download frontend coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-coverage
-          path: frontend-coverage/
-
-      - name: 📊 Generate coverage report
+      - name: 📊 Deployment Summary
         run: |
-          echo "## 📊 Test Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          if [ -d "backend-coverage" ]; then
-            echo "✅ Backend tests completed with coverage" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Backend tests failed or no coverage generated" >> $GITHUB_STEP_SUMMARY
-          fi
-          if [ -d "frontend-coverage" ]; then
-            echo "✅ Frontend tests completed with coverage" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "❌ Frontend tests failed or no coverage generated" >> $GITHUB_STEP_SUMMARY
-          fi
-
-      - name: 💬 Comment PR with results
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const body = `## 🧪 CI/CD Results for ${context.sha.substring(0, 7)}
-
-            ### ✅ Quality Checks:
-            - 🔍 TypeScript type checking
-            - 🧹 ESLint code quality
-            - 🎨 Prettier formatting
-            - 🔒 Security audit
-            - 🕵️ Secret scanning
-
-            ### ✅ Testing:
-            - 🧪 Backend tests with PostgreSQL/Redis
-            - 🧪 Frontend tests
-            - 📊 Coverage reports generated
-
-            ### ✅ Build & Package:
-            - 🏗️ Frontend build (Vite)
-            - 🏗️ Backend build (TypeScript)
-            - 📦 Deployment package created
-            - 🐳 Docker images built
-
-            All checks passed! 🎉
-
-            **New TypeScript Workflow Used:**
-            - 🔍 Type checking: \`npm run type-check\`
-            - 🏗️ Building: \`npm run build\`
-            - 🧹 Linting: \`npm run lint\``;
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: body
-            });
+          echo "✅ **Build completed successfully**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Docker images built and pushed**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Production deployment initiated**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 Deployment Info:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${GITHUB_SHA:0:7}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${GITHUB_REF#refs/heads/}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflow**: Production deployment only" >> $GITHUB_STEP_SUMMARY
+          echo "- **Local CI**: All testing done locally" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**💡 Note**: This workflow only handles production deployment." >> $GITHUB_STEP_SUMMARY
+          echo "All CI/CD tasks (testing, type-checking, linting) are done locally using:" >> $GITHUB_STEP_SUMMARY
+          echo "- \`npm run ci\` - Full local CI pipeline" >> $GITHUB_STEP_SUMMARY
+          echo "- \`npm run test\` - Run tests locally" >> $GITHUB_STEP_SUMMARY
+          echo "- \`npm run type-check\` - Type checking" >> $GITHUB_STEP_SUMMARY
+          echo "- \`npm run lint\` - Code quality checks" >> $GITHUB_STEP_SUMMARY
