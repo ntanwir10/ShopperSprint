@@ -1007,12 +1007,44 @@ npm run test
 
 ## 🔄 Development Workflow
 
+### 💡 New TypeScript Development Workflow
+
+**For development:**
+- 🔍 **Type checking**: `npm run type-check` (verify types without building)
+- 🏗️ **Building**: `npm run build` (optimized builds - Vite for frontend, tsc for backend)  
+- 🧹 **Linting**: `npm run lint` (catch code quality issues)
+
 ### Daily Development
 
 ```bash
 # Start your development environment
 npm run db:start      # Start databases
 npm run dev           # Start frontend + backend
+
+# Development quality checks
+npm run type-check    # Verify TypeScript types
+npm run lint          # Check code quality
+npm run test          # Run test suites
+```
+
+### Common Development Commands
+
+```bash
+# 🔍 Type Checking (recommended during development)
+npm run type-check              # Check both frontend + backend
+npm run type-check:frontend     # Frontend only
+npm run type-check:backend      # Backend only
+
+# 🧹 Linting (code quality)
+npm run lint                    # Lint both frontend + backend
+npm run lint:frontend           # Frontend only  
+npm run lint:backend            # Backend only
+npm run lint:fix                # Auto-fix linting issues
+
+# 🏗️ Building (production builds)
+npm run build                   # Build both frontend + backend
+npm run build:frontend          # Frontend only (uses Vite)
+npm run build:backend           # Backend only (uses TypeScript)
 ```
 
 ### Common Scenarios
@@ -1023,6 +1055,12 @@ npm run db:reset      # Clean reset
 
 # Database acting weird?
 npm run db:setup      # Re-setup everything
+
+# Before committing code
+npm run type-check    # Verify types
+npm run lint          # Check code quality
+npm run test          # Run tests
+npm run build         # Test production build
 
 # Just want to restart databases?
 npm run db:stop       # Stop
@@ -1685,3 +1723,4 @@ This is a personal project maintained by a single developer. For questions or is
 - **[API Endpoints](docs/API_ENDPOINTS.md)** - Complete API endpoint reference
 - **[Database Tables](docs/DATABASE_TABLES.md)** - Database schema reference
 - **[Error Codes](docs/ERROR_CODES.md)** - Application error codes and meanings
+# Testing development environment deployment
