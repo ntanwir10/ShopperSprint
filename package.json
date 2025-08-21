@@ -4,6 +4,7 @@
   "description": "PricePulse - A comprehensive full-stack web application for tracking and comparing product prices across multiple online sources",
   "main": "index.js",
   "scripts": {
+    "start": "cd backend && npm start",
     "dev": "./scripts/dev.sh start",
     "dev:docker": "./scripts/dev.sh start docker",
     "stop": "./scripts/dev.sh stop",

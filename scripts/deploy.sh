@@ -37,9 +37,9 @@ railway() {
     
     # Run pre-deployment checks
     print_info "Running pre-deployment checks..."
-    ./ci.sh typecheck
-    ./ci.sh lint
-    ./ci.sh build
+    ./scripts/ci.sh typecheck
+    ./scripts/ci.sh lint
+    ./scripts/ci.sh build
     
     # Deploy to Railway
     print_info "Deploying to Railway..."
