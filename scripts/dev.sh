@@ -75,8 +75,8 @@ start() {
         echo $! > ../.backend.pid
         
         print_info "Starting frontend..."
-        cd ../frontend && npm run dev &
-        echo $! > ../.frontend.pid
+        cd ./frontend && npm run dev &
+        echo $! > ./.frontend.pid
         cd ..
     fi
     
