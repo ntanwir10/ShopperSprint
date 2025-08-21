@@ -162,7 +162,7 @@ export const productionConfig: ProductionConfig = {
     level: "info", // Use 'info' in production, 'debug' in development
     format: "json",
     destination: "both",
-    filePath: "/var/log/price-tracker/app.log",
+    filePath: "/var/log/shopper-sprint/app.log",
     maxSize: "10m",
     maxFiles: 5,
   },

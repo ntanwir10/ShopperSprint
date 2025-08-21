@@ -1,4 +1,4 @@
-# 🚀 PricePulse Production Docker Compose
+# 🚀 ShopperSprint Production Docker Compose
 # Production-ready configuration with security and monitoring
 
 version: "3.8"
@@ -6,15 +6,15 @@ version: "3.8"
 services:
   # Frontend Service (served via Nginx)
   frontend:
-    image: ghcr.io/ntanwir10/pricepulse/frontend:latest
-    container_name: pricepulse-frontend-prod
+    image: ghcr.io/ntanwir10/shoppersprint/frontend:latest
+    container_name: shoppersprint-frontend-prod
     restart: unless-stopped
     environment:
       - NODE_ENV=production
     volumes:
       - frontend-logs:/var/log/nginx
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     depends_on:
       - backend
     healthcheck:
@@ -26,8 +26,8 @@ services:
 
   # Backend Service
   backend:
-    image: ghcr.io/ntanwir10/pricepulse/backend:latest
-    container_name: pricepulse-backend-prod
+    image: ghcr.io/ntanwir10/shoppersprint/backend:latest
+    container_name: shoppersprint-backend-prod
     restart: unless-stopped
     ports:
       - "3001:3001"
@@ -51,7 +51,7 @@ services:
       - backend-logs:/app/logs
       - ./uploads:/app/uploads
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     depends_on:
       - postgres
       - redis
@@ -73,7 +73,7 @@ services:
   # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
-    container_name: pricepulse-postgres-prod
+    container_name: shoppersprint-postgres-prod
     restart: unless-stopped
     user: "999:999" # postgres user
     security_opt:
@@ -91,7 +91,7 @@ services:
       - postgres-data:/var/lib/postgresql/data
       - ./backups:/backups
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
       interval: 30s
@@ -110,7 +110,7 @@ services:
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: pricepulse-redis-prod
+    container_name: shoppersprint-redis-prod
     restart: unless-stopped
     user: "999:999" # redis user
     security_opt:
@@ -122,7 +122,7 @@ services:
     volumes:
       - redis-data:/data
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     healthcheck:
       test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
       interval: 30s
@@ -141,7 +141,7 @@ services:
   # Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
-    container_name: pricepulse-nginx-prod
+    container_name: shoppersprint-nginx-prod
     restart: unless-stopped
     ports:
       - "80:80"
@@ -151,7 +151,7 @@ services:
       - ./ssl:/etc/nginx/ssl:ro
       - nginx-logs:/var/log/nginx
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     depends_on:
       - frontend
       - backend
@@ -173,7 +173,7 @@ services:
   # Monitoring - Prometheus
   prometheus:
     image: prom/prometheus:latest
-    container_name: pricepulse-prometheus
+    container_name: shoppersprint-prometheus
     restart: unless-stopped
     ports:
       - "9090:9090"
@@ -181,7 +181,7 @@ services:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus-data:/prometheus
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     command:
       - "--config.file=/etc/prometheus/prometheus.yml"
       - "--storage.tsdb.path=/prometheus"
@@ -193,7 +193,7 @@ services:
   # Monitoring - Grafana
   grafana:
     image: grafana/grafana:latest
-    container_name: pricepulse-grafana
+    container_name: shoppersprint-grafana
     restart: unless-stopped
     ports:
       - "3000:3000"
@@ -204,14 +204,14 @@ services:
       - grafana-data:/var/lib/grafana
       - ./monitoring/grafana:/etc/grafana/provisioning:ro
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     depends_on:
       - prometheus
 
   # Log Aggregation - ELK Stack
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
-    container_name: pricepulse-elasticsearch
+    container_name: shoppersprint-elasticsearch
     restart: unless-stopped
     user: "1000:1000" # elasticsearch user
     security_opt:
@@ -224,7 +224,7 @@ services:
     volumes:
       - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     deploy:
       resources:
         limits:
@@ -236,21 +236,21 @@ services:
 
   kibana:
     image: docker.elastic.co/kibana/kibana:8.11.0
-    container_name: pricepulse-kibana
+    container_name: shoppersprint-kibana
     restart: unless-stopped
     ports:
       - "5601:5601"
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     depends_on:
       - elasticsearch
 
   # Backup Service
   backup:
     image: postgres:15-alpine
-    container_name: pricepulse-backup
+    container_name: shoppersprint-backup
     restart: "no"
     environment:
       POSTGRES_DB: ${DB_NAME}
@@ -260,7 +260,7 @@ services:
       - ./backups:/backups
       - ./scripts/backup.sh:/backup.sh:ro
     networks:
-      - pricepulse-prod-network
+      - shoppersprint-prod-network
     command: ["/bin/sh", "/backup.sh"]
 
 volumes:
@@ -282,7 +282,7 @@ volumes:
     driver: local
 
 networks:
-  pricepulse-prod-network:
+  shoppersprint-prod-network:
     driver: bridge
     ipam:
       config:

@@ -536,8 +536,8 @@ if (isNonProd) {
 
         await emailService.sendTestEmail(
           email,
-          "PricePulse Test Email",
-          "This is a test email from PricePulse."
+          "ShopperSprint Test Email",
+          "This is a test email from ShopperSprint."
         );
 
         return res.status(200).json({

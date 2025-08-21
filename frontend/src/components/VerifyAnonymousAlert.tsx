@@ -290,7 +290,8 @@ export const VerifyAnonymousAlert: React.FC = () => {
                 products
               </li>
               <li>
-                • Questions about your alert? Reply to any email from PricePulse
+                • Questions about your alert? Reply to any email from
+                ShopperSprint
               </li>
               <li>
                 • Need to update your alert? Use the management link above

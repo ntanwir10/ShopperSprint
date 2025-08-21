@@ -615,7 +615,7 @@ export const ManageAnonymousAlert: React.FC = () => {
             a new one
           </li>
           <li>
-            • Questions about your alert? Reply to any email from PricePulse
+            • Questions about your alert? Reply to any email from ShopperSprint
           </li>
           <li>
             • Want to create more alerts? Visit our homepage to search for

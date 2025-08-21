@@ -237,7 +237,7 @@ initRedis().catch((err) => console.error("Redis init error:", err));
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 PricePulse Backend Server running on port ${PORT}`);
+  console.log(`🚀 ShopperSprint Backend Server running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env["NODE_ENV"] || "development"}`);
   console.log(`🔗 Health check: http://localhost:${PORT}/health`);
   console.log(`🌐 API base: http://localhost:${PORT}/api`);

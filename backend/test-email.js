@@ -23,8 +23,8 @@ async function testEmailService() {
 
     await emailService.sendTestEmail(
       testEmail,
-      "PricePulse Email Test",
-      "This is a test email from PricePulse to verify your email configuration is working correctly."
+      "ShopperSprint Email Test",
+      "This is a test email from ShopperSprint to verify your email configuration is working correctly."
     );
 
     console.log(`✅ Test email sent successfully to ${testEmail}!\n`);

@@ -30,17 +30,17 @@ create_docker_env() {
         print_info "Creating .env.docker for containerized development..."
         cat > .env.docker << 'EOF'
 # Docker Development Environment
-POSTGRES_DB=pricepulse
-POSTGRES_USER=pricepulse
+POSTGRES_DB=shoppersprint
+POSTGRES_USER=shoppersprint
 POSTGRES_PASSWORD=devpassword123
 REDIS_PASSWORD=devpassword123
 NODE_ENV=development
 JWT_SECRET=dev-jwt-secret-key
 DB_HOST=postgres
 DB_PORT=5432
-DB_USER=pricepulse
+DB_USER=shoppersprint
 DB_PASSWORD=devpassword123
-DB_NAME=pricepulse
+DB_NAME=shoppersprint
 REDIS_URL=redis://:devpassword123@redis:6379
 PORT=3001
 FRONTEND_URL=http://localhost:5173
@@ -121,7 +121,7 @@ status() {
 # Database operations
 db_reset() {
     print_info "Resetting database..."
-    docker-compose exec postgres psql -U pricepulse -d pricepulse -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+    docker-compose exec postgres psql -U shoppersprint -d shoppersprint -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
     print_success "Database reset complete!"
 }
 
@@ -147,7 +147,7 @@ health() {
     print_info "Checking service health..."
     
     # Check database
-    if docker-compose exec postgres pg_isready -U pricepulse >/dev/null 2>&1; then
+    if docker-compose exec postgres pg_isready -U shoppersprint >/dev/null 2>&1; then
         echo "✅ Database: Healthy"
     else
         echo "❌ Database: Unhealthy"

@@ -217,7 +217,7 @@ const ComparePage: React.FC = () => {
         {/* Features */}
         <Card>
           <CardHeader>
-            <CardTitle>Why Compare with PricePulse?</CardTitle>
+            <CardTitle>Why Compare with ShopperSprint?</CardTitle>
             <CardDescription>
               Get the most out of your shopping with our powerful comparison
               tools

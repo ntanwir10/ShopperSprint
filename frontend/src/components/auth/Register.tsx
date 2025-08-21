@@ -123,7 +123,7 @@ const Register: React.FC = () => {
             Create your account
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
-            Join PricePulse to track prices and save money
+            Join ShopperSprint to track prices and save money
           </p>
         </div>
 

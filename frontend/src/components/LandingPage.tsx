@@ -46,7 +46,7 @@ const LandingPage: React.FC<LandingPageProps> = () => {
     {
       name: 'Sarah M.',
       role: 'Smart Shopper',
-      content: 'PricePulse helped me save over $200 on my laptop purchase!',
+      content: 'ShopperSprint helped me save over $200 on my laptop purchase!',
       rating: 5,
     },
     {
@@ -58,7 +58,8 @@ const LandingPage: React.FC<LandingPageProps> = () => {
     {
       name: 'Lisa K.',
       role: 'Budget Conscious',
-      content: 'I never overpay for electronics anymore thanks to PricePulse.',
+      content:
+        'I never overpay for electronics anymore thanks to ShopperSprint.',
       rating: 5,
     },
   ];
@@ -79,8 +80,8 @@ const LandingPage: React.FC<LandingPageProps> = () => {
             </h1>
             <p className="text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
               Track prices, set alerts, and save money on your favorite
-              products. PricePulse monitors prices across major retailers so you
-              don't have to.
+              products. ShopperSprint monitors prices across major retailers so
+              you don't have to.
             </p>
 
             {/* Search Bar */}
@@ -124,7 +125,7 @@ const LandingPage: React.FC<LandingPageProps> = () => {
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Why Choose PricePulse?
+              Why Choose ShopperSprint?
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
               Our comprehensive price tracking platform gives you the tools you

@@ -34,7 +34,7 @@ export class EmailService {
     const html = `
       <html>
         <body style="font-family: Arial, sans-serif">
-          <h2>Verify your PricePulse account</h2>
+          <h2>Verify your ShopperSprint account</h2>
           <p>Hello${input.firstName ? ` ${input.firstName}` : ""},</p>
           <p>Thanks for signing up. Please verify your email to activate your account.</p>
           <p><a href="${verificationUrl}" style="display:inline-block;padding:10px 16px;background:#2563eb;color:#fff;border-radius:6px;text-decoration:none">Verify Email</a></p>
@@ -46,7 +46,7 @@ export class EmailService {
     await this.transporter.sendMail({
       from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: input.email,
-      subject: "Verify your PricePulse account",
+      subject: "Verify your ShopperSprint account",
       html,
     });
   }
@@ -78,7 +78,7 @@ export class EmailService {
     await this.transporter.sendMail({
       from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: input.email,
-      subject: "Reset your PricePulse password",
+      subject: "Reset your ShopperSprint password",
       html,
     });
   }
@@ -99,7 +99,7 @@ export class EmailService {
     await this.transporter.sendMail({
       from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: alert.email,
-      subject: "Verify Your Price Alert - PricePulse",
+      subject: "Verify Your Price Alert - ShopperSprint",
       html,
     });
   }
@@ -122,7 +122,7 @@ export class EmailService {
     await this.transporter.sendMail({
       from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: alert.email,
-      subject: "Price Alert Triggered! - PricePulse",
+      subject: "Price Alert Triggered! - ShopperSprint",
       html,
     });
   }
@@ -138,7 +138,7 @@ export class EmailService {
     await this.transporter.sendMail({
       from: process.env["SMTP_FROM"] || "noreply@shoppersprint.com",
       to: alert.email,
-      subject: "Manage Your Price Alert - PricePulse",
+      subject: "Manage Your Price Alert - ShopperSprint",
       html,
     });
   }
@@ -251,7 +251,7 @@ export class EmailService {
           </div>
           
           <div class="footer">
-            <p>This email was sent by PricePulse - Track prices, save money, and never overpay again.</p>
+            <p>This email was sent by ShopperSprint - Track prices, save money, and never overpay again.</p>
             <p>If you didn't create this alert, you can safely ignore this email.</p>
           </div>
         </div>
@@ -327,7 +327,7 @@ export class EmailService {
           </div>
           
           <div class="footer">
-            <p>This email was sent by PricePulse - Track prices, save money, and never overpay again.</p>
+            <p>This email was sent by ShopperSprint - Track prices, save money, and never overpay again.</p>
             <p>To stop receiving these emails, <a href="${managementUrl}">manage your alerts</a>.</p>
           </div>
         </div>
@@ -405,7 +405,7 @@ export class EmailService {
           </div>
           
           <div class="footer">
-            <p>This email was sent by PricePulse - Track prices, save money, and never overpay again.</p>
+            <p>This email was sent by ShopperSprint - Track prices, save money, and never overpay again.</p>
             <p>If you didn't request this link, you can safely ignore this email.</p>
           </div>
         </div>

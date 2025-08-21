@@ -1,7 +1,7 @@
 {
-  "name": "pricepulse-frontend",
+  "name": "shoppersprint-frontend",
   "version": "1.0.0",
-  "description": "Frontend for PricePulse - Product Price Tracker",
+  "description": "Frontend for ShopperSprint",
   "type": "module",
   "scripts": {
     "dev": "vite",

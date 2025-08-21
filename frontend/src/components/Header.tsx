@@ -23,7 +23,7 @@ export const Header: React.FC<HeaderProps> = () => {
               <span className="text-white font-bold text-lg">P</span>
             </div>
             <span className="font-bold text-xl text-foreground">
-              PricePulse
+              ShopperSprint
             </span>
           </Link>
 

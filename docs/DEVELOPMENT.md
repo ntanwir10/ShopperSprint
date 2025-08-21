@@ -20,6 +20,7 @@ npm run ci
 ## Core Commands
 
 ### Development
+
 ```bash
 npm run dev          # Start development environment
 npm run dev:docker   # Start in full Docker mode
@@ -31,12 +32,14 @@ npm run logs         # View all logs
 ```
 
 ### Database
+
 ```bash
 npm run db:reset     # Reset database to clean state
 npm run db:seed      # Add test data
 ```
 
 ### Code Quality
+
 ```bash
 npm run test         # Run tests
 npm run test:coverage # Run tests with coverage
@@ -50,11 +53,13 @@ npm run ci           # Run full quality pipeline
 ## Development Modes
 
 ### Hybrid Mode (Recommended)
+
 - Infrastructure (DB, Redis) in Docker
 - Apps (Frontend, Backend) run locally
 - Faster development, better IDE integration
 
 ### Full Docker Mode
+
 - Everything runs in containers
 - Identical to production environment
 - Better for testing deployment setup
@@ -75,6 +80,7 @@ shoppersprint/
 ## Making Changes
 
 ### Frontend Development
+
 ```bash
 # Frontend runs on http://localhost:5173
 # Hot reloading enabled
@@ -82,6 +88,7 @@ shoppersprint/
 ```
 
 ### Backend Development
+
 ```bash
 # Backend runs on http://localhost:3001
 # Hot reloading enabled
@@ -89,6 +96,7 @@ shoppersprint/
 ```
 
 ### Database Changes
+
 ```bash
 # Edit schema in backend/src/database/schema.ts
 # Push changes to database
@@ -112,22 +120,26 @@ cd frontend && npm test -- Button.test.tsx
 ## Debugging
 
 ### Backend Debugging
+
 - Use VS Code debugger with Node.js
 - Add breakpoints in TypeScript files
 - Logs available via `npm run logs`
 
 ### Frontend Debugging
+
 - Use browser dev tools
 - React DevTools extension recommended
 - Vite provides source maps
 
 ### Database Debugging
-- Access database directly: `docker exec -it pricepulse-postgres psql -U pricepulse`
+
+- Access database directly: `docker exec -it shoppersprint-postgres psql -U shoppersprint`
 - Use PgAdmin: http://localhost:8080 (when admin profile is running)
 
 ## Common Tasks
 
 ### Adding New Features
+
 1. Create feature branch: `git checkout -b feature/new-feature`
 2. Make changes
 3. Run quality checks: `npm run ci`
@@ -135,6 +147,7 @@ cd frontend && npm test -- Button.test.tsx
 5. Create pull request
 
 ### Database Operations
+
 ```bash
 # Reset database
 npm run db:reset
@@ -143,10 +156,11 @@ npm run db:reset
 npm run db:seed
 
 # View database logs
-docker logs pricepulse-postgres
+docker logs shoppersprint-postgres
 ```
 
 ### Environment Variables
+
 ```bash
 # Development environment
 .env                 # Local development
@@ -159,6 +173,7 @@ docker logs pricepulse-postgres
 ## Troubleshooting
 
 ### Services Won't Start
+
 ```bash
 # Check Docker is running
 docker --version
@@ -174,6 +189,7 @@ npm run dev
 ```
 
 ### Database Connection Issues
+
 ```bash
 # Check database is running
 npm run status
@@ -182,10 +198,11 @@ npm run status
 npm run db:reset
 
 # Check database logs
-docker logs pricepulse-postgres
+docker logs shoppersprint-postgres
 ```
 
 ### Hot Reloading Not Working
+
 ```bash
 # Frontend issues
 cd frontend && npm run dev
@@ -199,6 +216,7 @@ ls -la backend/src/
 ```
 
 ### Build Failures
+
 ```bash
 # Check TypeScript errors
 npm run typecheck
@@ -214,16 +232,19 @@ npm run build
 ## Performance Tips
 
 ### Faster Development
+
 - Use hybrid mode for daily development
 - Use Docker mode only for testing deployment
 - Keep Docker Desktop running to avoid startup delays
 
 ### Faster Builds
+
 - Use `npm run build` to verify production builds
 - Frontend builds are cached by Vite
 - Backend builds are incremental with TypeScript
 
 ### Database Performance
+
 - Use `npm run db:seed` for consistent test data
 - Reset database only when needed
 - Use database indexes for better query performance
@@ -231,6 +252,7 @@ npm run build
 ## IDE Setup
 
 ### VS Code (Recommended)
+
 Install these extensions:
 - TypeScript and JavaScript Language Features
 - ESLint
@@ -239,6 +261,7 @@ Install these extensions:
 - PostgreSQL
 
 ### Settings
+
 ```json
 {
   "typescript.preferences.importModuleSpecifier": "relative",

@@ -122,7 +122,7 @@ export class WebSocketService {
         type: "ping",
         data: {
           message:
-            "Connected to PricePulse WebSocket. Please authenticate within 30 seconds.",
+            "Connected to ShopperSprint WebSocket. Please authenticate within 30 seconds.",
           requiresAuth: true,
         },
         timestamp: new Date(),

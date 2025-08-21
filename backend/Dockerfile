@@ -1,4 +1,4 @@
-# 🚀 PricePulse Backend Dockerfile
+# 🚀 ShopperSprint Backend Dockerfile
 # Multi-stage build for production optimization
 
 # Build stage

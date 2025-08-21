@@ -1,6 +1,6 @@
 # 🧪 Testing Strategy & Implementation
 
-This document provides comprehensive information about the testing strategy and implementation for the PricePulse Backend. Our testing approach follows industry best practices and ensures code quality, reliability, and maintainability.
+This document provides comprehensive information about the testing strategy and implementation for the ShopperSprint Backend. Our testing approach follows industry best practices and ensures code quality, reliability, and maintainability.
 
 ## Testing Strategy
 
@@ -469,6 +469,6 @@ node --inspect-brk node_modules/.bin/jest --runInBand
 
 ## 🎯 Conclusion
 
-This testing strategy ensures that our PricePulse Backend is robust, reliable, and maintainable. By following these guidelines and best practices, we can maintain high code quality and catch issues early in the development process.
+This testing strategy ensures that our ShopperSprint Backend is robust, reliable, and maintainable. By following these guidelines and best practices, we can maintain high code quality and catch issues early in the development process.
 
 For questions or suggestions about testing, please refer to the development team or create an issue in the project repository.

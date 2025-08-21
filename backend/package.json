@@ -1,7 +1,7 @@
 {
-  "name": "pricepulse-backend",
+  "name": "shoppersprint-backend",
   "version": "1.0.0",
-  "description": "Backend API for PricePulse - Product Price Tracker",
+  "description": "Backend API for ShopperSprint",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

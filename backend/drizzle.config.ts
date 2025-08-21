@@ -10,9 +10,9 @@ export default defineConfig({
   dbCredentials: {
     host: process.env.DB_HOST || "localhost",
     port: Number(process.env.DB_PORT) || 5432,
-    user: process.env.DB_USER || "pricepulse",
-    password: process.env.DB_PASSWORD || "pricepulse123",
-    database: process.env.DB_NAME || "pricepulse",
+    user: process.env.DB_USER || "shoppersprint",
+    password: process.env.DB_PASSWORD || "shoppersprint123",
+    database: process.env.DB_NAME || "shoppersprint",
   },
   verbose: true,
   strict: true,

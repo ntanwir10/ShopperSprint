@@ -233,7 +233,7 @@ npm run dev
 
 ## 🔐 Authentication & Database Integration
 
-PricePulse uses a **custom backend architecture** for maximum control and flexibility:
+ShopperSprint uses a **custom backend architecture** for maximum control and flexibility:
 
 ### 🎯 Authentication & Database Features
 
@@ -841,7 +841,7 @@ cmd = "cd backend && npm start"
 **🎯 Single Service Architecture (Current):**
 
 - **Application**: Frontend + Backend in one Railway service
-- **Domain**: Single domain (e.g., `https://pricepulse.railway.app`)
+- **Domain**: Single domain (e.g., `https://shoppersprint.railway.app`)
 - **Frontend**: Served at `/` (SPA routing)
 - **API**: Served at `/api/*`
 - **Cost**: ~$15-25/month (Railway Pro plan)
@@ -974,7 +974,7 @@ DB_HOST=localhost         # Database host
 DB_PORT=5432             # Database port
 DB_USER=postgres         # Database username
 DB_PASSWORD=password     # Database password
-DB_NAME=pricepulse       # Database name
+DB_NAME=shoppersprint       # Database name
 
 # Redis Configuration
 REDIS_URL=redis://localhost:6379  # Development: localhost, Production: your-redis-host
@@ -993,7 +993,7 @@ SMTP_HOST=smtp.gmail.com  # SMTP server host
 SMTP_PORT=587             # SMTP server port
 SMTP_USER=your-email@gmail.com  # SMTP username
 SMTP_PASS=your-app-password     # SMTP password
-SMTP_FROM=noreply@pricepulse.com # From email address
+SMTP_FROM=noreply@shoppersprint.com # From email address
 
 # Frontend Configuration (Vite)
 VITE_API_BASE_URL=/api    # API base URL (relative or absolute)
@@ -1034,7 +1034,7 @@ npm run test
 
 ### 🚀 **Hybrid CI/CD System**
 
-PricePulse uses a modern hybrid approach:
+ShopperSprint uses a modern hybrid approach:
 
 - **Local Development**: Fast, free CI/CD using Docker
 - **Production Deployment**: Automated via GitHub Actions
@@ -1221,7 +1221,7 @@ Our CI/CD pipeline consists of several automated workflows:
 
 #### Development Environment
 
-- **URL**: `dev-pricepulse.railway.app`
+- **URL**: `dev-shoppersprint.railway.app`
 - **Trigger**: Automatic on feature branch merges
 - **Database**: Railway PostgreSQL (development instance)
 - **Monitoring**: Railway basic metrics + health checks
@@ -1229,7 +1229,7 @@ Our CI/CD pipeline consists of several automated workflows:
 
 #### Staging Environment  
 
-- **URL**: `staging-pricepulse.railway.app`
+- **URL**: `staging-shoppersprint.railway.app`
 - **Trigger**: Manual promotion from development
 - **Database**: Railway PostgreSQL (staging instance with anonymized data)
 - **Monitoring**: Railway metrics + enhanced health checks
@@ -1237,7 +1237,7 @@ Our CI/CD pipeline consists of several automated workflows:
 
 #### Production Environment
 
-- **URL**: `pricepulse.railway.app` (custom domain: `pricepulse.com`)
+- **URL**: `shoppersprint.railway.app` (custom domain: `shoppersprint.com`)
 - **Trigger**: Manual approval with security gates
 - **Database**: Railway PostgreSQL (managed production instance)
 - **Monitoring**: Railway metrics + comprehensive health checks

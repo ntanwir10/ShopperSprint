@@ -1,7 +1,7 @@
 {
-  "name": "pricepulse",
+  "name": "shoppersprint",
   "version": "1.0.0",
-  "description": "PricePulse - A comprehensive full-stack web application for tracking and comparing product prices across multiple online sources",
+  "description": "ShopperSprint - A comprehensive full-stack web application for tracking and comparing product prices across multiple online sources",
   "main": "index.js",
   "scripts": {
     "start": "cd backend && npm start",
@@ -27,7 +27,7 @@
     "deploy:logs": "./scripts/deploy.sh logs"
   },
   "keywords": [
-    "pricepulse",
+    "shoppersprint",
     "e-commerce",
     "price-comparison",
     "web-scraping",
