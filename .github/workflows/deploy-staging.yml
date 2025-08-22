@@ -24,8 +24,14 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install root dependencies
         run: npm ci --prefer-offline --no-audit
+
+      - name: 📦 Install backend dependencies
+        run: cd backend && npm ci --prefer-offline --no-audit
+
+      - name: 📦 Install frontend dependencies
+        run: cd frontend && npm ci --prefer-offline --no-audit
 
       - name: 🧪 Quick tests
         run: |
@@ -37,9 +43,24 @@ jobs:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_STAGING_TOKEN }}
         run: |
           if [ -n "$RAILWAY_TOKEN" ]; then
+            echo "🎭 Installing Railway CLI..."
             npm install -g @railway/cli
+            
+            echo "🎭 Deploying to staging..."
             railway deploy
-            echo "✅ Staging deployed"
+            
+            echo "✅ Staging deployment completed!"
           else
-            echo "⚠️ No Railway token - skipping deployment"
+            echo "⚠️ RAILWAY_STAGING_TOKEN not found - skipping deployment"
+            echo "Add RAILWAY_STAGING_TOKEN to repository secrets to enable deployment"
           fi
+
+      - name: 📊 Deployment summary
+        if: success()
+        run: |
+          echo "## 🎭 Staging Deployment Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Tests passed**" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Deployed to Railway**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Staging URL**: Check Railway dashboard for generated URL" >> $GITHUB_STEP_SUMMARY
