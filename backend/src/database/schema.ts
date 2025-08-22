@@ -277,6 +277,18 @@ export const userPreferences = pgTable("user_preferences", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Waitlist subscriptions (for coming soon page)
+export const waitlistSubscriptions = pgTable("waitlist_subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  subscribedAt: timestamp("subscribed_at").defaultNow().notNull(),
+  source: text("source").notNull().default("coming_soon_page"), // Track where they signed up
+  isActive: boolean("is_active").notNull().default(true),
+  notifiedAt: timestamp("notified_at"), // When we notify them of launch
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Price alerts (for authenticated users)
 export const priceAlerts = pgTable("price_alerts", {
   id: uuid("id").primaryKey().defaultRandom(),

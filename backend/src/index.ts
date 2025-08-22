@@ -1,6 +1,9 @@
 // Load environment variables ASAP
 import * as dotenv from "dotenv";
-dotenv.config();
+import path from "path";
+
+// Load from root .env file
+dotenv.config({ path: path.join(__dirname, "../../.env") });
 
 import express from "express";
 import cors from "cors";
@@ -31,6 +34,7 @@ import anonymousNotificationsRouter from "./routes/anonymousNotifications";
 import { authRouter } from "./routes/auth";
 import notificationsRouter from "./routes/notifications";
 import { monitoringRouter } from "./routes/monitoring";
+import waitlistRouter from "./routes/waitlist";
 import { webSocketService } from "./services/websocketService";
 
 const app = express();
@@ -142,6 +146,14 @@ app.get("/ping", (_req, res) => {
 app.use("/api/search", searchRouter);
 app.use("/api/ads", advertisementRouter);
 app.use("/api/price-history", priceHistoryRouter);
+
+// CSRF token endpoint (no CSRF protection needed for getting the token)
+app.get("/api/csrf-token", (req, res) => {
+  res.json({ csrfToken: req.csrfToken() });
+});
+
+// Waitlist endpoint (temporarily without CSRF for testing)
+app.use("/api/waitlist", waitlistRouter);
 app.use(
   "/api/anonymous-notifications",
   csrfProtection,
@@ -232,8 +244,15 @@ process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
 process.on("SIGINT", () => gracefulShutdown("SIGINT"));
 
 // Initialize external services (DB/Redis) without blocking server start
-initDatabase().catch((err) => console.error("Database init error:", err));
-initRedis().catch((err) => console.error("Redis init error:", err));
+initDatabase().catch((err) => {
+  console.error("Database init error:", err);
+  console.log("⚠️  Server will continue without database connection");
+});
+
+initRedis().catch((err) => {
+  console.error("Redis init error:", err);
+  console.log("⚠️  Server will continue without Redis connection");
+});
 
 // Start server
 const server = app.listen(PORT, () => {
