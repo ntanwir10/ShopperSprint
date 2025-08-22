@@ -71,12 +71,13 @@ start() {
         
         # Start apps locally in background
         print_info "Starting backend..."
-        cd backend && npm run dev &
+        cd ./backend && npm run dev &
         echo $! > ../.backend.pid
+        cd ..
         
         print_info "Starting frontend..."
         cd ./frontend && npm run dev &
-        echo $! > ./.frontend.pid
+        echo $! > ../.frontend.pid
         cd ..
     fi
     

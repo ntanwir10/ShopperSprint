@@ -21,10 +21,16 @@
     "typecheck": "./scripts/ci.sh typecheck",
     "build": "./scripts/ci.sh build",
     "ci": "./scripts/ci.sh full",
-    "deploy": "./scripts/deploy.sh railway",
-    "deploy:setup": "./scripts/deploy.sh setup",
-    "deploy:status": "./scripts/deploy.sh status",
-    "deploy:logs": "./scripts/deploy.sh logs"
+    "deploy": "./scripts/deploy.sh production",
+    "deploy:staging": "./scripts/deploy.sh staging",
+    "deploy:prod": "./scripts/deploy.sh production",
+    "deploy:status": "./scripts/deploy.sh production status",
+    "deploy:status:staging": "./scripts/deploy.sh staging status",
+    "deploy:logs": "./scripts/deploy.sh production logs",
+    "deploy:logs:staging": "./scripts/deploy.sh staging logs",
+    "env:validate": "./scripts/validate-env.sh",
+    "env:staging": "./scripts/switch-env.sh staging",
+    "env:prod": "./scripts/switch-env.sh production"
   },
   "keywords": [
     "shoppersprint",
