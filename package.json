@@ -43,7 +43,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.3.0",
-    "@vercel/node": "^3.2.29",
+    "@vercel/node": "^5.3.13",
     "concurrently": "^9.2.0",
     "typescript": "^5.3.3"
   },
