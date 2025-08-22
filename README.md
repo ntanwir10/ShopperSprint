@@ -1,6 +1,6 @@
 # ShopperSprint
 
-A comprehensive price tracking system that monitors product prices across multiple sources in real-time. Built with **Railway.com** for full-stack deployment and **PostgreSQL** with custom authentication, the system provides advanced search capabilities, price comparison, historical tracking, and both **user-authenticated features** and **anonymous price alerts** for maximum flexibility.
+ShopperSprint is a Canadian price comparison platform that helps users find the best prices across Canadian retailers and set up price alerts. A comprehensive price tracking system that monitors product prices across multiple sources in real-time. Built with **Railway.com** for full-stack deployment and **PostgreSQL** with custom authentication, the system provides advanced search capabilities, price comparison, historical tracking, and both **user-authenticated features** and **anonymous price alerts** for maximum flexibility.
 
 ## 📋 Table of Contents
 

@@ -13,7 +13,6 @@ jobs:
     name: 🚀 Deploy to Production
     runs-on: ubuntu-latest
     if: github.repository_owner == 'ntanwir10'
-    environment: production
     
     steps:
       - name: 📥 Checkout
