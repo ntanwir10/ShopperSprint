@@ -2,7 +2,7 @@
 # Multi-stage build for production optimization
 
 # Build stage
-FROM node:18-alpine AS builder
+FROM node:24-alpine AS builder
 
 # Set working directory
 WORKDIR /app
@@ -25,7 +25,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM node:18-alpine AS production
+FROM node:24-alpine AS production
 
 # Install security updates and runtime dependencies
 RUN apk update && apk upgrade && \
