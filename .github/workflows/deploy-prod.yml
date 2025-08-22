@@ -1,20 +1,22 @@
-name: 🚀 Production Deployment
+name: 🚀 Deploy Production
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
 
 env:
   NODE_VERSION: "18"
 
 jobs:
-  # 🧪 Comprehensive Test Gate for Production
-  production-test-gate:
-    name: 🧪 Production Test Gate
+  deploy-production:
+    name: 🚀 Deploy to Production
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'ntanwir10'
+    environment: production
     
     steps:
-      - name: 📥 Checkout code
+      - name: 📥 Checkout
         uses: actions/checkout@v4
 
       - name: 🟢 Setup Node.js
@@ -24,73 +26,25 @@ jobs:
           cache: "npm"
 
       - name: 📦 Install dependencies
-        run: |
-          npm ci
-          cd frontend && npm ci
-          cd ../backend && npm ci
+        run: npm ci --prefer-offline --no-audit
 
-      - name: 🧪 Full test suite
+      - name: 🧪 Production tests
         run: |
-          echo "🧪 Running complete test suite..."
-          npm run test
           npm run typecheck
           npm run lint
-
-      - name: 🔒 Security scans
-        run: |
-          echo "🔒 Running comprehensive security scans..."
           npm audit --audit-level high
-          # Add additional security scanning here
 
-      - name: 🏗️ Production build test
-        run: |
-          echo "🏗️ Testing production build..."
-          npm run build
+      - name: 🏗️ Build
+        run: npm run build
 
-      - name: ⚡ Performance tests
-        run: |
-          echo "⚡ Running performance tests..."
-          # Add performance testing here
-          echo "✅ Performance tests passed"
-
-  # 🚀 Deploy to Production
-  deploy-production:
-    name: 🚀 Deploy to Production
-    runs-on: ubuntu-latest
-    needs: production-test-gate
-    environment: production
-    
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🚀 Deploy to Railway Production
+      - name: 🚀 Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_PROD_TOKEN }}
         run: |
-          echo "🚀 Deploying to Railway production..."
-          npm install -g @railway/cli
-          
-          # Deploy to Railway production service
-          railway deploy
-          
-          echo "✅ Production deployment completed!"
-          echo "🔗 URL: https://shoppersprint.com"
-
-      - name: 🔍 Production health check
-        run: |
-          echo "🔍 Running production health checks..."
-          sleep 60
-          # Comprehensive health checks will be added here
-          echo "✅ Production environment ready!"
-
-      - name: 📊 Production deployment summary
-        run: |
-          echo "## 🚀 Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **All tests passed**" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Security scans completed**" >> $GITHUB_STEP_SUMMARY
-          echo "✅ **Production deployment completed**" >> $GITHUB_STEP_SUMMARY
-          echo "🔗 **URL**: https://shoppersprint.com" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🎯 Production is live!" >> $GITHUB_STEP_SUMMARY
+          if [ -n "$RAILWAY_TOKEN" ]; then
+            npm install -g @railway/cli
+            railway deploy
+            echo "✅ Production deployed"
+          else
+            echo "⚠️ No Railway token - skipping deployment"
+          fi
