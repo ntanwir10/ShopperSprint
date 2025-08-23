@@ -150,19 +150,36 @@ main() {
     trap 'error "Update failed! Restoring backup..."; restore_backup; exit 1' ERR
     
     case $scope in
-        "all"|"root")
+        "all")
             log "Updating root dependencies..."
             update_dependencies "root" "$strategy"
             run_tests "root"
-            ;;& # Continue to next case
-        "all"|"backend")
+            
             log "Updating backend dependencies..."
             cd backend
             update_dependencies "backend" "$strategy"
             cd ..
             run_tests "backend"
-            ;;& # Continue to next case
-        "all"|"frontend")
+            
+            log "Updating frontend dependencies..."
+            cd frontend
+            update_dependencies "frontend" "$strategy"
+            cd ..
+            run_tests "frontend"
+            ;;
+        "root")
+            log "Updating root dependencies..."
+            update_dependencies "root" "$strategy"
+            run_tests "root"
+            ;;
+        "backend")
+            log "Updating backend dependencies..."
+            cd backend
+            update_dependencies "backend" "$strategy"
+            cd ..
+            run_tests "backend"
+            ;;
+        "frontend")
             log "Updating frontend dependencies..."
             cd frontend
             update_dependencies "frontend" "$strategy"

@@ -355,8 +355,7 @@ const ProductDetail: React.FC<ProductDetailProps> = () => {
                   Date.now() - (29 - i) * 24 * 60 * 60 * 1000
                 ).toISOString(),
                 price: product.price + (Math.random() - 0.5) * 20,
-                source: product.source,
-                availability: product.availability,
+                currency: product.currency || 'CAD',
               })),
             ]}
             timeRange={selectedTimeRange}

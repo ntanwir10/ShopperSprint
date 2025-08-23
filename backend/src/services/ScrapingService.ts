@@ -108,17 +108,17 @@ export class ScrapingService {
     this.browserLock = true;
     
     try {
-      // Use new headless mode to avoid deprecation warnings
+      // Configure headless mode for new Puppeteer API
       const headlessEnv = (
-        process.env["PUPPETEER_HEADLESS"] || "new"
+        process.env["PUPPETEER_HEADLESS"] || "true"
       ).toLowerCase();
-      let headless: boolean | "new" = "new";
+      let headless: boolean | "shell" = true;
       if (headlessEnv === "false" || headlessEnv === "0") {
         headless = false;
-      } else if (headlessEnv === "true" || headlessEnv === "1") {
-        headless = "new"; // Use new headless mode by default
+      } else if (headlessEnv === "shell") {
+        headless = "shell";
       } else {
-        headless = headlessEnv as "new";
+        headless = true; // Use headless mode by default
       }
       
       const executablePath =
@@ -152,7 +152,6 @@ export class ScrapingService {
         ],
         timeout: 30000, // Reduced timeout to fail faster
         protocolTimeout: 15000, // Reduced protocol timeout
-        ignoreHTTPSErrors: true,
         defaultViewport: { width: 1366, height: 768 },
       });
       

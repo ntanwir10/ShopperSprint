@@ -1,21 +1,16 @@
 import React, { useMemo } from 'react';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 import { TrendingUp, TrendingDown, Minus, Clock, DollarSign } from 'lucide-react';
-
-export interface PriceHistoryPoint {
-  date: string;
-  price: number;
-  source: string;
-  availability: string;
-}
+import { PriceHistoryPoint } from '../lib/api';
 
 interface PriceHistoryProps {
-  productId: string;
+  productId?: string;
   data: PriceHistoryPoint[];
-  timeRange: '7d' | '30d' | '90d' | '1y';
-  onTimeRangeChange: (range: '7d' | '30d' | '90d' | '1y') => void;
+  timeRange?: '7d' | '30d' | '90d' | '1y';
+  onTimeRangeChange?: (range: '7d' | '30d' | '90d' | '1y') => void;
   loading?: boolean;
   currency?: string;
+  className?: string;
 }
 
 const PriceHistoryChart: React.FC<PriceHistoryProps> = ({
@@ -36,7 +31,9 @@ const PriceHistoryChart: React.FC<PriceHistoryProps> = ({
         acc[date] = { prices: [], sources: new Set() };
       }
       acc[date].prices.push(point.price);
-      acc[date].sources.add(point.source);
+      // Handle missing source property gracefully
+      const source = (point as any).source || 'Unknown';
+      acc[date].sources.add(source);
       return acc;
     }, {} as Record<string, { prices: number[], sources: Set<string> }>);
 
@@ -197,7 +194,7 @@ const PriceHistoryChart: React.FC<PriceHistoryProps> = ({
           {timeRangeOptions.map((option) => (
             <button
               key={option.value}
-              onClick={() => onTimeRangeChange(option.value)}
+              onClick={() => onTimeRangeChange?.(option.value)}
               className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
                 timeRange === option.value
                   ? 'bg-white dark:bg-dark-bg-secondary text-primary-600 dark:text-primary-400 shadow-soft'

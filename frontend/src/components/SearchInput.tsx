@@ -29,7 +29,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Use search suggestions hook
-  const { suggestions, updateSuggestions, clearSuggestions, addToHistory } = useSearchSuggestions();
+  const { suggestions, updateSuggestions, clearSuggestions, addToHistory } = useSearchSuggestions(value);
 
   // Use external suggestions if provided, otherwise use hook suggestions
   const currentSuggestions = externalSuggestions.length > 0 ? externalSuggestions : suggestions;
@@ -44,9 +44,8 @@ const SearchInput: React.FC<SearchInputProps> = ({
       setErrorMessage('');
     }
 
-    // Update suggestions using the hook
+    // Update suggestions using the hook (hook automatically updates based on value)
     if (newValue.length >= 2) {
-      updateSuggestions(newValue);
       setShowSuggestions(externalShowSuggestions);
       setSelectedSuggestionIndex(-1);
     } else {
@@ -104,7 +103,11 @@ const SearchInput: React.FC<SearchInputProps> = ({
     setShowSuggestions(false);
     clearSuggestions();
     // Add to search history
-    addToHistory(value.trim());
+    addToHistory({ 
+      id: Date.now().toString(), 
+      text: value.trim(), 
+      type: 'history' 
+    });
     console.log('🚀 Search triggered for:', value.trim());
     onSearch(value.trim());
   };
@@ -230,7 +233,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
                       : ''
                   }
                   ${
-                    suggestion.type === 'popular'
+                    suggestion.type === 'trending'
                       ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                       : ''
                   }

@@ -17,17 +17,11 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsList, TabsTrigger } from './ui/tabs';
-import { Product } from '../lib/api';
+import { Product, PriceHistoryPoint } from '../lib/api';
 import PriceHistoryChart from './PriceHistoryChart';
 import AnonymousPriceAlert from './AnonymousPriceAlert';
 import { apiClient } from '../lib/api';
 import { Alert, AlertDescription } from './ui/alert';
-
-interface PriceHistoryPoint {
-  date: string;
-  price: number;
-  currency: string;
-}
 
 const ProductPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
