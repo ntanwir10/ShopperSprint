@@ -3,18 +3,13 @@ nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
 cmds = [
-  "npm ci --only=production",
-  "cd backend && npm ci --only=production",
-  "cd frontend && npm ci --only=production"
+  "npm ci --prefer-offline --no-audit --no-fund --silent",
+  "cd backend && PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true npm ci --prefer-offline --no-audit --no-fund --only=production --silent",
+  "cd frontend && npm ci --prefer-offline --no-audit --no-fund --only=production --silent"
 ]
 
 [phases.build]
-cmds = [
-  "cd backend && npm run build",
-  "cd frontend && npm run build",
-  "mkdir -p backend/dist/public",
-  "cp -r frontend/dist/* backend/dist/public/"
-]
+cmds = ["./scripts/railway-build.sh"]
 
 [start]
 cmd = "cd backend && node dist/index.js"
@@ -22,3 +17,6 @@ cmd = "cd backend && node dist/index.js"
 [variables]
 NODE_ENV = "production"
 SERVE_FRONTEND = "true"
+NPM_CONFIG_LOGLEVEL = "error"
+CI = "true"
+PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"

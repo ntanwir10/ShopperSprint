@@ -20,6 +20,7 @@
     "lint:fix": "./scripts/ci.sh lint fix",
     "typecheck": "./scripts/ci.sh typecheck",
     "build": "./scripts/ci.sh build",
+    "build:railway": "./scripts/railway-build.sh",
     "ci": "./scripts/ci.sh full",
     "deploy": "./scripts/deploy-cicd.sh",
     "deploy:railway": "./scripts/deploy-cicd.sh",
