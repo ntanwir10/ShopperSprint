@@ -7,15 +7,11 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
+# Install only essential dependencies
 RUN npm install --omit=dev --no-audit --no-fund
 
-# Copy the entire project
-COPY . .
-
-# Install backend dependencies and build
-RUN cd backend && npm install --omit=dev --no-audit --no-fund
-RUN cd backend && npm run build
+# Copy the lightweight server
+COPY server-light.js ./
 
 # Build the frontend
 RUN cd frontend && npm install --omit=dev --no-audit --no-fund
@@ -24,5 +20,5 @@ RUN cd frontend && npm run build
 # Expose the port
 EXPOSE 3001
 
-# Start the application
-CMD ["cd", "backend", "&&", "node", "dist/index.js"]
+# Start the lightweight server
+CMD ["node", "server-light.js"]
