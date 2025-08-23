@@ -13,17 +13,8 @@ RUN npm install --omit=dev --no-audit --no-fund
 # Copy the lightweight server
 COPY server-light.js ./
 
-# Copy the frontend source
-COPY frontend/ ./frontend/
-
-# Install frontend dependencies (including dev dependencies for build)
-RUN cd frontend && npm install --no-audit --no-fund
-
-# Build the frontend
-RUN cd frontend && npm run build
-
-# Clean up frontend dev dependencies to reduce image size
-RUN cd frontend && npm prune --production
+# Copy the pre-built frontend (we'll build it locally first)
+COPY frontend/dist/ ./frontend/dist/
 
 # Expose the port
 EXPOSE 3001
