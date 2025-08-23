@@ -5,28 +5,33 @@ This guide covers the migration strategy for updating ShopperSprint's deprecated
 ## 🚨 Critical Security Updates (Do First)
 
 ### Backend Security Issues
+
 - **esbuild** ≤0.24.2 - Development server vulnerability
 - **tar-fs** 3.0.0-3.0.8 - Path traversal vulnerability  
 - **ws** 8.0.0-8.17.0 - DoS vulnerability
 
 ### Frontend Security Issues
+
 - **esbuild** ≤0.24.2 - Development server vulnerability
 
 ## 📋 Migration Strategy
 
 ### Phase 1: Security Fixes (Immediate)
+
 ```bash
 # Fix critical security vulnerabilities
 ./scripts/update-dependencies.sh security all
 ```
 
 ### Phase 2: Safe Updates (Low Risk)
+
 ```bash
 # Update patch versions
 ./scripts/update-dependencies.sh patch all
 ```
 
 ### Phase 3: Minor Updates (Moderate Risk)
+
 ```bash
 # Update minor versions
 ./scripts/update-dependencies.sh minor backend
@@ -34,6 +39,7 @@ This guide covers the migration strategy for updating ShopperSprint's deprecated
 ```
 
 ### Phase 4: Major Updates (Breaking Changes)
+
 ```bash
 # Interactive major updates
 ./scripts/update-dependencies.sh major backend
@@ -45,12 +51,15 @@ This guide covers the migration strategy for updating ShopperSprint's deprecated
 ### Backend Breaking Changes
 
 #### 1. Express.js 4.x → 5.x
+
 **Changes Required:**
+
 - Update middleware syntax
 - Check route handler compatibility
 - Update error handling patterns
 
 **Migration Steps:**
+
 ```typescript
 // Before (Express 4.x)
 app.use(express.json());
@@ -60,12 +69,15 @@ app.use(express.json());
 ```
 
 #### 2. Drizzle ORM 0.29.x → 0.44.x
+
 **Changes Required:**
+
 - Update schema definitions
 - Migrate query syntax
 - Update configuration files
 
 **Migration Steps:**
+
 ```typescript
 // Update drizzle.config.ts
 export default {
@@ -79,12 +91,15 @@ export default {
 ```
 
 #### 3. ESLint 8.x → 9.x
+
 **Changes Required:**
+
 - Update configuration format
 - Migrate to flat config
 - Update rule syntax
 
 **Migration Steps:**
+
 ```javascript
 // Create eslint.config.js (new format)
 import js from '@eslint/js';
@@ -107,12 +122,15 @@ export default [
 ### Frontend Breaking Changes
 
 #### 1. React 18.x → 19.x
+
 **Changes Required:**
+
 - Update component patterns
 - Check hook compatibility
 - Update testing utilities
 
 **Migration Steps:**
+
 ```typescript
 // Update React imports (if needed)
 import { StrictMode } from 'react';
@@ -123,12 +141,15 @@ import { createRoot } from 'react-dom/client';
 ```
 
 #### 2. Vite 5.x → 7.x
+
 **Changes Required:**
+
 - Update configuration syntax
 - Check plugin compatibility
 - Update build scripts
 
 **Migration Steps:**
+
 ```typescript
 // Update vite.config.ts
 import { defineConfig } from 'vite';
@@ -144,12 +165,15 @@ export default defineConfig({
 ```
 
 #### 3. TailwindCSS 3.x → 4.x
+
 **Changes Required:**
+
 - Update configuration format
 - Check class compatibility
 - Update build process
 
 **Migration Steps:**
+
 ```javascript
 // Update tailwind.config.js
 /** @type {import('tailwindcss').Config} */
@@ -165,6 +189,7 @@ export default {
 ## 🧪 Testing Strategy
 
 ### 1. Automated Testing
+
 ```bash
 # Run comprehensive tests after each phase
 npm run test
@@ -174,6 +199,7 @@ npm run build
 ```
 
 ### 2. Manual Testing Checklist
+
 - [ ] Application starts without errors
 - [ ] Database connections work
 - [ ] API endpoints respond correctly
@@ -184,6 +210,7 @@ npm run build
 - [ ] Price alerts function correctly
 
 ### 3. Integration Testing
+
 ```bash
 # Test full application flow
 npm run dev
@@ -193,12 +220,14 @@ npm run dev
 ## 🔄 Rollback Strategy
 
 ### Automatic Rollback
+
 ```bash
 # If updates fail, automatic rollback occurs
 ./scripts/update-dependencies.sh rollback
 ```
 
 ### Manual Rollback
+
 ```bash
 # Restore from specific backup
 cp .dependency-backup/YYYYMMDD_HHMMSS/package.json .
@@ -224,6 +253,7 @@ npm install
 ## 🚀 Recommended Execution Plan
 
 ### Week 1: Security & Critical Updates
+
 ```bash
 # Day 1: Security fixes
 ./scripts/update-dependencies.sh security all
@@ -236,6 +266,7 @@ npm run ci
 ```
 
 ### Week 2: Backend Major Updates
+
 ```bash
 # Day 1-2: Drizzle ORM update
 ./scripts/update-dependencies.sh interactive backend
@@ -249,6 +280,7 @@ npm run test
 ```
 
 ### Week 3: Frontend Major Updates
+
 ```bash
 # Day 1-2: React ecosystem update
 ./scripts/update-dependencies.sh interactive frontend
@@ -262,6 +294,7 @@ npm run test
 ```
 
 ### Week 4: Integration & Optimization
+
 ```bash
 # Day 1-3: Full integration testing
 npm run build
@@ -276,6 +309,7 @@ npm run dev
 ## 🛠️ Tools and Resources
 
 ### Dependency Analysis Tools
+
 ```bash
 # Check for outdated packages
 npm outdated
@@ -291,6 +325,7 @@ npx depcheck
 ```
 
 ### Update Tools
+
 ```bash
 # Interactive updates
 npx npm-check-updates -i
@@ -318,6 +353,7 @@ npm audit fix
 ## 🆘 Troubleshooting Common Issues
 
 ### Build Failures
+
 ```bash
 # Clear node_modules and reinstall
 rm -rf node_modules package-lock.json
@@ -325,18 +361,21 @@ npm install
 ```
 
 ### Type Errors
+
 ```bash
 # Update type definitions
 npm update @types/*
 ```
 
 ### ESLint Configuration Issues
+
 ```bash
 # Migrate to new config format
 npx @eslint/migrate-config .eslintrc.json
 ```
 
 ### Dependency Conflicts
+
 ```bash
 # Check for peer dependency issues
 npm ls --depth=0
