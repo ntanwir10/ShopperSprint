@@ -10,15 +10,16 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install --omit=dev --no-audit --no-fund
 
-# Copy the backend source
-COPY backend/ ./backend/
+# Copy the entire project
+COPY . .
 
-# Copy the frontend build
-COPY frontend/dist/ ./frontend/dist/
-
-# Build the backend
+# Install backend dependencies and build
 RUN cd backend && npm install --omit=dev --no-audit --no-fund
 RUN cd backend && npm run build
+
+# Build the frontend
+RUN cd frontend && npm install --omit=dev --no-audit --no-fund
+RUN cd frontend && npm run build
 
 # Expose the port
 EXPOSE 3001
