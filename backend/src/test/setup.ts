@@ -21,6 +21,7 @@ jest.setTimeout(10000);
 
 // Global test utilities
 declare global {
+  // eslint-disable-next-line no-var
   var testUtils: {
     createMockRequest: (overrides?: any) => any;
     createMockResponse: () => any;

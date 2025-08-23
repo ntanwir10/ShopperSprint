@@ -1,5 +1,5 @@
 'use client';
-// @ts-nocheck
+// Chart component with TypeScript support
 
 import * as React from 'react';
 import * as RechartsPrimitive from 'recharts';

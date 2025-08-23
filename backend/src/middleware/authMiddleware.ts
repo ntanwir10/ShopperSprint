@@ -3,6 +3,7 @@ import { AuthService } from "../services/authService";
 
 // Extend Express Request interface to include user
 declare global {
+  // eslint-disable-next-line @typescript-eslint/no-namespace
   namespace Express {
     interface Request {
       user?: any;

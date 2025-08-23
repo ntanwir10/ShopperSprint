@@ -80,25 +80,7 @@ interface AuthProviderProps {
 const authEnabled = (import.meta.env.VITE_AUTH_ENABLED || 'false') === 'true';
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  if (!authEnabled) {
-    const value: AuthContextType = {
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      isLoading: false,
-      login: async () => ({ success: false, error: 'Auth disabled' }),
-      register: async () => ({ success: false, error: 'Auth disabled' }),
-      logout: () => {},
-      verifyEmail: async () => ({ success: false, error: 'Auth disabled' }),
-      forgotPassword: async () => ({ success: false, error: 'Auth disabled' }),
-      resetPassword: async () => ({ success: false, error: 'Auth disabled' }),
-      updateProfile: async () => ({ success: false, error: 'Auth disabled' }),
-    };
-    return (
-      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-    );
-  }
-
+  // Always call hooks first, before any conditional logic
   const [authState, setAuthState] = useState<AuthState>({
     user: null,
     token: localStorage.getItem('auth_token'),
@@ -107,6 +89,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   });
 
   useEffect(() => {
+    if (!authEnabled) {
+      // Set loading to false for disabled auth
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      return;
+    }
+
     // Check if user is already authenticated on app load
     const checkAuth = async () => {
       const token = localStorage.getItem('auth_token');
@@ -185,6 +173,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     })();
   }, []);
+
+  // Handle auth disabled case
+  if (!authEnabled) {
+    const value: AuthContextType = {
+      user: authState.user,
+      token: authState.token,
+      isAuthenticated: authState.isAuthenticated,
+      isLoading: authState.isLoading,
+      login: async () => ({ success: false, error: 'Auth disabled' }),
+      register: async () => ({ success: false, error: 'Auth disabled' }),
+      logout: () => {},
+      verifyEmail: async () => ({ success: false, error: 'Auth disabled' }),
+      forgotPassword: async () => ({ success: false, error: 'Auth disabled' }),
+      resetPassword: async () => ({ success: false, error: 'Auth disabled' }),
+      updateProfile: async () => ({ success: false, error: 'Auth disabled' }),
+    };
+    return (
+      <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    );
+  }
 
   const login = async (
     email: string,

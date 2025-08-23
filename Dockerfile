@@ -1,5 +1,5 @@
 # Use Node.js 20 (required for Vite 7+)
-FROM node:20
+FROM node:20-alpine
 
 # Set the working directory
 WORKDIR /app

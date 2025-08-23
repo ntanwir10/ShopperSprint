@@ -24,7 +24,7 @@ export class EmailService {
     return true; // Stub implementation
   }
 
-  async sendEmail(data: any): Promise<boolean> {
+  async sendEmail(_data: any): Promise<boolean> {
     console.log("📧 EmailService stub: sendEmail called");
     return true; // Stub implementation
   }
@@ -42,17 +42,17 @@ export class EmailService {
     return true; // Stub implementation
   }
 
-  async sendTestEmail(data: any): Promise<boolean> {
+  async sendTestEmail(_data: any): Promise<boolean> {
     console.log("📧 EmailService stub: sendTestEmail called");
     return true; // Stub implementation
   }
 
-  async sendPasswordResetEmail(data: any): Promise<boolean> {
+  async sendPasswordResetEmail(_data: any): Promise<boolean> {
     console.log("📧 EmailService stub: sendPasswordResetEmail called");
     return true; // Stub implementation
   }
 
-  async sendUserVerificationEmail(data: any): Promise<boolean> {
+  async sendUserVerificationEmail(_data: any): Promise<boolean> {
     console.log("📧 EmailService stub: sendUserVerificationEmail called");
     return true; // Stub implementation
   }

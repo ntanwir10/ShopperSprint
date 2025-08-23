@@ -641,7 +641,7 @@ router.post(
       }
 
       // Add saved search
-      let savedSearches: any[] = Array.isArray(preferences.savedSearches)
+      const savedSearches: any[] = Array.isArray(preferences.savedSearches)
         ? (preferences.savedSearches as any[])
         : [];
       const newSavedSearch = {

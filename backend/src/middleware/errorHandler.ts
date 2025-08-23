@@ -83,7 +83,7 @@ const sanitizeErrorMessage = (error: unknown, statusCode: number): string => {
   // In development, provide more context but still sanitize
   if (error instanceof Error) {
     // Remove sensitive patterns from error messages
-    let message = error.message
+    const message = error.message
       .replace(/password|secret|key|token/gi, "[REDACTED]")
       .replace(/\b\d{4,}\b/g, "[NUMBERS]") // Remove potential IDs
       .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "[EMAIL]"); // Remove emails

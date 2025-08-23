@@ -157,7 +157,7 @@ export class OAuthService {
 
     // Link or create user
     const db = getDb();
-    let user = await db.query.oauthAccounts.findFirst({
+    const user = await db.query.oauthAccounts.findFirst({
       where: and(
         eq(oauthAccounts.provider, provider),
         eq(oauthAccounts.providerUserId, providerUserId)

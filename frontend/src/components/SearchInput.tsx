@@ -29,7 +29,7 @@ const SearchInput: React.FC<SearchInputProps> = ({
   const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Use search suggestions hook
-  const { suggestions, updateSuggestions, clearSuggestions, addToHistory } = useSearchSuggestions(value);
+  const { suggestions, clearSuggestions, addToHistory } = useSearchSuggestions(value);
 
   // Use external suggestions if provided, otherwise use hook suggestions
   const currentSuggestions = externalSuggestions.length > 0 ? externalSuggestions : suggestions;

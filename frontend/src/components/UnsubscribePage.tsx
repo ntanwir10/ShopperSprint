@@ -4,7 +4,6 @@ import { Helmet } from 'react-helmet-async';
 const UnsubscribePage = () => {
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
-  const [email, setEmail] = useState('');
   const hasUnsubscribed = useRef(false); // Prevent double API calls
 
   useEffect(() => {

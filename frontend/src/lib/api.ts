@@ -175,7 +175,9 @@ class ApiClient {
         if (response.status === 401) {
           try {
             localStorage.removeItem('auth_token');
-          } catch {}
+          } catch {
+            // Ignore localStorage errors
+          }
           try {
             const from = `${window.location.pathname}${window.location.search}`;
             const to = `/login${
@@ -184,7 +186,9 @@ class ApiClient {
                 : ''
             }`;
             window.location.assign(to);
-          } catch {}
+          } catch {
+            // Ignore navigation errors
+          }
         }
 
         return {
