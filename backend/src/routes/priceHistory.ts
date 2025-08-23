@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { PriceHistoryService } from "../services/priceHistoryService";
-import { ProductRepository } from "../repositories/productRepository";
+import { ProductRepository } from "../repositories/ProductRepository";
 
 const router = Router();
 const productRepository = new ProductRepository();

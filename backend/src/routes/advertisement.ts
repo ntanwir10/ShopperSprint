@@ -3,7 +3,7 @@ import {
   advertisementRequestSchema,
   advertisementTrackRequestSchema,
 } from "../validation/schemas";
-import { AdvertisementService } from "../services/advertisementService";
+import { AdvertisementService } from "../services/AdvertisementService";
 
 const router = Router();
 const advertisementService = new AdvertisementService();

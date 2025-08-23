@@ -4,7 +4,7 @@ import {
   searchResponseSchema,
 } from "../validation/schemas";
 import type { z } from "zod";
-import { SourceRepository } from "../repositories/sourceRepository";
+import { SourceRepository } from "../repositories/SourceRepository";
 import { ScrapingService } from "./ScrapingService";
 import { cachingService } from "./cachingService";
 import { monitoringService } from "./monitoringService";
@@ -228,7 +228,7 @@ export class SearchService {
       const results = await Promise.allSettled(scrapingPromises);
       
       // Log any rejected promises
-      results.forEach((result, index) => {
+      results.forEach((result: PromiseSettledResult<any>, index: number) => {
         if (result.status === 'rejected') {
           const source = targetSources[index];
           logger.warn(`Source ${source?.name} failed:`, result.reason);

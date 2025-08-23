@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import { body, validationResult } from "express-validator";
 import { SearchService } from "../services/SearchService";
-import { SourceRepository } from "../repositories/sourceRepository";
+import { SourceRepository } from "../repositories/SourceRepository";
 import { getDb } from "../database/connection";
 import { products, productListings } from "../database/schema";
 import { eq, and } from "drizzle-orm";
