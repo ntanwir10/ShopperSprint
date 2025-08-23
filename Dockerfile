@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --omit=dev --no-audit --no-fund
+RUN npm install --omit=dev --no-audit --no-fund
 
 # Copy the server and HTML files
 COPY server.js ./
