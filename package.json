@@ -32,7 +32,15 @@
     "deploy:logs:staging": "./scripts/deploy.sh staging logs",
     "env:validate": "./scripts/validate-env.sh",
     "env:staging": "./scripts/switch-env.sh staging",
-    "env:prod": "./scripts/switch-env.sh production"
+    "env:prod": "./scripts/switch-env.sh production",
+    "deps:update": "./scripts/update-dependencies.sh",
+    "deps:security": "./scripts/update-dependencies.sh security all",
+    "deps:patch": "./scripts/update-dependencies.sh patch all",
+    "deps:minor": "./scripts/update-dependencies.sh minor all",
+    "deps:major": "./scripts/update-dependencies.sh major all",
+    "deps:interactive": "./scripts/update-dependencies.sh interactive all",
+    "deps:rollback": "./scripts/update-dependencies.sh rollback",
+    "deps:check": "npm outdated && cd backend && npm outdated && cd ../frontend && npm outdated"
   },
   "keywords": [
     "shoppersprint",
