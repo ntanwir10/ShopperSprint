@@ -2,9 +2,10 @@
   "name": "shoppersprint-coming-soon",
   "version": "1.0.0",
   "description": "ShopperSprint Coming Soon Page",
-  "main": "server.js",
+  "main": "backend/dist/index.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "cd backend && node dist/index.js",
+    "build": "cd frontend && npm run build && cd backend && npm run build"
   },
   "dependencies": {
     "express": "^4.18.2",

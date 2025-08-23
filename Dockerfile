@@ -7,15 +7,21 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
+# Install dependencies
 RUN npm install --omit=dev --no-audit --no-fund
 
-# Copy the server and HTML files
-COPY server.js ./
-COPY public/ ./public/
+# Copy the backend source
+COPY backend/ ./backend/
+
+# Copy the frontend build
+COPY frontend/dist/ ./frontend/dist/
+
+# Build the backend
+RUN cd backend && npm install --omit=dev --no-audit --no-fund
+RUN cd backend && npm run build
 
 # Expose the port
 EXPOSE 3001
 
 # Start the application
-CMD ["node", "server.js"]
+CMD ["cd", "backend", "&&", "node", "dist/index.js"]
