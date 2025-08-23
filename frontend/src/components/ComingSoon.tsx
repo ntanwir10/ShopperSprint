@@ -1,13 +1,35 @@
 import { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { Clock, Mail, Bell, Zap, TrendingDown, CheckCircle, AlertCircle } from 'lucide-react';
+import { Button } from './ui/button';
+import { Input } from './ui/input';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Badge } from './ui/badge';
+import { Alert, AlertDescription } from './ui/alert';
+
+interface TimeLeft {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+}
 
 const ComingSoon = () => {
+  const [timeLeft, setTimeLeft] = useState<TimeLeft>({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0
+  });
   const [email, setEmail] = useState('');
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [alreadySubscribed, setAlreadySubscribed] = useState(false);
   const [subscriberCount, setSubscriberCount] = useState(0);
+
+  // Launch date - 30 days from now
+  const launchDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   // Fetch subscriber count on load
   useEffect(() => {
@@ -43,12 +65,44 @@ const ComingSoon = () => {
     }
   }, [isSubscribed, alreadySubscribed]);
 
+  // Countdown timer effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = launchDate.getTime() - now;
+
+      if (distance > 0) {
+        setTimeLeft({
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((distance % (1000 * 60)) / 1000)
+        });
+      } else {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [launchDate]);
+
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
     setIsLoading(true);
     setError('');
+    
+    if (!validateEmail(email)) {
+      setError('Please enter a valid email address');
+      setIsLoading(false);
+      return;
+    }
     
     try {
       // Submit to waitlist API
@@ -66,7 +120,11 @@ const ComingSoon = () => {
         setIsSubscribed(true);
         setAlreadySubscribed(data.alreadySubscribed || false);
         setEmail('');
-        // Subscriber count will be updated by useEffect
+        // Auto-hide success message after 5 seconds
+        setTimeout(() => {
+          setIsSubscribed(false);
+          setAlreadySubscribed(false);
+        }, 5000);
       } else {
         setError(data.message || 'Failed to join waitlist. Please try again.');
       }
@@ -118,233 +176,206 @@ const ComingSoon = () => {
         </script>
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 relative overflow-hidden">
-        {/* Animated background elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-green-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-2000"></div>
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-xl opacity-70 animate-pulse animation-delay-4000"></div>
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 via-background to-purple-600/5" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(147,51,234,0.1),transparent_50%)]" />
+        
+        {/* Floating Elements */}
+        <div className="absolute top-20 left-20 w-32 h-32 bg-blue-600/10 rounded-full blur-xl animate-pulse" />
+        <div className="absolute bottom-20 right-20 w-40 h-40 bg-purple-600/10 rounded-full blur-xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-10 w-24 h-24 bg-orange-400/10 rounded-full blur-xl animate-pulse delay-500" />
 
-        {/* Hero Section */}
-        <div className="container mx-auto px-4 py-16 text-center relative z-10">
-          <div className="max-w-4xl mx-auto">
-            {/* Logo/Brand */}
-            <div className="mb-8 animate-fade-in">
-              <h1 className="text-6xl md:text-8xl font-bold bg-gradient-to-r from-blue-600 via-green-600 to-blue-800 bg-clip-text text-transparent mb-4 animate-bounce-subtle">
-                🛒 ShopperSprint
-              </h1>
-              <p className="text-xl md:text-2xl text-gray-600 font-light">
-                Canada's Smartest Price Comparison Platform
-              </p>
-            </div>
-
-            {/* Main Message */}
-            <div className="mb-12 animate-slide-up">
-              <h2 className="text-3xl md:text-5xl font-bold text-gray-800 mb-6 leading-tight">
-                The Best Deals in Canada<br />
-                <span className="text-blue-600">Are Coming Soon</span>
-              </h2>
-              <p className="text-lg md:text-xl text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                We're building Canada's most comprehensive price comparison platform. 
-                Compare prices across all major Canadian retailers, track deals, and never 
-                overpay again. Get ready for smart shopping powered by real-time data.
-              </p>
-            </div>
-
-            {/* Features Preview */}
-            <div className="grid md:grid-cols-3 gap-8 mb-12 animate-slide-up animation-delay-200">
-              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                <div className="text-3xl mb-4">🇨🇦</div>
-                <h3 className="font-semibold text-gray-800 mb-2">Canadian Retailers</h3>
-                <p className="text-gray-600 text-sm">Compare prices across Amazon.ca, Walmart, Best Buy, and more</p>
-              </div>
-              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                <div className="text-3xl mb-4">📊</div>
-                <h3 className="font-semibold text-gray-800 mb-2">Price History</h3>
-                <p className="text-gray-600 text-sm">Track price changes and find the best time to buy</p>
-              </div>
-              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-6 border border-gray-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                <div className="text-3xl mb-4">🔔</div>
-                <h3 className="font-semibold text-gray-800 mb-2">Price Alerts</h3>
-                <p className="text-gray-600 text-sm">Get notified when your desired items go on sale</p>
-              </div>
-            </div>
-
-            {/* Subscriber Count */}
-            {subscriberCount > 0 && (
-              <div className="mb-8 animate-fade-in">
-                <div className="inline-flex items-center bg-green-100 text-green-800 px-4 py-2 rounded-full text-sm font-medium">
-                  🎉 {subscriberCount} {subscriberCount === 1 ? 'person has' : 'people have'} joined the waitlist!
-                </div>
-              </div>
-            )}
-
-            {/* Email Signup */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 max-w-md mx-auto border border-gray-200 shadow-lg animate-slide-up animation-delay-400">
-              {!isSubscribed ? (
-                <>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                    Join the Waitlist
-                  </h3>
-                  <p className="text-gray-600 mb-6">
-                    Be the first to access Canada's smartest shopping platform. Get early access and exclusive launch deals.
-                  </p>
-                  <form onSubmit={handleSubscribe} className="space-y-4">
-                    <div className="relative">
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="Enter your email address"
-                        className="w-full px-4 py-3 text-gray-800 placeholder-gray-500 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 text-base font-medium"
-                        required
-                        disabled={isLoading}
-                      />
-                      {isLoading && (
-                        <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                        </div>
-                      )}
+        <div className="relative z-10 max-w-4xl mx-auto text-center">
+          {/* Logo */}
+          <div className="mb-8">
+            <div className="flex items-center justify-center mb-6">
+              <div className="relative">
+                {/* Logo Container */}
+                <div className="flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-2xl">
+                  {/* Sprint Icon */}
+                  <div className="relative">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                      <Zap className="w-6 h-6 text-white" />
                     </div>
-                    
-                    {error && (
-                      <div className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-lg p-3 animate-shake">
-                        {error}
-                      </div>
-                    )}
-                    
-                    <button
-                      type="submit"
-                      disabled={isLoading || !email}
-                      className="w-full bg-gradient-to-r from-blue-600 to-green-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-blue-700 hover:to-green-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105 active:scale-95"
-                    >
-                      {isLoading ? (
-                        <span className="flex items-center justify-center">
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                          Joining...
-                        </span>
-                      ) : (
-                        'Get Early Access'
-                      )}
-                    </button>
-                  </form>
-                </>
-              ) : (
-                <div className="text-center animate-bounce-in">
-                  <div className="text-4xl mb-4">{alreadySubscribed ? '👋' : '🎉'}</div>
-                  <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                    {alreadySubscribed ? 'You\'re Already In!' : 'Welcome to ShopperSprint!'}
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    {alreadySubscribed 
-                      ? 'You\'re already on our waitlist! We\'ll notify you as soon as we launch in Canada. Stay tuned for exclusive updates and early access!'
-                      : 'Thanks for joining our waitlist! We\'ll notify you as soon as we launch in Canada with exclusive early access.'
-                    }
-                  </p>
-                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                    <p className="text-blue-800 text-sm font-medium">
-                      {alreadySubscribed 
-                        ? '📧 Keep an eye on your inbox for updates and launch announcements!'
-                        : '📧 Check your email for a welcome message with more details!'
-                      }
-                    </p>
+                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-orange-400 rounded-full flex items-center justify-center">
+                      <TrendingDown className="w-2.5 h-2.5 text-white" />
+                    </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      setIsSubscribed(false);
-                      setAlreadySubscribed(false);
-                      setError('');
-                    }}
-                    className="text-blue-600 hover:text-blue-700 text-sm font-medium transition-colors"
-                  >
-                    {alreadySubscribed ? 'Subscribe another email' : 'Subscribe another email'}
-                  </button>
+                  
+                  {/* Logo Text */}
+                  <div className="text-white">
+                    <div className="text-2xl font-bold tracking-tight">
+                      Shopper<span className="text-orange-300">Sprint</span>
+                    </div>
+                    <div className="text-xs text-white/80 tracking-wider uppercase">
+                      Price Tracker
+                    </div>
+                  </div>
                 </div>
+                
+                {/* Glow Effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur-xl opacity-30 -z-10"></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="mb-12">
+            <Badge variant="outline" className="mb-6 bg-gradient-to-r from-blue-600/10 to-purple-600/10 text-blue-600 dark:text-blue-400 border-blue-600/20">
+              <Bell className="w-4 h-4 mr-2" />
+              Coming Soon
+            </Badge>
+            
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
+              ShopperSprint is Coming Soon
+            </h1>
+            
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-12">
+              Canada's smartest price comparison platform. Track prices, set alerts, and never overpay again. Get ready to sprint to the best deals!
+            </p>
+          </div>
+
+          {/* Subscriber Count */}
+          {subscriberCount > 0 && (
+            <div className="mb-8">
+              <Badge variant="secondary" className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200">
+                🎉 {subscriberCount} {subscriberCount === 1 ? 'person has' : 'people have'} joined the waitlist!
+              </Badge>
+            </div>
+          )}
+
+          {/* Countdown Timer */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            {[
+              { label: 'Days', value: timeLeft.days },
+              { label: 'Hours', value: timeLeft.hours },
+              { label: 'Minutes', value: timeLeft.minutes },
+              { label: 'Seconds', value: timeLeft.seconds }
+            ].map((item, index) => (
+              <Card key={index} className="bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card/70 transition-all duration-300">
+                <CardContent className="p-6 text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-foreground mb-2">
+                    {item.value.toString().padStart(2, '0')}
+                  </div>
+                  <div className="text-sm text-muted-foreground uppercase tracking-wider">
+                    {item.label}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Email Signup */}
+          <Card className="bg-card/30 backdrop-blur-sm border-border/50 max-w-md mx-auto">
+            <CardHeader className="text-center">
+              <CardTitle className="flex items-center gap-2 justify-center">
+                <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                Get Notified
+              </CardTitle>
+              <CardDescription>
+                Get early access to Canada's best price tracking platform. No spam, just savings.
+              </CardDescription>
+            </CardHeader>
+            
+            <CardContent>
+              {isSubscribed ? (
+                <Alert className="border-green-200 bg-green-50 dark:bg-green-950 dark:border-green-800">
+                  <CheckCircle className="h-4 w-4 text-green-600" />
+                  <AlertDescription className="text-green-800 dark:text-green-200">
+                    {alreadySubscribed 
+                      ? 'You\'re already on our waitlist! We\'ll notify you as soon as we launch.'
+                      : 'Thanks for subscribing! We\'ll notify you when we launch.'
+                    }
+                  </AlertDescription>
+                </Alert>
+              ) : (
+                <form onSubmit={handleSubscribe} className="space-y-4">
+                  <div className="flex gap-2">
+                    <Input
+                      type="email"
+                      placeholder="Enter your email address"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        setError("");
+                      }}
+                      className="flex-1 bg-background/50"
+                      disabled={isLoading}
+                      required
+                    />
+                    <Button 
+                      type="submit" 
+                      className="px-6 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white border-0"
+                      disabled={isLoading || !email}
+                    >
+                      {isLoading ? "..." : "Notify Me"}
+                    </Button>
+                  </div>
+                  
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                </form>
               )}
-            </div>
+            </CardContent>
+          </Card>
 
-            {/* Launch Timeline */}
-            <div className="mt-12 text-center animate-fade-in animation-delay-600">
-              <p className="text-gray-500 mb-2">Expected Launch</p>
-              <p className="text-2xl font-bold text-blue-600">Q2 2025</p>
-              <p className="text-sm text-gray-500 mt-2">Starting with major Canadian cities</p>
+          {/* Additional Info */}
+          <div className="mt-12 flex items-center justify-center gap-6 text-sm text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span>Launching {launchDate.toLocaleDateString()}</span>
             </div>
+          </div>
 
-            {/* Trust Indicators */}
-            <div className="mt-8 flex justify-center items-center space-x-8 text-gray-400 animate-slide-up animation-delay-800">
-              <div className="text-center hover:scale-110 transition-transform">
-                <div className="text-2xl font-bold text-blue-600">500+</div>
-                <div className="text-xs">Canadian Retailers</div>
-              </div>
-              <div className="text-center hover:scale-110 transition-transform">
-                <div className="text-2xl font-bold text-green-600">Real-time</div>
-                <div className="text-xs">Price Updates</div>
-              </div>
-              <div className="text-center hover:scale-110 transition-transform">
-                <div className="text-2xl font-bold text-purple-600">Free</div>
-                <div className="text-xs">Always</div>
-              </div>
+          {/* Features Preview */}
+          <div className="mt-16 grid md:grid-cols-3 gap-8">
+            <Card className="bg-card/30 backdrop-blur-sm border-border/50 hover:bg-card/50 transition-all duration-300">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl mb-4">🇨🇦</div>
+                <h3 className="font-semibold text-foreground mb-2">Canadian Retailers</h3>
+                <p className="text-muted-foreground text-sm">Compare prices across Amazon.ca, Walmart, Best Buy, and more</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-card/30 backdrop-blur-sm border-border/50 hover:bg-card/50 transition-all duration-300">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl mb-4">📊</div>
+                <h3 className="font-semibold text-foreground mb-2">Price History</h3>
+                <p className="text-muted-foreground text-sm">Track price changes and find the best time to buy</p>
+              </CardContent>
+            </Card>
+            
+            <Card className="bg-card/30 backdrop-blur-sm border-border/50 hover:bg-card/50 transition-all duration-300">
+              <CardContent className="p-6 text-center">
+                <div className="text-3xl mb-4">🔔</div>
+                <h3 className="font-semibold text-foreground mb-2">Price Alerts</h3>
+                <p className="text-muted-foreground text-sm">Get notified when your desired items go on sale</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Trust Indicators */}
+          <div className="mt-12 flex justify-center items-center space-x-8 text-muted-foreground">
+            <div className="text-center hover:scale-110 transition-transform">
+              <div className="text-2xl font-bold text-blue-600">500+</div>
+              <div className="text-xs">Canadian Retailers</div>
             </div>
-
-            {/* Social Proof */}
-            <div className="mt-12 text-center animate-fade-in animation-delay-1000">
-              <p className="text-gray-500 text-sm mb-4">Trusted by smart shoppers across Canada</p>
-              <div className="flex justify-center space-x-2">
-                {[...Array(5)].map((_, i) => (
-                  <span key={i} className="text-yellow-400 text-xl">⭐</span>
-                ))}
-                <span className="text-gray-600 text-sm ml-2">Coming Soon</span>
-              </div>
+            <div className="text-center hover:scale-110 transition-transform">
+              <div className="text-2xl font-bold text-green-600">Real-time</div>
+              <div className="text-xs">Price Updates</div>
+            </div>
+            <div className="text-center hover:scale-110 transition-transform">
+              <div className="text-2xl font-bold text-purple-600">Free</div>
+              <div className="text-xs">Always</div>
             </div>
           </div>
         </div>
       </div>
-
-      <style jsx>{`
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slide-up {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes bounce-in {
-          0% { opacity: 0; transform: scale(0.3); }
-          50% { opacity: 1; transform: scale(1.05); }
-          70% { transform: scale(0.9); }
-          100% { opacity: 1; transform: scale(1); }
-        }
-        
-        @keyframes bounce-subtle {
-          0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
-          40% { transform: translateY(-10px); }
-          60% { transform: translateY(-5px); }
-        }
-        
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
-          20%, 40%, 60%, 80% { transform: translateX(2px); }
-        }
-        
-        .animate-fade-in { animation: fade-in 0.6s ease-out; }
-        .animate-slide-up { animation: slide-up 0.6s ease-out; }
-        .animate-bounce-in { animation: bounce-in 0.6s ease-out; }
-        .animate-bounce-subtle { animation: bounce-subtle 2s ease-in-out infinite; }
-        .animate-shake { animation: shake 0.5s ease-in-out; }
-        
-        .animation-delay-200 { animation-delay: 0.2s; }
-        .animation-delay-400 { animation-delay: 0.4s; }
-        .animation-delay-600 { animation-delay: 0.6s; }
-        .animation-delay-800 { animation-delay: 0.8s; }
-        .animation-delay-1000 { animation-delay: 1s; }
-        .animation-delay-2000 { animation-delay: 2s; }
-        .animation-delay-4000 { animation-delay: 4s; }
-      `}</style>
     </>
   );
 };

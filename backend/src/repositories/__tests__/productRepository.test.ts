@@ -14,14 +14,14 @@ jest.mock('../../database/connection', () => ({
 
 describe('ProductRepository', () => {
   let productRepository: ProductRepository;
-  let mockDb: jest.Mocked<typeof db>;
+  let mockedDb: jest.Mocked<typeof db>;
 
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks();
 
     // Get mocked database
-    mockDb = db as jest.Mocked<typeof db>;
+    mockedDb = db as jest.Mocked<typeof db>;
 
     // Create ProductRepository instance
     productRepository = new ProductRepository();
@@ -41,7 +41,7 @@ describe('ProductRepository', () => {
         updatedAt: new Date(),
       };
 
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue([mockProduct]),
@@ -54,13 +54,13 @@ describe('ProductRepository', () => {
 
       // Assert
       expect(result).toEqual(mockProduct);
-      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockedDb.select).toHaveBeenCalled();
     });
 
     it('should return null for non-existent product', async () => {
       // Arrange
       const productId = 'non_existent_id';
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue([]),
@@ -115,7 +115,7 @@ describe('ProductRepository', () => {
         },
       ];
 
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue(mockListings),
@@ -129,13 +129,13 @@ describe('ProductRepository', () => {
       // Assert
       expect(result).toEqual(mockListings);
       expect(result.length).toBe(2);
-      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockedDb.select).toHaveBeenCalled();
     });
 
     it('should return empty array for product with no listings', async () => {
       // Arrange
       const productId = 'product_with_no_listings';
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue([]),
@@ -172,7 +172,7 @@ describe('ProductRepository', () => {
         updatedAt: new Date(),
       };
 
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue([mockSource]),
@@ -185,13 +185,13 @@ describe('ProductRepository', () => {
 
       // Assert
       expect(result).toEqual(mockSource);
-      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockedDb.select).toHaveBeenCalled();
     });
 
     it('should return null for non-existent source', async () => {
       // Arrange
       const sourceId = 'non_existent_source';
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue([]),
@@ -224,7 +224,7 @@ describe('ProductRepository', () => {
         updatedAt: new Date(),
       };
 
-      mockDb.insert.mockReturnValue({
+      mockedDb.insert.mockReturnValue({
         values: jest.fn().mockReturnValue({
           returning: jest.fn().mockResolvedValue([mockInsertedProduct]),
         }),
@@ -235,7 +235,7 @@ describe('ProductRepository', () => {
 
       // Assert
       expect(result).toEqual(mockInsertedProduct);
-      expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockedDb.insert).toHaveBeenCalled();
     });
 
     it('should handle creation errors gracefully', async () => {
@@ -247,7 +247,7 @@ describe('ProductRepository', () => {
         brand: 'New Brand',
       };
 
-      mockDb.insert.mockReturnValue({
+      mockedDb.insert.mockReturnValue({
         values: jest.fn().mockReturnValue({
           returning: jest.fn().mockRejectedValue(new Error('Database error')),
         }),
@@ -278,7 +278,7 @@ describe('ProductRepository', () => {
         updatedAt: new Date(),
       };
 
-      mockDb.update.mockReturnValue({
+      mockedDb.update.mockReturnValue({
         set: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -293,7 +293,7 @@ describe('ProductRepository', () => {
 
       // Assert
       expect(result).toEqual(mockUpdatedProduct);
-      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockedDb.update).toHaveBeenCalled();
     });
 
     it('should return null for non-existent product update', async () => {
@@ -301,7 +301,7 @@ describe('ProductRepository', () => {
       const productId = 'non_existent_product';
       const updates = { name: 'Updated Name' };
 
-      mockDb.update.mockReturnValue({
+      mockedDb.update.mockReturnValue({
         set: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -323,7 +323,7 @@ describe('ProductRepository', () => {
     it('should delete an existing product', async () => {
       // Arrange
       const productId = 'test_product_id';
-      mockDb.delete.mockReturnValue({
+      mockedDb.delete.mockReturnValue({
         where: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             returning: jest.fn().mockResolvedValue([{ id: productId }]),
@@ -336,13 +336,13 @@ describe('ProductRepository', () => {
 
       // Assert
       expect(result).toBe(true);
-      expect(mockDb.delete).toHaveBeenCalled();
+      expect(mockedDb.delete).toHaveBeenCalled();
     });
 
     it('should return false for non-existent product deletion', async () => {
       // Arrange
       const productId = 'non_existent_product';
-      mockDb.delete.mockReturnValue({
+      mockedDb.delete.mockReturnValue({
         where: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             returning: jest.fn().mockResolvedValue([]),
@@ -383,7 +383,7 @@ describe('ProductRepository', () => {
         },
       ];
 
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             ilike: jest.fn().mockReturnValue({
@@ -403,7 +403,7 @@ describe('ProductRepository', () => {
       // Assert
       expect(result).toEqual(mockProducts);
       expect(result.length).toBe(2);
-      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockedDb.select).toHaveBeenCalled();
     });
 
     it('should handle search with no filters', async () => {
@@ -418,7 +418,7 @@ describe('ProductRepository', () => {
         },
       ];
 
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             ilike: jest.fn().mockResolvedValue(mockProducts),
@@ -431,7 +431,7 @@ describe('ProductRepository', () => {
 
       // Assert
       expect(result).toEqual(mockProducts);
-      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockedDb.select).toHaveBeenCalled();
     });
   });
 
@@ -439,7 +439,7 @@ describe('ProductRepository', () => {
     it('should handle database connection errors', async () => {
       // Arrange
       const productId = 'test_product';
-      mockDb.select.mockImplementation(() => {
+      mockedDb.select.mockImplementation(() => {
         throw new Error('Connection failed');
       });
 
@@ -450,7 +450,7 @@ describe('ProductRepository', () => {
     it('should handle invalid query parameters', async () => {
       // Arrange
       const invalidQuery = '';
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             ilike: jest.fn().mockRejectedValue(new Error('Invalid query')),

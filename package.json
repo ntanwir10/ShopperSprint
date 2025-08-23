@@ -1,14 +1,64 @@
 {
-  "name": "shoppersprint-coming-soon",
+  "name": "shoppersprint",
   "version": "1.0.0",
-  "description": "ShopperSprint Coming Soon Page",
-  "main": "backend/dist/index.js",
+  "description": "ShopperSprint - A comprehensive full-stack web application for tracking and comparing product prices across multiple online sources",
+  "main": "index.js",
   "scripts": {
-    "start": "cd backend && node dist/index.js",
-    "build": "cd frontend && npm run build && cd backend && npm run build"
+    "start": "cd backend && npm start",
+    "dev": "./scripts/dev.sh start",
+    "dev:docker": "./scripts/dev.sh start docker",
+    "stop": "./scripts/dev.sh stop",
+    "restart": "./scripts/dev.sh restart",
+    "status": "./scripts/dev.sh status",
+    "logs": "./scripts/dev.sh logs",
+    "health": "./scripts/dev.sh health",
+    "db:reset": "./scripts/dev.sh db reset",
+    "db:seed": "./scripts/dev.sh db seed",
+    "test": "./scripts/ci.sh test",
+    "test:coverage": "./scripts/ci.sh test coverage",
+    "lint": "./scripts/ci.sh lint",
+    "lint:fix": "./scripts/ci.sh lint fix",
+    "typecheck": "./scripts/ci.sh typecheck",
+    "build": "./scripts/ci.sh build",
+    "ci": "./scripts/ci.sh full",
+    "deploy": "./scripts/deploy-cicd.sh",
+    "deploy:railway": "./scripts/deploy-cicd.sh",
+    "deploy:staging": "./scripts/deploy.sh staging",
+    "deploy:prod": "./scripts/deploy.sh production",
+    "deploy:status": "./scripts/deploy.sh production status",
+    "deploy:status:staging": "./scripts/deploy.sh staging status",
+    "deploy:logs": "./scripts/deploy.sh production logs",
+    "deploy:logs:staging": "./scripts/deploy.sh staging logs",
+    "env:validate": "./scripts/validate-env.sh",
+    "env:staging": "./scripts/switch-env.sh staging",
+    "env:prod": "./scripts/switch-env.sh production"
+  },
+  "keywords": [
+    "shoppersprint",
+    "e-commerce",
+    "price-comparison",
+    "web-scraping",
+    "react",
+    "nodejs",
+    "typescript",
+    "postgresql",
+    "redis"
+  ],
+  "author": "ntanwir",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.3.0",
+    "concurrently": "^8.2.2",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "pg": "^8.11.3"
+    "body-parser": "^2.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.1",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0"
   }
 }

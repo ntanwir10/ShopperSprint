@@ -1,0 +1,81 @@
+# Multi-stage build for Railway deployment
+FROM node:18-alpine AS base
+
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY frontend/package*.json ./frontend/
+
+# Install dependencies
+RUN npm ci --only=production && npm cache clean --force
+RUN cd backend && npm ci --only=production && npm cache clean --force
+RUN cd frontend && npm ci --only=production && npm cache clean --force
+
+# Build the application
+FROM base AS builder
+WORKDIR /app
+
+# Copy package files and install all dependencies (including dev)
+COPY package*.json ./
+COPY backend/package*.json ./backend/
+COPY frontend/package*.json ./frontend/
+
+RUN npm ci
+RUN cd backend && npm ci
+RUN cd frontend && npm ci
+
+# Copy source code
+COPY . .
+
+# Build backend
+WORKDIR /app/backend
+RUN npm run build
+
+# Build frontend
+WORKDIR /app/frontend
+RUN npm run build
+
+# Production image
+FROM base AS runner
+WORKDIR /app
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+
+# Copy built application
+COPY --from=builder --chown=nextjs:nodejs /app/backend/dist ./backend/dist
+COPY --from=builder --chown=nextjs:nodejs /app/backend/package*.json ./backend/
+COPY --from=builder --chown=nextjs:nodejs /app/frontend/dist ./frontend/dist
+COPY --from=builder --chown=nextjs:nodejs /app/package*.json ./
+
+# Copy production dependencies
+COPY --from=deps --chown=nextjs:nodejs /app/node_modules ./node_modules
+COPY --from=deps --chown=nextjs:nodejs /app/backend/node_modules ./backend/node_modules
+
+# Copy necessary files
+COPY --from=builder --chown=nextjs:nodejs /app/backend/src/database ./backend/src/database
+COPY --from=builder --chown=nextjs:nodejs /app/nixpacks.toml ./
+
+# Set environment variables
+ENV NODE_ENV=production
+ENV PORT=3001
+ENV SERVE_FRONTEND=true
+
+# Expose port
+EXPOSE 3001
+
+# Switch to non-root user
+USER nextjs
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3001/health || exit 1
+
+# Start the application
+CMD ["node", "backend/dist/index.js"]
