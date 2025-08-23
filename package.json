@@ -21,7 +21,8 @@
     "typecheck": "./scripts/ci.sh typecheck",
     "build": "./scripts/ci.sh build",
     "ci": "./scripts/ci.sh full",
-    "deploy": "./scripts/deploy.sh production",
+    "deploy": "./scripts/deploy-cicd.sh",
+    "deploy:railway": "./scripts/deploy-cicd.sh",
     "deploy:staging": "./scripts/deploy.sh staging",
     "deploy:prod": "./scripts/deploy.sh production",
     "deploy:status": "./scripts/deploy.sh production status",
@@ -49,7 +50,6 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/node": "^24.3.0",
-    "@vercel/node": "^3.2.29",
     "concurrently": "^8.2.2",
     "typescript": "^5.3.3"
   },

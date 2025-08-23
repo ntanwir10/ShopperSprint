@@ -14,14 +14,14 @@ jest.mock('../../database/connection', () => ({
 
 describe('SourceRepository', () => {
   let sourceRepository: SourceRepository;
-  let mockDb: jest.Mocked<typeof db>;
+  let mockedDb: jest.Mocked<typeof db>;
 
   beforeEach(() => {
     // Clear all mocks
     jest.clearAllMocks();
 
     // Get mocked database
-    mockDb = db as jest.Mocked<typeof db>;
+    mockedDb = db as jest.Mocked<typeof db>;
 
     // Create SourceRepository instance
     sourceRepository = new SourceRepository();
@@ -65,7 +65,7 @@ describe('SourceRepository', () => {
         },
       ];
 
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue(mockSources),
@@ -79,12 +79,12 @@ describe('SourceRepository', () => {
       // Assert
       expect(result).toEqual(mockSources);
       expect(result.length).toBe(2);
-      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockedDb.select).toHaveBeenCalled();
     });
 
     it('should return empty array when no active sources exist', async () => {
       // Arrange
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue([]),
@@ -121,7 +121,7 @@ describe('SourceRepository', () => {
         updatedAt: new Date(),
       };
 
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue([mockSource]),
@@ -134,13 +134,13 @@ describe('SourceRepository', () => {
 
       // Assert
       expect(result).toEqual(mockSource);
-      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockedDb.select).toHaveBeenCalled();
     });
 
     it('should return null for non-existent source', async () => {
       // Arrange
       const sourceId = 'non_existent_source';
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue([]),
@@ -180,7 +180,7 @@ describe('SourceRepository', () => {
         updatedAt: new Date(),
       };
 
-      mockDb.insert.mockReturnValue({
+      mockedDb.insert.mockReturnValue({
         values: jest.fn().mockReturnValue({
           returning: jest.fn().mockResolvedValue([mockInsertedSource]),
         }),
@@ -191,7 +191,7 @@ describe('SourceRepository', () => {
 
       // Assert
       expect(result).toEqual(mockInsertedSource);
-      expect(mockDb.insert).toHaveBeenCalled();
+      expect(mockedDb.insert).toHaveBeenCalled();
     });
 
     it('should handle creation errors gracefully', async () => {
@@ -206,7 +206,7 @@ describe('SourceRepository', () => {
         },
       };
 
-      mockDb.insert.mockReturnValue({
+      mockedDb.insert.mockReturnValue({
         values: jest.fn().mockReturnValue({
           returning: jest.fn().mockRejectedValue(new Error('Database error')),
         }),
@@ -244,7 +244,7 @@ describe('SourceRepository', () => {
         updatedAt: new Date(),
       };
 
-      mockDb.update.mockReturnValue({
+      mockedDb.update.mockReturnValue({
         set: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -259,7 +259,7 @@ describe('SourceRepository', () => {
 
       // Assert
       expect(result).toEqual(mockUpdatedSource);
-      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockedDb.update).toHaveBeenCalled();
     });
 
     it('should return null for non-existent source update', async () => {
@@ -267,7 +267,7 @@ describe('SourceRepository', () => {
       const sourceId = 'non_existent_source';
       const updates = { name: 'Updated Name' };
 
-      mockDb.update.mockReturnValue({
+      mockedDb.update.mockReturnValue({
         set: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -289,7 +289,7 @@ describe('SourceRepository', () => {
     it('should delete an existing source', async () => {
       // Arrange
       const sourceId = 'test_source_id';
-      mockDb.delete.mockReturnValue({
+      mockedDb.delete.mockReturnValue({
         where: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             returning: jest.fn().mockResolvedValue([{ id: sourceId }]),
@@ -302,13 +302,13 @@ describe('SourceRepository', () => {
 
       // Assert
       expect(result).toBe(true);
-      expect(mockDb.delete).toHaveBeenCalled();
+      expect(mockedDb.delete).toHaveBeenCalled();
     });
 
     it('should return false for non-existent source deletion', async () => {
       // Arrange
       const sourceId = 'non_existent_source';
-      mockDb.delete.mockReturnValue({
+      mockedDb.delete.mockReturnValue({
         where: jest.fn().mockReturnValue({
           eq: jest.fn().mockReturnValue({
             returning: jest.fn().mockResolvedValue([]),
@@ -347,7 +347,7 @@ describe('SourceRepository', () => {
         },
       ];
 
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue(mockSources),
@@ -361,13 +361,13 @@ describe('SourceRepository', () => {
       // Assert
       expect(result).toEqual(mockSources);
       expect(result.length).toBe(1);
-      expect(mockDb.select).toHaveBeenCalled();
+      expect(mockedDb.select).toHaveBeenCalled();
     });
 
     it('should return empty array for non-existent category', async () => {
       // Arrange
       const category = 'non_existent_category';
-      mockDb.select.mockReturnValue({
+      mockedDb.select.mockReturnValue({
         from: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockResolvedValue([]),
@@ -410,7 +410,7 @@ describe('SourceRepository', () => {
         updatedAt: new Date(),
       };
 
-      mockDb.update.mockReturnValue({
+      mockedDb.update.mockReturnValue({
         set: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -425,7 +425,7 @@ describe('SourceRepository', () => {
 
       // Assert
       expect(result).toEqual(mockUpdatedSource);
-      expect(mockDb.update).toHaveBeenCalled();
+      expect(mockedDb.update).toHaveBeenCalled();
     });
 
     it('should return null for non-existent source stats update', async () => {
@@ -437,7 +437,7 @@ describe('SourceRepository', () => {
         averageResponseTime: 500,
       };
 
-      mockDb.update.mockReturnValue({
+      mockedDb.update.mockReturnValue({
         set: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({
@@ -459,7 +459,7 @@ describe('SourceRepository', () => {
     it('should handle database connection errors', async () => {
       // Arrange
       const sourceId = 'test_source';
-      mockDb.select.mockImplementation(() => {
+      mockedDb.select.mockImplementation(() => {
         throw new Error('Connection failed');
       });
 
@@ -472,7 +472,7 @@ describe('SourceRepository', () => {
       const sourceId = 'test_source';
       const invalidUpdates = { invalidField: 'invalid_value' };
 
-      mockDb.update.mockReturnValue({
+      mockedDb.update.mockReturnValue({
         set: jest.fn().mockReturnValue({
           where: jest.fn().mockReturnValue({
             eq: jest.fn().mockReturnValue({

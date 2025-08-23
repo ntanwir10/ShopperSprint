@@ -29,12 +29,12 @@ jest.mock("../../database/connection", () => ({
 
 describe("AuthService", () => {
   let authService: AuthService;
-  let mockDb: any;
+  let mockedDb: any;
 
   beforeEach(() => {
     jest.clearAllMocks();
     authService = new AuthService();
-    mockDb = db as any;
+    mockedDb = db as any;
   });
 
   describe("registerUser", () => {
@@ -63,7 +63,7 @@ describe("AuthService", () => {
       };
 
       // Mock database calls
-      mockDb.query.users.findFirst
+      mockedDb.query.users.findFirst
         .mockResolvedValueOnce(null) // No existing user with email
         .mockResolvedValueOnce(null); // No existing user with username
 
@@ -73,7 +73,7 @@ describe("AuthService", () => {
           returning: jest.fn().mockResolvedValue([mockUser]),
         }),
       };
-      mockDb.insert.mockReturnValue(mockInsertChain);
+      mockedDb.insert.mockReturnValue(mockInsertChain);
 
       // Mock the update chain
       const mockUpdateChain = {
@@ -83,7 +83,7 @@ describe("AuthService", () => {
           }),
         }),
       };
-      mockDb.update.mockReturnValue(mockUpdateChain);
+      mockedDb.update.mockReturnValue(mockUpdateChain);
 
       const result = await authService.registerUser(userData);
 
@@ -111,7 +111,7 @@ describe("AuthService", () => {
         password: "TestPass123",
       };
 
-      mockDb.query.users.findFirst.mockResolvedValueOnce({
+      mockedDb.query.users.findFirst.mockResolvedValueOnce({
         id: "existing-user",
         email: userData.email,
       });
@@ -128,7 +128,7 @@ describe("AuthService", () => {
         password: "TestPass123",
       };
 
-      mockDb.query.users.findFirst
+      mockedDb.query.users.findFirst
         .mockResolvedValueOnce(null) // No existing user with email
         .mockResolvedValueOnce({
           id: "existing-user",
@@ -175,7 +175,7 @@ describe("AuthService", () => {
       };
 
       // Mock database calls
-      mockDb.query.users.findFirst.mockResolvedValue(mockUser);
+      mockedDb.query.users.findFirst.mockResolvedValue(mockUser);
 
       // Mock the insert chain for session
       const mockInsertChain = {
@@ -183,7 +183,7 @@ describe("AuthService", () => {
           returning: jest.fn().mockResolvedValue([mockSession]),
         }),
       };
-      mockDb.insert.mockReturnValue(mockInsertChain);
+      mockedDb.insert.mockReturnValue(mockInsertChain);
 
       // Mock the update chain
       const mockUpdateChain = {
@@ -193,7 +193,7 @@ describe("AuthService", () => {
           }),
         }),
       };
-      mockDb.update.mockReturnValue(mockUpdateChain);
+      mockedDb.update.mockReturnValue(mockUpdateChain);
 
       // Mock bcrypt.compare to return true
       const bcrypt = require("bcryptjs");
@@ -224,7 +224,7 @@ describe("AuthService", () => {
         password: "TestPass123",
       };
 
-      mockDb.query.users.findFirst.mockResolvedValue(null);
+      mockedDb.query.users.findFirst.mockResolvedValue(null);
 
       await expect(authService.loginUser(loginData)).rejects.toThrow(
         "Invalid email or password"
@@ -252,7 +252,7 @@ describe("AuthService", () => {
         updatedAt: new Date(),
       };
 
-      mockDb.query.users.findFirst.mockResolvedValue(mockUser);
+      mockedDb.query.users.findFirst.mockResolvedValue(mockUser);
 
       await expect(authService.loginUser(loginData)).rejects.toThrow(
         "Account is deactivated"
@@ -293,8 +293,8 @@ describe("AuthService", () => {
       const jwt = require("jsonwebtoken");
       jest.spyOn(jwt, "verify").mockReturnValue({ userId: mockUser.id });
 
-      mockDb.query.userSessions.findFirst.mockResolvedValue(mockSession);
-      mockDb.query.users.findFirst.mockResolvedValue(mockUser);
+      mockedDb.query.userSessions.findFirst.mockResolvedValue(mockSession);
+      mockedDb.query.users.findFirst.mockResolvedValue(mockUser);
 
       const result = await authService.validateToken(token);
 
@@ -344,7 +344,7 @@ describe("AuthService", () => {
       const jwt = require("jsonwebtoken");
       jest.spyOn(jwt, "verify").mockReturnValue({ userId: "user-123" });
 
-      mockDb.query.userSessions.findFirst.mockResolvedValue(mockSession);
+      mockedDb.query.userSessions.findFirst.mockResolvedValue(mockSession);
 
       const result = await authService.validateToken(token);
 

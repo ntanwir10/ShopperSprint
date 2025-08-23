@@ -3,14 +3,20 @@ nixPkgs = ["nodejs-18_x", "npm-9_x"]
 
 [phases.install]
 cmds = [
-  "npm ci",
-  "cd backend && npm ci"
+  "npm ci --only=production",
+  "cd backend && npm ci --only=production",
+  "cd frontend && npm ci --only=production"
 ]
 
 [phases.build]
 cmds = [
-  "cd backend && npm run build"
+  "cd backend && npm run build",
+  "cd frontend && npm run build"
 ]
 
 [start]
 cmd = "cd backend && node dist/index.js"
+
+[variables]
+NODE_ENV = "production"
+SERVE_FRONTEND = "true"
