@@ -16,5 +16,5 @@ cmd = "cd backend && node dist/index.js"
 
 [variables]
 NODE_ENV = "production"
-SERVE_FRONTEND = "false"
+SERVE_FRONTEND = "true"
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
