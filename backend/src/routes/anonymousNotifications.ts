@@ -514,10 +514,10 @@ if (isNonProd) {
       try {
         // First verify transport to surface clear errors
         const verify = await emailService.verifyConnection();
-        if (!verify.ok) {
+        if (!verify) {
           return res.status(500).json({
             error: "SMTPVerifyFailed",
-            message: verify.error || "SMTP verify failed",
+            message: "SMTP verify failed",
             statusCode: 500,
           });
         }
@@ -534,11 +534,11 @@ if (isNonProd) {
 
         const { email } = req.body as { email: string };
 
-        await emailService.sendTestEmail(
+        await emailService.sendTestEmail({
           email,
-          "ShopperSprint Test Email",
-          "This is a test email from ShopperSprint."
-        );
+          subject: "ShopperSprint Test Email",
+          body: "This is a test email from ShopperSprint.",
+        });
 
         return res.status(200).json({
           message: "Test email sent successfully",

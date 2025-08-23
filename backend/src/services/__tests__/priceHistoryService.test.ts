@@ -53,10 +53,9 @@ describe('PriceHistoryService', () => {
 
       // Assert
       expect(result).toBeDefined();
-      expect(result.productId).toBe(productId);
-      expect(result.history).toHaveLength(2);
-      expect(result.history[0].price).toBe(25000);
-      expect(result.history[1].price).toBe(24000);
+      expect(result).toHaveLength(2);
+      expect(result[0].price).toBe(25000);
+      expect(result[1].price).toBe(24000);
       expect(mockProductRepository.getProductListingsByProductId).toHaveBeenCalledWith(productId);
     });
 

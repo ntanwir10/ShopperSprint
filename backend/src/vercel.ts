@@ -17,7 +17,7 @@ import {
   sanitizeInput,
   requestLogger,
 } from "./middleware/validationMiddleware";
-import { initDatabase, initRedis } from "./database/vercel-connection";
+import { initDatabase, initRedis } from "./database/connection";
 
 // Import routes
 import searchRouter from "./routes/search";

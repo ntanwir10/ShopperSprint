@@ -1,29 +1,33 @@
-import { Router } from 'express';
-import { z } from 'zod';
-import { WaitlistService } from '../services/waitlistService.js';
-import { sendWaitlistWelcomeEmail, sendTestEmail, sendUnsubscribeConfirmationEmail } from '../services/waitlistEmailService.js';
+import { Router } from "express";
+import { z } from "zod";
+import { WaitlistService } from "../services/waitlistService.js";
+import {
+  sendWaitlistWelcomeEmail,
+  sendTestEmail,
+  sendUnsubscribeConfirmationEmail,
+} from "../services/waitlistEmailService.js";
 
 const router = Router();
 const waitlistService = new WaitlistService();
 
 // Validation schemas
 const subscribeSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  source: z.string().optional().default('coming_soon_page'),
+  email: z.string().email("Please enter a valid email address"),
+  source: z.string().optional().default("coming_soon_page"),
 });
 
 const unsubscribeSchema = z.object({
-  token: z.string().min(1, 'Unsubscribe token is required'),
+  token: z.string().min(1, "Unsubscribe token is required"),
 });
 
 /**
  * POST /api/waitlist/subscribe
  * Subscribe to the waitlist
  */
-router.post('/subscribe', async (req, res) => {
+router.post("/subscribe", async (req, res) => {
   try {
-    console.log('Waitlist subscribe request:', req.body);
-    
+    console.log("Waitlist subscribe request:", req.body);
+
     const { email, source } = subscribeSchema.parse(req.body);
 
     // Subscribe using the service
@@ -38,21 +42,24 @@ router.post('/subscribe', async (req, res) => {
 
     // Send welcome email if it's a new subscription
     if (!result.alreadySubscribed && result.subscriber) {
-      sendWaitlistWelcomeEmail(email, result.subscriber.unsubscribeToken).catch(err => {
-        console.error('Failed to send welcome email:', err);
-      });
+      sendWaitlistWelcomeEmail(email, result.subscriber.unsubscribeToken).catch(
+        (err) => {
+          console.error("Failed to send welcome email:", err);
+        }
+      );
     }
 
-    console.log(`Waitlist subscription: ${email} (already subscribed: ${result.alreadySubscribed})`);
+    console.log(
+      `Waitlist subscription: ${email} (already subscribed: ${result.alreadySubscribed})`
+    );
 
     res.status(result.alreadySubscribed ? 200 : 201).json({
       success: true,
       message: result.message,
       alreadySubscribed: result.alreadySubscribed,
     });
-
   } catch (error) {
-    console.error('Waitlist subscription error:', error);
+    console.error("Waitlist subscription error:", error);
 
     if (error instanceof z.ZodError) {
       return res.status(400).json({
@@ -61,9 +68,9 @@ router.post('/subscribe', async (req, res) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Failed to join waitlist. Please try again.',
+      message: "Failed to join waitlist. Please try again.",
     });
   }
 });
@@ -72,10 +79,10 @@ router.post('/subscribe', async (req, res) => {
  * POST /api/waitlist/unsubscribe
  * Unsubscribe from the waitlist using token
  */
-router.post('/unsubscribe', async (req, res) => {
+router.post("/unsubscribe", async (req, res) => {
   try {
-    console.log('Waitlist unsubscribe request:', req.body);
-    
+    console.log("Waitlist unsubscribe request:", req.body);
+
     const { token } = unsubscribeSchema.parse(req.body);
 
     // Unsubscribe using the service
@@ -83,10 +90,10 @@ router.post('/unsubscribe', async (req, res) => {
 
     if (result.success && result.email) {
       // Send confirmation email
-      sendUnsubscribeConfirmationEmail(result.email).catch(err => {
-        console.error('Failed to send unsubscribe confirmation email:', err);
+      sendUnsubscribeConfirmationEmail(result.email).catch((err) => {
+        console.error("Failed to send unsubscribe confirmation email:", err);
       });
-      
+
       console.log(`Waitlist unsubscribe: ${result.email}`);
     }
 
@@ -94,9 +101,8 @@ router.post('/unsubscribe', async (req, res) => {
       success: result.success,
       message: result.message,
     });
-
   } catch (error) {
-    console.error('Waitlist unsubscribe error:', error);
+    console.error("Waitlist unsubscribe error:", error);
 
     if (error instanceof z.ZodError) {
       return res.status(400).json({
@@ -105,9 +111,9 @@ router.post('/unsubscribe', async (req, res) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Failed to unsubscribe. Please try again.',
+      message: "Failed to unsubscribe. Please try again.",
     });
   }
 });
@@ -116,24 +122,24 @@ router.post('/unsubscribe', async (req, res) => {
  * GET /api/waitlist/unsubscribe/:token
  * Unsubscribe via GET request (for email links)
  */
-router.get('/unsubscribe/:token', async (req, res) => {
+router.get("/unsubscribe/:token", async (req, res) => {
   try {
     const { token } = req.params;
-    
+
     if (!token) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid unsubscribe link.',
+        message: "Invalid unsubscribe link.",
       });
     }
 
     // Get subscriber info first
     const subscriber = await waitlistService.getSubscriberByToken(token);
-    
+
     if (!subscriber) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid unsubscribe link or already unsubscribed.',
+        message: "Invalid unsubscribe link or already unsubscribed.",
       });
     }
 
@@ -142,10 +148,10 @@ router.get('/unsubscribe/:token', async (req, res) => {
 
     if (result.success && result.email) {
       // Send confirmation email
-      sendUnsubscribeConfirmationEmail(result.email).catch(err => {
-        console.error('Failed to send unsubscribe confirmation email:', err);
+      sendUnsubscribeConfirmationEmail(result.email).catch((err) => {
+        console.error("Failed to send unsubscribe confirmation email:", err);
       });
-      
+
       console.log(`Waitlist unsubscribe via link: ${result.email}`);
     }
 
@@ -170,25 +176,30 @@ router.get('/unsubscribe/:token', async (req, res) => {
       <body>
         <div class="container">
           <div class="logo">🛒 ShopperSprint</div>
-          ${result.success ? `
+          ${
+            result.success
+              ? `
             <h2 class="success">✅ Successfully Unsubscribed</h2>
             <p class="message">You have been unsubscribed from our waitlist. We're sorry to see you go!</p>
             <p>If you change your mind, you can always sign up again on our website.</p>
-          ` : `
+          `
+              : `
             <h2 class="error">❌ Unsubscribe Failed</h2>
             <p class="message">${result.message}</p>
-          `}
-          <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}" class="back-link">← Back to ShopperSprint</a></p>
+          `
+          }
+          <p><a href="${
+            process.env.FRONTEND_URL || "http://localhost:5173"
+          }" class="back-link">← Back to ShopperSprint</a></p>
         </div>
       </body>
       </html>
     `;
 
-    res.status(result.success ? 200 : 400).send(html);
-
+    return res.status(result.success ? 200 : 400).send(html);
   } catch (error) {
-    console.error('Waitlist unsubscribe via link error:', error);
-    
+    console.error("Waitlist unsubscribe via link error:", error);
+
     const html = `
       <!DOCTYPE html>
       <html>
@@ -208,13 +219,15 @@ router.get('/unsubscribe/:token', async (req, res) => {
           <div class="logo">🛒 ShopperSprint</div>
           <h2 class="error">❌ Something went wrong</h2>
           <p>We couldn't process your unsubscribe request. Please try again later.</p>
-          <p><a href="${process.env.FRONTEND_URL || 'http://localhost:5173'}">← Back to ShopperSprint</a></p>
+          <p><a href="${
+            process.env.FRONTEND_URL || "http://localhost:5173"
+          }">← Back to ShopperSprint</a></p>
         </div>
       </body>
       </html>
     `;
 
-    res.status(500).send(html);
+    return res.status(500).send(html);
   }
 });
 
@@ -222,19 +235,19 @@ router.get('/unsubscribe/:token', async (req, res) => {
  * GET /api/waitlist/stats
  * Get waitlist statistics
  */
-router.get('/stats', async (req, res) => {
+router.get("/stats", async (req, res) => {
   try {
     const stats = await waitlistService.getStats();
-    
+
     res.json({
       success: true,
       data: stats,
     });
   } catch (error) {
-    console.error('Waitlist stats error:', error);
+    console.error("Waitlist stats error:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch waitlist statistics',
+      message: "Failed to fetch waitlist statistics",
     });
   }
 });
@@ -243,26 +256,26 @@ router.get('/stats', async (req, res) => {
  * POST /api/waitlist/test-email
  * Send test email (for development/testing)
  */
-router.post('/test-email', async (req, res) => {
+router.post("/test-email", async (req, res) => {
   try {
     const { email } = subscribeSchema.parse(req.body);
-    
+
     const success = await sendTestEmail(email);
-    
+
     if (success) {
-      res.json({
+      return res.json({
         success: true,
-        message: 'Test email sent successfully!',
+        message: "Test email sent successfully!",
       });
     } else {
-      res.status(500).json({
+      return res.status(500).json({
         success: false,
-        message: 'Failed to send test email. Check server logs.',
+        message: "Failed to send test email. Check server logs.",
       });
     }
   } catch (error) {
-    console.error('Test email error:', error);
-    
+    console.error("Test email error:", error);
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
@@ -270,9 +283,9 @@ router.post('/test-email', async (req, res) => {
       });
     }
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: 'Failed to send test email.',
+      message: "Failed to send test email.",
     });
   }
 });
@@ -281,12 +294,12 @@ router.post('/test-email', async (req, res) => {
  * GET /api/waitlist/debug
  * Debug endpoint to check environment variables (for development only)
  */
-router.get('/debug', async (req, res) => {
-  if (process.env.NODE_ENV === 'production') {
-    return res.status(404).json({ message: 'Not found' });
+router.get("/debug", async (req, res) => {
+  if (process.env.NODE_ENV === "production") {
+    return res.status(404).json({ message: "Not found" });
   }
 
-  res.json({
+  return res.json({
     smtp_configured: {
       SMTP_HOST: !!process.env.SMTP_HOST,
       SMTP_PORT: !!process.env.SMTP_PORT,
@@ -297,11 +310,11 @@ router.get('/debug', async (req, res) => {
     values: {
       SMTP_HOST: process.env.SMTP_HOST,
       SMTP_PORT: process.env.SMTP_PORT,
-      SMTP_USER: process.env.SMTP_USER ? 'SET' : 'NOT SET',
-      SMTP_PASS: process.env.SMTP_PASS ? 'SET' : 'NOT SET',
+      SMTP_USER: process.env.SMTP_USER ? "SET" : "NOT SET",
+      SMTP_PASS: process.env.SMTP_PASS ? "SET" : "NOT SET",
       SMTP_FROM: process.env.SMTP_FROM,
       FRONTEND_URL: process.env.FRONTEND_URL,
-    }
+    },
   });
 });
 

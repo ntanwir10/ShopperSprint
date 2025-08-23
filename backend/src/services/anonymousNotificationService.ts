@@ -347,24 +347,22 @@ export class AnonymousNotificationService {
 
     // Send email notification
     try {
-      await this.emailService.sendPriceAlertTriggeredEmail(
-        {
-          id: alert.id,
-          email: alert.email,
-          productId: alert.productId,
-          targetPrice: alert.targetPrice,
-          currency: alert.currency,
-          alertType: alert.alertType,
-          threshold: alert.threshold,
-          verificationToken: alert.verificationToken,
-          managementToken: alert.managementToken,
-          isVerified: alert.isVerified,
-          isActive: alert.isActive,
-          createdAt: alert.createdAt,
-          updatedAt: alert.updatedAt,
-        },
-        currentPrice
-      );
+      await this.emailService.sendPriceAlertTriggeredEmail({
+        id: alert.id,
+        email: alert.email,
+        productId: alert.productId,
+        targetPrice: alert.targetPrice,
+        currency: alert.currency,
+        alertType: alert.alertType,
+        threshold: alert.threshold,
+        verificationToken: alert.verificationToken,
+        managementToken: alert.managementToken,
+        isVerified: alert.isVerified,
+        isActive: alert.isActive,
+        createdAt: alert.createdAt,
+        updatedAt: alert.updatedAt,
+        currentPrice: currentPrice,
+      });
     } catch (emailError) {
       console.error("Failed to send price alert notification:", emailError);
     }

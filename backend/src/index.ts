@@ -10,7 +10,6 @@ import cors from "cors";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import { json } from "body-parser";
-import path from "path";
 import { logger } from "./middleware/logger";
 import { errorHandler } from "./middleware/errorHandler";
 import {
@@ -147,9 +146,9 @@ app.use("/api/search", searchRouter);
 app.use("/api/ads", advertisementRouter);
 app.use("/api/price-history", priceHistoryRouter);
 
-// CSRF token endpoint (no CSRF protection needed for getting the token)
+// CSRF token endpoint (temporarily disabled for deployment)
 app.get("/api/csrf-token", (req, res) => {
-  res.json({ csrfToken: req.csrfToken() });
+  res.json({ csrfToken: "disabled-for-coming-soon" });
 });
 
 // Waitlist endpoint (temporarily without CSRF for testing)
@@ -199,7 +198,7 @@ if (SERVE_FRONTEND && IS_PRODUCTION) {
     }
 
     // Serve index.html for all other routes (SPA routing)
-    res.sendFile(path.join(frontendPath, "index.html"), (err) => {
+    return res.sendFile(path.join(frontendPath, "index.html"), (err) => {
       if (err) {
         console.error("Error serving index.html:", err);
         res.status(500).json({

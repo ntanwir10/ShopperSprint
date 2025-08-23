@@ -210,7 +210,7 @@ npm run dev
 
 ### 🚀 DevOps & Deployment
 
-- **[CI/CD Pipeline Documentation](.github/README.md)** - Complete pipeline overview
+- **[CI/CD Pipeline Documentation](.github/CI_CD_PIPELINE.md)** - Complete pipeline overview
 - **[Vercel Deployment Guide](docs/integration/VERCEL_DEPLOYMENT.md)** - Vercel-specific deployment instructions
 - **[Database Setup Guide](docs/integration/DATABASE_SETUP.md)** - PostgreSQL setup and configuration
 - **[Production Checklist](docs/planning/PRODUCTION_READINESS_CHECKLIST.md)** - Production deployment checklist
