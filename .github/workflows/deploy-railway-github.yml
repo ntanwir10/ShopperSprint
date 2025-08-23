@@ -1,0 +1,22 @@
+name: Deploy to Railway via GitHub Integration
+
+on:
+  push:
+    branches: [ coming-soon ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to Railway
+      uses: railway/deploy@v3
+      with:
+        service: diplomatic-youth
+        environment: production
+      env:
+        RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

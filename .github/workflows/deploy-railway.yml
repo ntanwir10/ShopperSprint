@@ -59,7 +59,8 @@ jobs:
     - name: Deploy to Railway
       run: |
         echo "Starting Railway deployment..."
-        railway up --detach
+        echo "Token length: ${#RAILWAY_TOKEN}"
+        RAILWAY_TOKEN="${{ secrets.RAILWAY_TOKEN }}" railway up --service diplomatic-youth --detach
         echo "Deployment initiated successfully"
       env:
         RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
