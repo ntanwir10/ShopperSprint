@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["nodejs-18_x", "npm-9_x"]
+nixPkgs = ["nodejs-18_x"]
 
 [phases.install]
 cmds = [
@@ -8,15 +8,8 @@ cmds = [
   "cd frontend && npm ci --prefer-offline --no-audit --no-fund --only=production --silent"
 ]
 
-[phases.build]
-cmds = ["./scripts/railway-build.sh"]
-
-[start]
-cmd = "cd backend && node dist/index.js"
-
 [variables]
 NODE_ENV = "production"
 SERVE_FRONTEND = "true"
-NPM_CONFIG_LOGLEVEL = "error"
-CI = "true"
 PUPPETEER_SKIP_CHROMIUM_DOWNLOAD = "true"
+NPM_CONFIG_LOGLEVEL = "error"
