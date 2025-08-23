@@ -171,9 +171,6 @@ if (AUTH_ENABLED) {
 // Monitoring endpoints always available (re-enabled)
 app.use("/api/monitoring", monitoringRouter);
 
-// Frontend route (serve HTML directly)
-app.use("/", frontendRouter);
-
 // Serve static frontend files in production (Railway single-service deployment)
 const SERVE_FRONTEND =
   process.env["SERVE_FRONTEND"] === "true" ||
@@ -214,7 +211,10 @@ if (SERVE_FRONTEND && IS_PRODUCTION) {
     });
   });
 } else {
-  // API-only mode - 404 handler for all non-API routes
+  // Frontend route for API-only mode
+  app.use("/", frontendRouter);
+  
+  // API-only mode - 404 handler for remaining non-API routes
   app.use("*", (req, res) => {
     res.status(404).json({
       error: "Not Found",

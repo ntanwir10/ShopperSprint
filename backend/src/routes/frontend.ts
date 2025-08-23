@@ -139,8 +139,21 @@ const HTML_CONTENT = `<!DOCTYPE html>
 </body>
 </html>`;
 
-// Serve the frontend HTML
+// Serve the frontend HTML only for root path
 router.get("/", (req, res) => {
+  res.setHeader("Content-Type", "text/html");
+  res.setHeader("Cache-Control", "no-cache");
+  res.send(HTML_CONTENT);
+});
+
+// Serve for common frontend routes (but not API routes)
+router.get("/search", (req, res) => {
+  res.setHeader("Content-Type", "text/html");
+  res.setHeader("Cache-Control", "no-cache");
+  res.send(HTML_CONTENT);
+});
+
+router.get("/products", (req, res) => {
   res.setHeader("Content-Type", "text/html");
   res.setHeader("Cache-Control", "no-cache");
   res.send(HTML_CONTENT);
