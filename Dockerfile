@@ -13,6 +13,9 @@ RUN npm install --omit=dev --no-audit --no-fund
 # Copy the lightweight server
 COPY server-light.js ./
 
+# Copy the frontend source
+COPY frontend/ ./frontend/
+
 # Build the frontend
 RUN cd frontend && npm install --omit=dev --no-audit --no-fund
 RUN cd frontend && npm run build
