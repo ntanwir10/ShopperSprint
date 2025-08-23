@@ -39,6 +39,12 @@ echo ""
 # Build the application
 echo "🏗️  Building application..."
 npm run build 2>/dev/null || echo "⚠️  Build step skipped (no build script found)"
+
+# Copy frontend build to backend public directory for single-service deployment
+echo "📁 Copying frontend build to backend public directory..."
+mkdir -p backend/dist/public
+cp -r frontend/dist/* backend/dist/public/
+echo "✅ Frontend files copied successfully"
 echo ""
 
 # Deploy to Railway
