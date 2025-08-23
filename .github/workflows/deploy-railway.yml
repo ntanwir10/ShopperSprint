@@ -34,10 +34,16 @@ jobs:
       run: npm ci
 
     - name: Install backend dependencies
-      run: cd backend && npm ci
+      run: |
+        cd backend
+        rm -rf node_modules package-lock.json
+        npm install
 
     - name: Install frontend dependencies
-      run: cd frontend && npm ci
+      run: |
+        cd frontend
+        rm -rf node_modules package-lock.json
+        npm install
 
     - name: Build backend
       run: cd backend && npm run build
