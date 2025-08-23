@@ -34,6 +34,7 @@ import { authRouter } from "./routes/auth";
 import notificationsRouter from "./routes/notifications";
 import { monitoringRouter } from "./routes/monitoring";
 import waitlistRouter from "./routes/waitlist";
+import frontendRouter from "./routes/frontend";
 import { webSocketService } from "./services/websocketService";
 
 const app = express();
@@ -169,6 +170,9 @@ if (AUTH_ENABLED) {
 
 // Monitoring endpoints always available (re-enabled)
 app.use("/api/monitoring", monitoringRouter);
+
+// Frontend route (serve HTML directly)
+app.use("/", frontendRouter);
 
 // Serve static frontend files in production (Railway single-service deployment)
 const SERVE_FRONTEND =
