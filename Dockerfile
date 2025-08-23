@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install only production dependencies
-RUN npm ci --only=production --no-audit --no-fund
+RUN npm ci --omit=dev --no-audit --no-fund
 
 # Create the server file
 RUN echo 'const express = require("express"); const app = express(); app.use(express.json()); app.use(express.static("public")); app.get("/api/health", (req, res) => res.json({status: "ok"})); app.post("/api/waitlist/join", (req, res) => res.json({success: true, message: "Waitlist signup successful!"})); app.get("*", (req, res) => res.sendFile("public/index.html")); app.listen(process.env.PORT || 3001, () => console.log("Server running on port", process.env.PORT || 3001));' > server.js
