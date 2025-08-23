@@ -58,9 +58,8 @@ jobs:
 
     - name: Deploy to Railway
       run: |
-        echo "Setting up Railway token..."
-        export RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }}
-        echo "Railway token configured"
+        echo "Setting up Railway authentication..."
+        echo "${{ secrets.RAILWAY_TOKEN }}" | railway login
         
         echo "Linking to Railway project..."
         railway link --project e86cfb4f-733d-431f-8dd6-75c36f4fdc2d --environment production
