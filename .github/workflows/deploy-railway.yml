@@ -62,6 +62,9 @@ jobs:
         export RAILWAY_TOKEN=${{ secrets.RAILWAY_TOKEN }}
         echo "Railway token configured"
         
+        echo "Linking to Railway project..."
+        railway link e86cfb4f-733d-431f-8dd6-75c36f4fdc2d --environment production
+        
         echo "Starting Railway deployment..."
         railway up --detach
         
