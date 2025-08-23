@@ -1,5 +1,5 @@
 # Use the official Node.js runtime as a parent image
-FROM node:18-alpine
+FROM node:18
 
 # Set the working directory
 WORKDIR /app
@@ -7,17 +7,22 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install only essential dependencies
+# Install dependencies
 RUN npm install --omit=dev --no-audit --no-fund
 
-# Copy the lightweight server
-COPY server-light.js ./
+# Copy the entire project
+COPY . .
 
-# Copy the pre-built frontend (we'll build it locally first)
-COPY frontend/dist/ ./frontend/dist/
+# Install backend dependencies and build
+RUN cd backend && npm install --omit=dev --no-audit --no-fund
+RUN cd backend && npm run build
+
+# Build the frontend
+RUN cd frontend && npm install --omit=dev --no-audit --no-fund
+RUN cd frontend && npm run build
 
 # Expose the port
 EXPOSE 3001
 
-# Start the lightweight server
-CMD ["node", "server-light.js"]
+# Start the application
+CMD ["cd", "backend", "&&", "node", "dist/index.js"]
