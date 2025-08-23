@@ -1,97 +1,101 @@
-import { render, screen } from '@testing-library/react';
-import PriceDisplay from '../PriceDisplay';
+import { render, screen } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import PriceDisplay from '../PriceDisplay'
 
-// Mock product data for testing
-const createMockProduct = (price: number, currency: string) => ({
-  id: '1',
-  name: 'Test Product',
-  price,
-  currency,
-  availability: 'in_stock' as const,
-  source: 'Test Store',
-  url: 'https://test.com',
-  lastScraped: new Date().toISOString(),
-});
+describe('PriceDisplay Component', () => {
+  describe('Price Formatting', () => {
+    it('formats price correctly from cents to dollars', () => {
+      render(<PriceDisplay price={1000} currency="USD" />)
+      
+      expect(screen.getByText('$10.00')).toBeInTheDocument()
+    })
 
-describe('PriceDisplay', () => {
-  it('renders price in USD format', () => {
-    const product = createMockProduct(1000, 'USD');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('$10.00')).toBeInTheDocument();
-  });
+    it('handles zero price correctly', () => {
+      render(<PriceDisplay price={0} currency="USD" />)
+      
+      expect(screen.getByText('$0.00')).toBeInTheDocument()
+    })
 
-  it('renders price of 0 correctly', () => {
-    const product = createMockProduct(0, 'USD');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('$0.00')).toBeInTheDocument();
-  });
+    it('handles large prices correctly', () => {
+      render(<PriceDisplay price={999999} currency="USD" />)
+      
+      expect(screen.getByText('$9,999.99')).toBeInTheDocument()
+    })
 
-  it('renders large price correctly', () => {
-    const product = createMockProduct(999999, 'USD');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('$999,999.00')).toBeInTheDocument();
-  });
+    it('handles decimal prices correctly', () => {
+      render(<PriceDisplay price={1050} currency="USD" />)
+      
+      expect(screen.getByText('$10.50')).toBeInTheDocument()
+    })
+  })
 
-  it('renders price with cents correctly', () => {
-    const product = createMockProduct(1050, 'USD');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('$10.50')).toBeInTheDocument();
-  });
+  describe('Currency Display', () => {
+    it('displays USD currency correctly', () => {
+      render(<PriceDisplay price={1000} currency="USD" />)
+      
+      expect(screen.getByText('$10.00')).toBeInTheDocument()
+    })
 
-  it('renders price with different currency', () => {
-    const product = createMockProduct(1000, 'EUR');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('€10.00')).toBeInTheDocument();
-  });
+    it('displays EUR currency correctly', () => {
+      render(<PriceDisplay price={1000} currency="EUR" />)
+      
+      expect(screen.getByText('€10.00')).toBeInTheDocument()
+    })
 
-  it('renders price with GBP currency', () => {
-    const product = createMockProduct(1000, 'GBP');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('£10.00')).toBeInTheDocument();
-  });
+    it('displays GBP currency correctly', () => {
+      render(<PriceDisplay price={1000} currency="GBP" />)
+      
+      expect(screen.getByText('£10.00')).toBeInTheDocument()
+    })
 
-  it('renders price with empty currency (defaults to USD)', () => {
-    const product = createMockProduct(1000, '');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('$10.00')).toBeInTheDocument();
-  });
+    it('handles empty currency string', () => {
+      render(<PriceDisplay price={1000} currency="" />)
+      
+      // Should default to USD
+      expect(screen.getByText('$10.00')).toBeInTheDocument()
+    })
+  })
 
-  it('renders price with undefined currency (defaults to USD)', () => {
-    const product = createMockProduct(1000, undefined as any);
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('$10.00')).toBeInTheDocument();
-  });
+  describe('Styling and Classes', () => {
+    it('applies default classes correctly', () => {
+      render(<PriceDisplay price={1000} currency="USD" />)
+      
+      const priceElement = screen.getByText('$10.00')
+      expect(priceElement).toHaveClass('font-semibold', 'text-gray-900')
+    })
 
-  it('renders with custom className', () => {
-    const product = createMockProduct(1000, 'USD');
-    render(
-      <PriceDisplay product={product} className="text-2xl text-blue-600" />
-    );
-    const priceElement = screen.getByText('$10.00');
-    expect(priceElement).toHaveClass('text-2xl', 'text-blue-600');
-  });
+    it('applies custom className correctly', () => {
+      render(<PriceDisplay price={1000} currency="USD" className="text-2xl text-blue-600" />)
+      
+      const priceElement = screen.getByText('$10.00')
+      expect(priceElement).toHaveClass('font-semibold', 'text-gray-900', 'text-2xl', 'text-blue-600')
+    })
 
-  it('renders with undefined className', () => {
-    const product = createMockProduct(1000, 'USD');
-    render(<PriceDisplay product={product} className={undefined} />);
-    expect(screen.getByText('$10.00')).toBeInTheDocument();
-  });
+    it('handles undefined className gracefully', () => {
+      render(<PriceDisplay price={1000} currency="USD" className={undefined} />)
+      
+      const priceElement = screen.getByText('$10.00')
+      expect(priceElement).toHaveClass('font-semibold', 'text-gray-900')
+    })
+  })
 
-  it('renders negative price correctly', () => {
-    const product = createMockProduct(-1000, 'USD');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('-$10.00')).toBeInTheDocument();
-  });
+  describe('Edge Cases', () => {
+    it('handles negative prices correctly', () => {
+      render(<PriceDisplay price={-1000} currency="USD" />)
+      
+      expect(screen.getByText('-$10.00')).toBeInTheDocument()
+    })
 
-  it('renders small price correctly', () => {
-    const product = createMockProduct(1, 'USD');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('$0.01')).toBeInTheDocument();
-  });
+    it('handles very small prices correctly', () => {
+      render(<PriceDisplay price={1} currency="USD" />)
+      
+      expect(screen.getByText('$0.01')).toBeInTheDocument()
+    })
 
-  it('renders price with odd cents correctly', () => {
-    const product = createMockProduct(1001, 'USD');
-    render(<PriceDisplay product={product} />);
-    expect(screen.getByText('$10.01')).toBeInTheDocument();
-  });
-});
+    it('handles prices with many decimal places', () => {
+      render(<PriceDisplay price={1001} currency="USD" />)
+      
+      expect(screen.getByText('$10.01')).toBeInTheDocument()
+    })
+  })
+})

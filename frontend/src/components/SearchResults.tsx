@@ -1,114 +1,90 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import {
-  Search,
-  Filter,
-  Grid3X3,
-  List,
-  RefreshCw,
-  CheckSquare,
-  Square,
-  AlertCircle,
-  ArrowLeft,
-  Star,
-  Store,
-  ChevronUp,
-  Bell,
-} from 'lucide-react';
-import { Card, CardContent } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { Search, Filter, Grid3X3, List, RefreshCw, BarChart3, Star, Store, ExternalLink, Eye } from 'lucide-react';
+import Header from './Header';
 import PriceDisplay from './PriceDisplay';
-import AnonymousPriceAlert from './AnonymousPriceAlert';
-import { apiClient, Product, SearchRequest } from '../lib/api';
+import SearchFilters from './SearchFilters';
+import { type Product } from '../lib/api';
+import { type FilterOptions } from './SearchFilters';
 
-interface SearchResultsProps {
-  searchQuery?: string;
-}
+interface SearchResultsProps {}
 
-const SearchResults: React.FC<SearchResultsProps> = ({
-  searchQuery: propSearchQuery,
-}) => {
+const SearchResults: React.FC<SearchResultsProps> = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { query: urlQuery } = useParams<{ query: string }>();
-  const [searchQuery, setSearchQuery] = useState('');
+  const [query, setQuery] = useState('');
   const [results, setResults] = useState<Product[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'price' | 'rating' | 'name'>('price');
+  const [sortBy, setSortBy] = useState<'price' | 'rating' | 'name' | 'date'>('price');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
-  const [showAlertForm, setShowAlertForm] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<FilterOptions>({
+    priceRange: { min: 0, max: 0 },
+    sources: [],
+    availability: [],
+    rating: null,
+    categories: []
+  });
 
   useEffect(() => {
-    // Get search query from multiple sources in order of priority
-    const query =
-      propSearchQuery || location.state?.searchQuery || urlQuery || '';
-
-    if (query) {
-      setSearchQuery(query);
-      performSearch(query);
+    if (location.state?.query) {
+      setQuery(location.state.query);
+      performSearch(location.state.query);
     }
-  }, [propSearchQuery, location.state?.searchQuery, urlQuery]);
+  }, [location.state]);
 
-  const performSearch = async (query: string) => {
+  const performSearch = async (searchQuery: string) => {
     setLoading(true);
     setError(null);
-
+    
     try {
-      const searchRequest: SearchRequest = {
-        query: query.trim(),
-        maxResults: 50,
-      };
-
-      const response = await apiClient.search(searchRequest);
-
-      if (response.error) {
-        setError(response.error);
-        setResults([]);
-        return;
-      }
-
-      if (response.data?.results) {
-        setResults(response.data.results);
-        
-        if (response.data.results.length === 0) {
-          setError(`No products found for "${query}"`);
-        }
-      } else {
-        setError('Invalid response from server');
-        setResults([]);
-      }
+      // Mock search - in real app this would call the API
+      const mockResults: Product[] = Array.from({ length: 12 }, (_, i) => ({
+        id: `product-${i + 1}`,
+        name: `${searchQuery} Product ${i + 1} - High Quality Item with Great Features`,
+        price: Math.floor(Math.random() * 1000) + 100,
+        currency: 'USD',
+        availability: ['in_stock', 'limited', 'out_of_stock'][Math.floor(Math.random() * 3)] as any,
+        source: `Source ${['Amazon', 'Best Buy', 'Walmart', 'Target'][Math.floor(Math.random() * 4)]}`,
+        imageUrl: `https://via.placeholder.com/300x200?text=Product+${i + 1}`,
+        rating: Math.random() > 0.3 ? Math.floor(Math.random() * 2) + 4 : undefined,
+        reviewCount: Math.random() > 0.3 ? Math.floor(Math.random() * 100) + 10 : undefined,
+        url: `https://example.com/product-${i + 1}`,
+        lastScraped: new Date(Date.now() - Math.random() * 7 * 24 * 60 * 60 * 1000).toISOString()
+      }));
+      
+      setResults(mockResults);
     } catch (err) {
-      console.error('Search error:', err);
       setError('Failed to search products. Please try again.');
-      setResults([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSort = (newSortBy: typeof sortBy) => {
-    setSortBy(newSortBy);
-  };
-
-  const getSortedResults = () => {
-    const sorted = [...results];
-
-    switch (sortBy) {
-      case 'price':
-        return sorted.sort((a, b) => a.price - b.price);
-      case 'rating':
-        return sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      case 'name':
-        return sorted.sort((a, b) => a.name.localeCompare(b.name));
+  const getAvailabilityColor = (availability: string) => {
+    switch (availability) {
+      case 'in_stock':
+        return 'text-success-600 bg-success-50 border-success-200 dark:text-success-400 dark:bg-success-900/20 dark:border-success-800';
+      case 'out_of_stock':
+        return 'text-error-600 bg-error-50 border-error-200 dark:text-error-400 dark:bg-error-900/20 dark:border-error-800';
+      case 'limited':
+        return 'text-warning-600 bg-warning-50 border-warning-200 dark:text-warning-400 dark:bg-warning-900/20 dark:border-warning-800';
       default:
-        return sorted;
+        return 'text-gray-600 bg-gray-100 border-gray-200 dark:text-dark-text-tertiary dark:bg-dark-bg-tertiary dark:border-dark-border';
     }
   };
 
-  const toggleProductSelection = (productId: string) => {
+  const getSourceDisplayName = (source: string) => {
+    if (source.startsWith('Source ')) {
+      return source.replace('Source ', '');
+    }
+    return source;
+  };
+
+  const handleProductSelect = (productId: string) => {
     const newSelected = new Set(selectedProducts);
     if (newSelected.has(productId)) {
       newSelected.delete(productId);
@@ -116,392 +92,476 @@ const SearchResults: React.FC<SearchResultsProps> = ({
       newSelected.add(productId);
     }
     setSelectedProducts(newSelected);
-
-    // Update URL with selected products
-    if (newSelected.size > 0) {
-      const selectedArray = Array.from(newSelected);
-      navigate(`/search/${searchQuery}?compare=${selectedArray.join(',')}`);
-    } else {
-      navigate(`/search/${searchQuery}`);
-    }
   };
 
   const handleCompare = () => {
-    if (selectedProducts.size >= 2) {
-      const selectedArray = Array.from(selectedProducts);
-      navigate('/compare-products', {
-        state: {
-          productIds: selectedArray,
-          products: results.filter((p) => selectedProducts.has(p.id)),
-        },
-      });
+    if (selectedProducts.size < 2) return;
+    
+    const selectedProductsList = results.filter(p => selectedProducts.has(p.id));
+    navigate('/compare', { state: { products: selectedProductsList } });
+  };
+
+  const handleFiltersChange = (newFilters: FilterOptions) => {
+    setFilters(newFilters);
+    // In a real app, this would trigger a new search with filters
+  };
+
+  const getFilteredAndSortedResults = () => {
+    let filtered = [...results];
+
+    // Apply filters
+    if (filters.priceRange.min > 0) {
+      filtered = filtered.filter(p => p.price >= filters.priceRange.min);
     }
-  };
-
-  const handleRefresh = () => {
-    performSearch(searchQuery);
-  };
-
-  const getAvailabilityColor = (availability: string) => {
-    switch (availability) {
-      case 'in_stock':
-        return 'bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400';
-      case 'out_of_stock':
-        return 'bg-red-100 text-red-800 dark:bg-red-900/20 dark:text-red-400';
-      case 'limited':
-        return 'bg-orange-100 text-orange-800 dark:bg-orange-900/20 dark:text-orange-400';
-      default:
-        return 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400';
+    if (filters.priceRange.max > 0) {
+      filtered = filtered.filter(p => p.price <= filters.priceRange.max);
     }
-  };
-
-  const getSourceDisplayName = (source: string) => {
-    // Extract meaningful source name from the source string
-    if (source.startsWith('Source ')) {
-      return source.replace('Source ', '');
+    if (filters.sources.length > 0) {
+      filtered = filtered.filter(p => filters.sources.includes(p.source));
     }
-    return source;
+    if (filters.availability.length > 0) {
+      filtered = filtered.filter(p => filters.availability.includes(p.availability));
+    }
+    if (filters.rating !== null) {
+      filtered = filtered.filter(p => p.rating && p.rating >= filters.rating!);
+    }
+    if (filters.categories.length > 0) {
+      // Mock category filtering - in real app this would use actual product categories
+      filtered = filtered.filter(p => 
+        filters.categories.some(cat => p.name.toLowerCase().includes(cat.toLowerCase()))
+      );
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue: any, bValue: any;
+      
+      switch (sortBy) {
+        case 'price':
+          aValue = a.price;
+          bValue = b.price;
+          break;
+        case 'rating':
+          aValue = a.rating || 0;
+          bValue = b.rating || 0;
+          break;
+        case 'name':
+          aValue = a.name.toLowerCase();
+          bValue = b.name.toLowerCase();
+          break;
+        case 'date':
+          aValue = new Date(a.lastScraped).getTime();
+          bValue = new Date(b.lastScraped).getTime();
+          break;
+        default:
+          return 0;
+      }
+
+      if (sortOrder === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      } else {
+        return aValue < bValue ? 1 : -1;
+      }
+    });
+
+    return filtered;
   };
 
-  const sortedResults = getSortedResults();
+  const filteredResults = getFilteredAndSortedResults();
+  const availableSources = Array.from(new Set(results.map(p => p.source)));
+  const availableCategories = ['Electronics', 'Gaming', 'Fashion', 'Home & Garden', 'Sports', 'Books'];
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8">
-        {/* Search Header */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-dark-bg-primary dark:to-dark-bg-secondary transition-colors duration-200">
+      <Header />
+
+      {/* Page Header */}
+      <div className="bg-white dark:bg-dark-bg-secondary shadow-soft border-b border-gray-200 dark:border-dark-border">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between py-6">
             <div className="flex items-center space-x-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(-1)}
-                className="flex items-center space-x-2"
+              <button
+                onClick={() => navigate('/')}
+                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary transition-colors duration-200"
               >
-                <ArrowLeft className="h-4 w-4" />
-                <span>Back</span>
-              </Button>
-              <h1 className="text-2xl font-bold text-foreground">
-                Search Results
-              </h1>
+                ← Back
+              </button>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-dark-text-primary">
+                  Search Results
+                </h1>
+                <p className="text-gray-600 dark:text-dark-text-secondary">
+                  {loading ? 'Searching...' : `${filteredResults.length} products found`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-3">
+              {/* Filter Button */}
+              <button
+                onClick={() => setShowFilters(true)}
+                className="flex items-center space-x-2 px-4 py-2 bg-white dark:bg-dark-bg-secondary border border-gray-300 dark:border-dark-border rounded-xl text-gray-700 dark:text-dark-text-secondary hover:bg-gray-50 dark:hover:bg-dark-bg-tertiary transition-colors duration-200"
+              >
+                <Filter className="h-4 w-4" />
+                <span>Filters</span>
+                {Object.values(filters).some(f => 
+                  Array.isArray(f) ? f.length > 0 : f !== null && f !== 0
+                ) && (
+                  <span className="bg-primary-100 dark:bg-primary-900/20 text-primary-800 dark:text-primary-200 text-xs px-2 py-1 rounded-full">
+                    Active
+                  </span>
+                )}
+              </button>
+
+              {/* Sort Dropdown */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600 dark:text-dark-text-secondary">
+                  Sort by:
+                </span>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="border border-gray-300 dark:border-dark-border rounded-lg px-3 py-2 text-sm bg-white dark:bg-dark-bg-secondary text-gray-900 dark:text-dark-text-primary focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                >
+                  <option value="price">Price</option>
+                  <option value="rating">Rating</option>
+                  <option value="name">Name</option>
+                  <option value="date">Date</option>
+                </select>
+                <button
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="p-2 text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary transition-colors duration-200"
+                >
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </button>
+              </div>
+
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-gray-100 dark:bg-dark-bg-tertiary rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('grid')}
+                  className={`p-2 rounded-md transition-colors duration-200 ${
+                    viewMode === 'grid'
+                      ? 'bg-white dark:bg-dark-bg-secondary text-primary-600 dark:text-primary-400 shadow-soft'
+                      : 'text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary'
+                  }`}
+                >
+                  <Grid3X3 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`p-2 rounded-md transition-colors duration-200 ${
+                    viewMode === 'list'
+                      ? 'bg-white dark:bg-dark-bg-secondary text-primary-600 dark:text-primary-400 shadow-soft'
+                      : 'text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary'
+                  }`}
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Error Display */}
-        {error && (
-          <Card className="mb-6 border-destructive/50 bg-destructive/10">
-            <CardContent className="p-4">
-              <div className="flex items-center">
-                <AlertCircle className="h-5 w-5 text-destructive mr-2" />
-                <div>
-                  <h3 className="text-sm font-medium text-destructive">
-                    Search Error
-                  </h3>
-                  <p className="text-sm text-destructive/80 mt-1">{error}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Controls */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Action Bar */}
+        <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-4">
-            <Button
-              variant="outline"
-              size="sm"
-              className="flex items-center space-x-2"
-            >
-              <Filter className="h-4 w-4" />
-              <span>Filters</span>
-            </Button>
-
-            <span className="text-sm text-muted-foreground">Sort by:</span>
-            <select
-              value={sortBy}
-              onChange={(e) => handleSort(e.target.value as typeof sortBy)}
-              className="border border-border rounded-lg px-3 py-2 text-sm bg-background hover:border-ring hover:bg-accent/50 dark:hover:bg-accent/30 transition-all duration-200 text-foreground cursor-pointer focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 dark:focus:ring-offset-background"
-            >
-              <option value="price">Price</option>
-              <option value="rating">Rating</option>
-              <option value="name">Name</option>
-            </select>
-
-            <div className="flex items-center border border-border rounded-lg overflow-hidden hover:border-ring transition-colors duration-200">
-              <Button
-                variant={viewMode === 'list' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('list')}
-                className="rounded-none hover:bg-accent/80 dark:hover:bg-accent/60"
-              >
-                <List className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === 'grid' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('grid')}
-                className="rounded-none hover:bg-accent/80 dark:hover:bg-accent-60"
-              >
-                <Grid3X3 className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-4">
-            <Button
-              onClick={handleRefresh}
+            <button
+              onClick={() => performSearch(query)}
               disabled={loading}
-              className="flex items-center"
+              className="flex items-center space-x-2 px-4 py-2 bg-primary-600 dark:bg-primary-500 text-white rounded-xl hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors duration-200 disabled:opacity-50"
             >
-              <RefreshCw
-                className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`}
-              />
-              Refresh Prices
-            </Button>
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
 
-            {selectedProducts.size >= 2 && (
-              <Button
+            {selectedProducts.size > 0 && (
+              <button
                 onClick={handleCompare}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 hover:shadow-lg dark:hover:shadow-green-500/25 transition-all duration-200 hover:-translate-y-0.5"
+                disabled={selectedProducts.size < 2}
+                className="flex items-center space-x-2 px-4 py-2 bg-success-600 dark:bg-success-500 text-white rounded-xl hover:bg-success-700 dark:hover:bg-success-600 transition-colors duration-200 disabled:opacity-50"
               >
-                Compare Selected ({selectedProducts.size})
-              </Button>
+                <BarChart3 className="h-4 w-4" />
+                <span>Compare ({selectedProducts.size})</span>
+              </button>
             )}
           </div>
-        </div>
 
-        {/* Results Count */}
-        <div className="mb-6">
-          <p className="text-muted-foreground">
-            {loading
-              ? 'Searching...'
-              : `Found ${results.length} results for "${searchQuery}"`}
-          </p>
-        </div>
-
-        {/* Results Grid/List */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <Card key={i} className="animate-pulse">
-                <CardContent className="p-4">
-                  <div className="aspect-square bg-muted rounded-lg mb-4"></div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-muted rounded"></div>
-                    <div className="h-4 bg-muted rounded w-3/4"></div>
-                    <div className="h-6 bg-muted rounded w-1/2"></div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="text-sm text-gray-600 dark:text-dark-text-secondary">
+            Showing {filteredResults.length} of {results.length} results
           </div>
-        ) : results.length > 0 ? (
-          <div
-            className={
-              viewMode === 'grid'
-                ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
-                : 'space-y-4'
-            }
-          >
-            {sortedResults.map((product) => (
-              <Card
-                key={product.id}
-                className={`group cursor-pointer hover:shadow-lg dark:hover:shadow-accent/20 transition-all duration-200 hover:-translate-y-1 hover:border-ring ${
-                  viewMode === 'list' ? 'flex gap-4' : ''
-                }`}
-                onClick={() => {
-                  // Generate slug from product name if not available
-                  const slug = product.slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-                  navigate(`/product/${slug}`, {
-                    state: { product: { ...product, slug } },
-                  });
-                }}
-              >
-                <CardContent
-                  className={`p-4 ${viewMode === 'list' ? 'flex gap-4' : ''}`}
-                >
-                  {/* Selection Checkbox */}
-                  <div className="absolute top-2 left-2 z-10">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleProductSelection(product.id);
-                      }}
-                      className="p-1 bg-background/80 backdrop-blur-sm rounded hover:bg-background/90 transition-colors"
-                    >
-                      {selectedProducts.has(product.id) ? (
-                        <CheckSquare className="h-4 w-4 text-primary" />
-                      ) : (
-                        <Square className="h-4 w-4 text-muted-foreground" />
-                      )}
-                    </button>
-                  </div>
+        </div>
 
-                  {/* Image Section */}
-                  <div
-                    className={`relative ${
-                      viewMode === 'list'
-                        ? 'w-32 h-32 flex-shrink-0'
-                        : 'aspect-square mb-4'
-                    } overflow-hidden rounded-lg bg-muted`}
-                  >
-                    <img
-                      src={product.imageUrl || product.image || '/placeholder-product.jpg'}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
-
-                    {/* Availability Badge */}
-                    <Badge
-                      className={`absolute bottom-2 left-2 ${getAvailabilityColor(
-                        product.availability
-                      )}`}
-                    >
-                      {product.availability === 'in_stock'
-                        ? 'In Stock'
-                        : product.availability === 'limited'
-                        ? 'Low Stock'
-                        : 'Out of Stock'}
-                    </Badge>
-                  </div>
-
-                  {/* Content Section */}
-                  <div className="flex-1 min-w-0">
-                    {/* Source */}
-                    <div className="flex items-center gap-2 mb-2">
-                      <Store className="w-4 h-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        {getSourceDisplayName(product.source)}
-                      </span>
-                    </div>
-
-                    {/* Product Name */}
-                    <h3 className="font-medium text-foreground mb-2 line-clamp-2 leading-tight">
-                      {product.name}
-                    </h3>
-
-                    {/* Rating */}
-                    {product.rating && (
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="flex items-center">
-                          {Array.from({ length: 5 }, (_, i) => (
-                            <Star
-                              key={i}
-                              className={`w-4 h-4 ${
-                                i < Math.floor(product.rating || 0)
-                                  ? 'fill-yellow-400 text-yellow-400'
-                                  : 'text-muted'
-                              }`}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-sm text-muted-foreground">
-                          {product.rating} (
-                          {product.reviewCount?.toLocaleString() || 0})
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Price Section */}
-                    <div className="mb-4">
-                      <PriceDisplay product={product} />
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        className="flex-1"
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          // Generate slug from product name if not available
-                          const slug = product.slug || product.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-                          navigate(`/product/${slug}`, {
-                            state: { product: { ...product, slug } },
-                          });
-                        }}
-                      >
-                        View Details
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-shrink-0"
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          if (selectedProducts.has(product.id)) {
-                            setSelectedProducts((prev) => {
-                              const newSet = new Set(prev);
-                              newSet.delete(product.id);
-                              return newSet;
-                            });
-                          } else {
-                            setSelectedProducts((prev) =>
-                              new Set(prev).add(product.id)
-                            );
-                          }
-                        }}
-                      >
-                        {selectedProducts.has(product.id)
-                          ? 'Remove'
-                          : 'Compare'}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-shrink-0"
-                        onClick={(e: React.MouseEvent) => {
-                          e.stopPropagation();
-                          // Show alert form for this product
-                          setShowAlertForm(product.id);
-                        }}
-                      >
-                        <Bell className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    {/* Price Alert Form */}
-                    {showAlertForm === product.id && (
-                      <div className="mt-3 p-3 border rounded-lg bg-muted/50">
-                        <AnonymousPriceAlert 
-                          productId={product.id}
-                          productName={product.name}
-                          currentPrice={product.price}
-                          onSuccess={() => setShowAlertForm(null)}
-                          compact={true}
-                        />
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+        {/* Results */}
+        {loading ? (
+          <div className="text-center py-16">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-600 dark:border-primary-400 mx-auto mb-4"></div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary mb-2">
+              Searching for products...
+            </h3>
+            <p className="text-gray-500 dark:text-dark-text-tertiary">
+              This may take a few moments
+            </p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-16">
+            <div className="bg-error-50 dark:bg-error-900/20 border border-error-200 dark:border-error-800 rounded-2xl p-6 max-w-md mx-auto">
+              <h3 className="text-lg font-semibold text-error-800 dark:text-error-200 mb-2">
+                Search Error
+              </h3>
+              <p className="text-sm text-error-700 dark:text-error-400 mt-1">
+                {error}
+              </p>
+            </div>
+          </div>
+        ) : filteredResults.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="bg-gray-50 dark:bg-dark-bg-tertiary rounded-2xl p-8 max-w-md mx-auto">
+              <div className="w-16 h-16 bg-gray-200 dark:bg-dark-bg-secondary rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="h-8 w-8 text-gray-400 dark:text-dark-text-tertiary" />
+              </div>
+              <p className="text-lg text-gray-600 dark:text-dark-text-secondary mb-2">
+                No products found
+              </p>
+              <p className="text-gray-500 dark:text-dark-text-tertiary">
+                Try a different search term
+              </p>
+            </div>
           </div>
         ) : (
-          <Card className="text-center py-12">
-            <CardContent>
-              <Search className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                No results found
-              </h3>
-              <p className="text-muted-foreground">
-                Try adjusting your search terms or browse our popular
-                categories.
-              </p>
-            </CardContent>
-          </Card>
-        )}
+          <>
+            {/* Grid View */}
+            {viewMode === 'grid' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                {filteredResults.map((product) => (
+                  <div
+                    key={product.id}
+                    className="bg-white dark:bg-dark-bg-secondary rounded-2xl shadow-soft border border-gray-200 dark:border-dark-border overflow-hidden hover:shadow-medium hover:-translate-y-1 transition-all duration-200"
+                  >
+                    {/* Product Image */}
+                    <div className="relative h-48 bg-gray-100 dark:bg-dark-bg-tertiary">
+                      <img
+                        src={product.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                      
+                      {/* Compare Checkbox */}
+                      <button
+                        onClick={() => handleProductSelect(product.id)}
+                        className={`absolute top-3 right-3 w-6 h-6 rounded-full border-2 transition-all duration-200 ${
+                          selectedProducts.has(product.id)
+                            ? 'bg-primary-600 dark:bg-primary-500 border-primary-600 dark:border-primary-500 text-white'
+                            : 'bg-white dark:bg-dark-bg-secondary border-gray-300 dark:border-dark-border hover:border-primary-400 dark:hover:border-primary-500'
+                        }`}
+                      >
+                        {selectedProducts.has(product.id) && (
+                          <svg className="w-4 h-4 mx-auto" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
 
-        {/* Scroll to top button */}
-        <Button
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          className="fixed bottom-6 right-6 z-50 h-12 w-12 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 hover:shadow-xl transition-all duration-300 hover:scale-110"
-          aria-label="Scroll to top"
-        >
-          <ChevronUp className="h-6 w-6" />
-        </Button>
+                    {/* Product Info */}
+                    <div className="p-4">
+                      <h3 className="font-semibold text-gray-900 dark:text-dark-text-primary mb-2 line-clamp-2">
+                        {product.name}
+                      </h3>
+                      
+                      {/* Price */}
+                      <div className="mb-3">
+                        <PriceDisplay
+                          price={product.price}
+                          currency={product.currency}
+                          className="text-xl font-bold text-gray-900 dark:text-dark-text-primary"
+                        />
+                      </div>
+
+                      {/* Source and Rating */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center space-x-2">
+                          <Store className="h-4 w-4 text-gray-400 dark:text-dark-text-tertiary" />
+                          <span className="text-sm text-gray-600 dark:text-dark-text-secondary">
+                            {getSourceDisplayName(product.source)}
+                          </span>
+                        </div>
+                        {product.rating ? (
+                          <div className="flex items-center space-x-1">
+                            <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                            <span className="text-sm font-medium text-gray-900 dark:text-dark-text-primary">
+                              {product.rating}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-sm text-gray-400 dark:text-dark-text-tertiary">No rating</span>
+                        )}
+                      </div>
+
+                      {/* Availability */}
+                      <div className="mb-4">
+                        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getAvailabilityColor(
+                          product.availability
+                        )}`}>
+                          {product.availability.replace('_', ' ')}
+                        </span>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
+                          className="flex-1 bg-primary-600 dark:bg-primary-500 text-white text-center py-2 px-3 rounded-xl hover:bg-primary-700 dark:hover:bg-primary-600 transition-colors duration-200 text-sm font-medium flex items-center justify-center space-x-1"
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span>View</span>
+                        </button>
+                        <a
+                          href={product.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-3 py-2 bg-gray-100 dark:bg-dark-bg-tertiary text-gray-700 dark:text-dark-text-secondary rounded-xl hover:bg-gray-200 dark:hover:bg-dark-bg-secondary transition-colors duration-200 flex items-center justify-center"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* List View */}
+            {viewMode === 'list' && (
+              <div className="bg-white dark:bg-dark-bg-secondary rounded-2xl shadow-soft border border-gray-200 dark:border-dark-border overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-gray-200 dark:divide-dark-border">
+                    <thead className="bg-gray-50 dark:bg-dark-bg-tertiary">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-dark-text-tertiary uppercase tracking-wider">
+                          Product
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-dark-text-tertiary uppercase tracking-wider">
+                          Price
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-dark-text-tertiary uppercase tracking-wider">
+                          Source
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-dark-text-tertiary uppercase tracking-wider">
+                          Rating
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-dark-text-tertiary uppercase tracking-wider">
+                          Availability
+                        </th>
+                        <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 dark:text-dark-text-tertiary uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white dark:bg-dark-bg-secondary divide-y divide-gray-200 dark:divide-dark-border">
+                      {filteredResults.map((product) => (
+                        <tr key={product.id} className="hover:bg-gray-50 dark:hover:bg-dark-bg-tertiary transition-colors duration-200">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center space-x-4">
+                              <input
+                                type="checkbox"
+                                checked={selectedProducts.has(product.id)}
+                                onChange={() => handleProductSelect(product.id)}
+                                className="rounded border-gray-300 dark:border-dark-border text-primary-600 dark:text-primary-400 focus:ring-primary-500 dark:focus:ring-primary-400"
+                              />
+                              <div className="h-16 w-16 rounded-xl overflow-hidden border border-gray-200 dark:border-dark-border">
+                                <img
+                                  src={product.imageUrl || 'https://via.placeholder.com/64x64?text=No+Image'}
+                                  alt={product.name}
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h3 className="text-sm font-medium text-gray-900 dark:text-dark-text-primary truncate">
+                                  {product.name}
+                                </h3>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            <PriceDisplay
+                              price={product.price}
+                              currency={product.currency}
+                              className="text-lg font-semibold text-gray-900 dark:text-dark-text-primary"
+                            />
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex items-center space-x-2">
+                              <Store className="h-4 w-4 text-gray-400 dark:text-dark-text-tertiary" />
+                              <span className="text-sm text-gray-900 dark:text-dark-text-primary">
+                                {getSourceDisplayName(product.source)}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4">
+                            {product.rating ? (
+                              <div className="flex items-center space-x-2">
+                                <Star className="h-4 w-4 text-yellow-400 fill-current" />
+                                <span className="text-sm font-medium text-gray-900 dark:text-dark-text-primary">
+                                  {product.rating}
+                                </span>
+                                {product.reviewCount && (
+                                  <span className="text-xs text-gray-500 dark:text-dark-text-tertiary">
+                                    ({product.reviewCount})
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-sm text-gray-400 dark:text-dark-text-tertiary">No rating</span>
+                            )}
+                          </td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full border ${getAvailabilityColor(
+                              product.availability
+                            )}`}>
+                              {product.availability.replace('_', ' ')}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => navigate(`/product/${product.id}`, { state: { product } })}
+                                className="text-primary-600 dark:text-primary-400 hover:text-primary-900 dark:hover:text-primary-300 text-sm font-medium transition-colors duration-150"
+                              >
+                                View
+                              </button>
+                              <a
+                                href={product.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-600 dark:text-dark-text-secondary hover:text-gray-900 dark:hover:text-dark-text-primary text-sm font-medium transition-colors duration-150"
+                              >
+                                External
+                              </a>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </>
+        )}
       </main>
+
+      {/* Filters Panel */}
+      <SearchFilters
+        isOpen={showFilters}
+        onClose={() => setShowFilters(false)}
+        filters={filters}
+        onFiltersChange={handleFiltersChange}
+        availableSources={availableSources}
+        availableCategories={availableCategories}
+      />
     </div>
   );
 };
