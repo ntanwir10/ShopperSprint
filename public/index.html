@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>ShopperSprint - Coming Soon</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        text-align: center;
+        padding: 2rem;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 20px;
+        backdrop-filter: blur(10px);
+      }
+      .logo {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+      }
+      .title {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+      }
+      .subtitle {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        opacity: 0.9;
+      }
+      .email-form {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .email-input {
+        padding: 1rem;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        flex: 1;
+        min-width: 200px;
+      }
+      .btn {
+        padding: 1rem 2rem;
+        background: #ff6b6b;
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+      .btn:hover {
+        background: #ff5252;
+        transform: translateY(-2px);
+      }
+      .success {
+        background: #4caf50;
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+        display: none;
+      }
+      .error {
+        background: #f44336;
+        color: white;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-top: 1rem;
+        display: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo">🛒 ShopperSprint</div>
+      <h1 class="title">Coming Soon</h1>
+      <p class="subtitle">
+        Canada's smartest price comparison platform is launching soon!
+      </p>
+      <form class="email-form" id="waitlistForm">
+        <input
+          type="email"
+          name="email"
+          placeholder="Enter your email"
+          class="email-input"
+          required
+        />
+        <button type="submit" class="btn">Join Waitlist</button>
+      </form>
+      <div id="success" class="success">🎉 Thanks! You're on the list!</div>
+      <div id="error" class="error">
+        ❌ Something went wrong. Please try again.
+      </div>
+      <p>Track prices • Find deals • Save money</p>
+    </div>
+
+    <script>
+      document
+        .getElementById("waitlistForm")
+        .addEventListener("submit", async function (e) {
+          e.preventDefault();
+          const email = document.getElementById("email").value;
+          const success = document.getElementById("success");
+          const error = document.getElementById("error");
+
+          try {
+            const response = await fetch("/api/waitlist/join", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ email }),
+            });
+
+            if (response.ok) {
+              success.style.display = "block";
+              error.style.display = "none";
+              document.getElementById("email").value = "";
+            } else {
+              throw new Error("Failed to join waitlist");
+            }
+          } catch (err) {
+            error.style.display = "block";
+            success.style.display = "none";
+          }
+        });
+    </script>
+  </body>
+</html>
