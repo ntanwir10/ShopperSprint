@@ -6,9 +6,9 @@ npm-debug.log*
 .env*
 !.env.example
 
-# Build outputs
-dist
+# Build outputs (but allow frontend/dist for deployment)
 build
+# dist
 
 # Git
 .git
