@@ -5,7 +5,8 @@
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "npm run clean && tsc",
+    "clean": "rm -rf dist node_modules/.cache",
     "type-check": "tsc --noEmit",
     "start": "tsx src/scripts/check-env.ts && node dist/index.js",
     "test": "jest",

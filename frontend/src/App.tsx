@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Header from './components/Header';
-import LandingPage from './components/LandingPage';
+import ComingSoon from './components/ComingSoon';
 import SearchResults from './components/SearchResults';
 import ProductDetail from './components/ProductDetail';
 import PriceAlerts from './components/PriceAlert';
@@ -13,13 +13,50 @@ function App() {
     <ThemeProvider>
       <Router>
         <div className="App">
-          <Header />
           <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/search" element={<SearchResults />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/alerts" element={<PriceAlerts productId="1" currentPrice={999} onSetAlert={() => {}} onClose={() => {}} isOpen={false} />} />
-            <Route path="/compare" element={<ProductComparison />} />
+            <Route path="/" element={<ComingSoon />} />
+            <Route
+              path="/search"
+              element={
+                <>
+                  <Header />
+                  <SearchResults />
+                </>
+              }
+            />
+            <Route
+              path="/product/:id"
+              element={
+                <>
+                  <Header />
+                  <ProductDetail />
+                </>
+              }
+            />
+            <Route
+              path="/alerts"
+              element={
+                <>
+                  <Header />
+                  <PriceAlerts
+                    productId="1"
+                    currentPrice={999}
+                    onSetAlert={() => {}}
+                    onClose={() => {}}
+                    isOpen={false}
+                  />
+                </>
+              }
+            />
+            <Route
+              path="/compare"
+              element={
+                <>
+                  <Header />
+                  <ProductComparison />
+                </>
+              }
+            />
           </Routes>
         </div>
       </Router>

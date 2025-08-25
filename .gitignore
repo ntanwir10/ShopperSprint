@@ -10,6 +10,8 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production.example
+.env.temp
 
 # Build outputs
 dist/
@@ -65,3 +67,24 @@ coverage/
 # Taskmaster (if using)
 .taskmaster/
 backup-*/
+
+./dependency-backend/
+
+logs
+dev-debug.log
+# Dependency directories
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+# OS specific
+
+# Task files
+tasks.json
+tasks/ 
+
+.cursor/

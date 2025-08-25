@@ -1,7 +1,3 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
 /* Custom dimensions from Figma design */
 .w-35 {
   width: 8.75rem; /* 140px */

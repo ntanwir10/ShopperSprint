@@ -1,18 +1,19 @@
-import { createTransport } from 'nodemailer';
+import { createTransport } from "nodemailer";
 
 // Email configuration from environment variables
 const getSmtpConfig = () => ({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
-  secure: process.env.SMTP_SECURE === 'true', // true for 465, false for other ports
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
+  port: parseInt(process.env.SMTP_PORT || "587"),
+  secure: process.env.SMTP_SECURE === "true", // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
 });
 
-const getFromEmail = () => process.env.SMTP_FROM || 'ShopperSprint <noreply@shoppersprint.com>';
-const getBaseUrl = () => process.env.FRONTEND_URL || 'http://localhost:5173';
+const getFromEmail = () =>
+  process.env.SMTP_FROM || "ShopperSprint <noreply@shoppersprint.com>";
+const getBaseUrl = () => process.env.FRONTEND_URL || "http://localhost:5173";
 
 // Create reusable transporter object using SMTP transport
 let transporter: any = null;
@@ -22,25 +23,27 @@ const initializeTransporter = () => {
   if (initializationAttempted) {
     return transporter;
   }
-  
+
   initializationAttempted = true;
-  
-  console.log('🔧 Attempting to initialize waitlist email service...');
-  console.log('📧 SMTP_USER:', process.env.SMTP_USER ? 'SET' : 'NOT SET');
-  console.log('📧 SMTP_PASS:', process.env.SMTP_PASS ? 'SET' : 'NOT SET');
-  
+
+  console.log("🔧 Attempting to initialize waitlist email service...");
+  console.log("📧 SMTP_USER:", process.env.SMTP_USER ? "SET" : "NOT SET");
+  console.log("📧 SMTP_PASS:", process.env.SMTP_PASS ? "SET" : "NOT SET");
+
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log('⚠️  Waitlist email service disabled: SMTP credentials not configured');
+    console.log(
+      "⚠️  Waitlist email service disabled: SMTP credentials not configured"
+    );
     return null;
   }
 
   try {
     const config = getSmtpConfig();
     transporter = createTransport(config);
-    console.log('📧 Waitlist email service initialized successfully');
+    console.log("📧 Waitlist email service initialized successfully");
     return transporter;
   } catch (error) {
-    console.error('❌ Failed to initialize waitlist email service:', error);
+    console.error("❌ Failed to initialize waitlist email service:", error);
     return null;
   }
 };
@@ -54,8 +57,10 @@ const generateEmailTemplate = (content: {
   unsubscribeToken?: string;
   isWelcome?: boolean;
 }) => {
-  const unsubscribeUrl = content.unsubscribeToken 
-    ? `${getBaseUrl()}/unsubscribe?token=${content.unsubscribeToken}`
+  const unsubscribeUrl = content.unsubscribeToken
+    ? `${
+        process.env.BACKEND_URL || "http://localhost:3001"
+      }/api/waitlist/unsubscribe/${content.unsubscribeToken}`
     : null;
 
   return `
@@ -76,12 +81,16 @@ const generateEmailTemplate = (content: {
         
         <!-- Main Content -->
         <div style="background: linear-gradient(135deg, #f0f9ff 0%, #ecfdf5 100%); padding: 30px; border-radius: 15px; margin-bottom: 30px;">
-          <h2 style="color: #1f2937; margin-top: 0; font-size: 1.8em;">${content.heading}</h2>
+          <h2 style="color: #1f2937; margin-top: 0; font-size: 1.8em;">${
+            content.heading
+          }</h2>
           <div style="font-size: 1.1em; margin-bottom: 20px;">
             ${content.message}
           </div>
           
-          ${content.isWelcome ? `
+          ${
+            content.isWelcome
+              ? `
           <div style="background: white; padding: 20px; border-radius: 10px; margin: 20px 0;">
             <h3 style="color: #2563eb; margin-top: 0;">What to expect:</h3>
             <ul style="padding-left: 20px; margin: 0;">
@@ -91,10 +100,14 @@ const generateEmailTemplate = (content: {
               <li style="margin-bottom: 8px;">💰 Exclusive launch deals and early access</li>
             </ul>
           </div>
-          ` : ''}
+          `
+              : ""
+          }
         </div>
         
-        ${content.isWelcome ? `
+        ${
+          content.isWelcome
+            ? `
         <div style="background: #f9fafb; padding: 25px; border-radius: 10px; margin-bottom: 30px;">
           <h3 style="color: #1f2937; margin-top: 0;">📅 Launch Timeline</h3>
           <p style="font-size: 1.1em; margin-bottom: 15px;">
@@ -105,25 +118,37 @@ const generateEmailTemplate = (content: {
             You'll be among the first to know when we launch!
           </p>
         </div>
-        ` : ''}
+        `
+            : ""
+        }
         
         <!-- Footer -->
         <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb;">
           <p style="color: #666; font-size: 0.9em; margin-bottom: 15px;">
-            ${content.isWelcome ? 'Stay tuned for updates and exclusive previews!' : 'Thank you for your interest in ShopperSprint!'}<br>
+            ${
+              content.isWelcome
+                ? "Stay tuned for updates and exclusive previews!"
+                : "Thank you for your interest in ShopperSprint!"
+            }<br>
             <strong>The ShopperSprint Team</strong>
           </p>
           
           <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin-top: 20px;">
             <p style="color: #666; font-size: 0.8em; margin: 0 0 10px 0;">
-              This email was sent to <strong>${content.email}</strong> because you joined our waitlist at shoppersprint.com
+              This email was sent to <strong>${
+                content.email
+              }</strong> because you joined our waitlist at shoppersprint.com
             </p>
-            ${unsubscribeUrl ? `
+            ${
+              unsubscribeUrl
+                ? `
             <p style="color: #666; font-size: 0.8em; margin: 0;">
               Don't want to receive these emails? 
               <a href="${unsubscribeUrl}" style="color: #dc2626; text-decoration: underline;">Unsubscribe here</a>
             </p>
-            ` : ''}
+            `
+                : ""
+            }
           </div>
         </div>
       </div>
@@ -132,24 +157,30 @@ const generateEmailTemplate = (content: {
   `;
 };
 
-export const sendWaitlistWelcomeEmail = async (email: string, unsubscribeToken: string): Promise<boolean> => {
+export const sendWaitlistWelcomeEmail = async (
+  email: string,
+  unsubscribeToken: string
+): Promise<boolean> => {
   const emailTransporter = initializeTransporter();
-  
+
   if (!emailTransporter) {
-    console.log('📧 Waitlist email service not available, skipping welcome email for:', email);
+    console.log(
+      "📧 Waitlist email service not available, skipping welcome email for:",
+      email
+    );
     return false;
   }
 
   try {
     const htmlContent = generateEmailTemplate({
-      title: 'Welcome to ShopperSprint!',
-      heading: '🎉 You\'re In!',
+      title: "Welcome to ShopperSprint!",
+      heading: "🎉 You're In!",
       message: `
         <p>Thanks for joining our waitlist! You're now part of an exclusive group that will get early access to Canada's most advanced price comparison platform.</p>
       `,
       email,
       unsubscribeToken,
-      isWelcome: true
+      isWelcome: true,
     });
 
     const textContent = `
@@ -177,32 +208,40 @@ Unsubscribe: ${getBaseUrl()}/unsubscribe?token=${unsubscribeToken}
     const mailOptions = {
       from: getFromEmail(),
       to: email,
-      subject: '🎉 Welcome to the ShopperSprint Waitlist!',
+      subject: "🎉 Welcome to the ShopperSprint Waitlist!",
       html: htmlContent,
       text: textContent,
     };
 
     const info = await emailTransporter.sendMail(mailOptions);
-    console.log('📧 Welcome email sent successfully to:', email, 'MessageID:', info.messageId);
+    console.log(
+      "📧 Welcome email sent successfully to:",
+      email,
+      "MessageID:",
+      info.messageId
+    );
     return true;
   } catch (error) {
-    console.error('❌ Failed to send welcome email to:', email, error);
+    console.error("❌ Failed to send welcome email to:", email, error);
     return false;
   }
 };
 
 export const sendTestEmail = async (email: string): Promise<boolean> => {
   const emailTransporter = initializeTransporter();
-  
+
   if (!emailTransporter) {
-    console.log('📧 Waitlist email service not available for test email to:', email);
+    console.log(
+      "📧 Waitlist email service not available for test email to:",
+      email
+    );
     return false;
   }
 
   try {
     const htmlContent = generateEmailTemplate({
-      title: 'ShopperSprint Email Test',
-      heading: '🧪 Email Service Test',
+      title: "ShopperSprint Email Test",
+      heading: "🧪 Email Service Test",
       message: `
         <p>This is a test email from ShopperSprint to verify email functionality.</p>
         <p><strong>Timestamp:</strong> ${new Date().toISOString()}</p>
@@ -210,7 +249,7 @@ export const sendTestEmail = async (email: string): Promise<boolean> => {
         <p>If you received this, email service is working correctly! 🎉</p>
       `,
       email,
-      isWelcome: false
+      isWelcome: false,
     });
 
     const textContent = `
@@ -228,39 +267,49 @@ The ShopperSprint Team
     const mailOptions = {
       from: getFromEmail(),
       to: email,
-      subject: '🧪 ShopperSprint Email Test',
+      subject: "🧪 ShopperSprint Email Test",
       html: htmlContent,
       text: textContent,
     };
 
     const info = await emailTransporter.sendMail(mailOptions);
-    console.log('📧 Test email sent successfully to:', email, 'MessageID:', info.messageId);
+    console.log(
+      "📧 Test email sent successfully to:",
+      email,
+      "MessageID:",
+      info.messageId
+    );
     return true;
   } catch (error) {
-    console.error('❌ Failed to send test email to:', email, error);
+    console.error("❌ Failed to send test email to:", email, error);
     return false;
   }
 };
 
-export const sendUnsubscribeConfirmationEmail = async (email: string): Promise<boolean> => {
+export const sendUnsubscribeConfirmationEmail = async (
+  email: string
+): Promise<boolean> => {
   const emailTransporter = initializeTransporter();
-  
+
   if (!emailTransporter) {
-    console.log('📧 Waitlist email service not available for unsubscribe confirmation to:', email);
+    console.log(
+      "📧 Waitlist email service not available for unsubscribe confirmation to:",
+      email
+    );
     return false;
   }
 
   try {
     const htmlContent = generateEmailTemplate({
-      title: 'Unsubscribed from ShopperSprint',
-      heading: '👋 You\'ve Been Unsubscribed',
+      title: "Unsubscribed from ShopperSprint",
+      heading: "👋 You've Been Unsubscribed",
       message: `
         <p>You have been successfully unsubscribed from the ShopperSprint waitlist.</p>
         <p>We're sorry to see you go! If you change your mind, you can always sign up again at our website.</p>
         <p>Thank you for your interest in ShopperSprint.</p>
       `,
       email,
-      isWelcome: false
+      isWelcome: false,
     });
 
     const textContent = `
@@ -278,16 +327,25 @@ The ShopperSprint Team
     const mailOptions = {
       from: getFromEmail(),
       to: email,
-      subject: '👋 Unsubscribed from ShopperSprint Waitlist',
+      subject: "👋 Unsubscribed from ShopperSprint Waitlist",
       html: htmlContent,
       text: textContent,
     };
 
     const info = await emailTransporter.sendMail(mailOptions);
-    console.log('📧 Unsubscribe confirmation email sent successfully to:', email, 'MessageID:', info.messageId);
+    console.log(
+      "📧 Unsubscribe confirmation email sent successfully to:",
+      email,
+      "MessageID:",
+      info.messageId
+    );
     return true;
   } catch (error) {
-    console.error('❌ Failed to send unsubscribe confirmation email to:', email, error);
+    console.error(
+      "❌ Failed to send unsubscribe confirmation email to:",
+      email,
+      error
+    );
     return false;
   }
 };

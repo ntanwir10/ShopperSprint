@@ -285,7 +285,6 @@ External APIs:
 
 - **🚂 Railway.com**: Primary deployment platform
 - **🐳 Docker**: Containerization
-- **🔄 GitHub Actions**: CI/CD pipeline
 - **📊 Analytics**: Google Analytics + custom ad tracking
 
 ---

@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "npm run clean && vite build",
+    "clean": "rm -rf dist node_modules/.cache",
     "type-check": "tsc --noEmit",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -14,7 +15,7 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "favicon": "../scripts/generate-favicon.sh"
+    "favicon": "echo 'Asset generation needs to be implemented'"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",

@@ -2,6 +2,8 @@
 
 ShopperSprint is a Canadian price comparison platform that helps users find the best prices across Canadian retailers and set up price alerts. A comprehensive price tracking system that monitors product prices across multiple sources in real-time. Built with **Railway.com** for full-stack deployment and **PostgreSQL** with custom authentication, the system provides advanced search capabilities, price comparison, historical tracking, and both **user-authenticated features** and **anonymous price alerts** for maximum flexibility.
 
+[shoppersprint.com](https://shoppersprint.com)
+
 ## 📋 Table of Contents
 
 - [ShopperSprint](#shoppersprint)
@@ -81,7 +83,7 @@ ShopperSprint is a Canadian price comparison platform that helps users find the 
     - [🧪 GitHub Actions Workflows](#-github-actions-workflows)
       - [1. **Continuous Integration** (`ci.yml`)](#1-continuous-integration-ciyml)
       - [2. **Development Deployment** (`deploy-dev.yml`)](#2-development-deployment-deploy-devyml)
-      - [3. **Production Deployment** (`deploy-prod.yml`)](#3-production-deployment-deploy-prodyml)
+      - [3. **Production Deployment** (Local Deployment Script)](#3-production-deployment-local-deployment-script)
       - [4. **Security Scanning** (`security-scan.yml`)](#4-security-scanning-security-scanyml)
       - [5. **Monitoring \& Alerts** (`monitoring.yml`)](#5-monitoring--alerts-monitoringyml)
     - [🚀 Deployment Environments](#-deployment-environments)
@@ -163,6 +165,12 @@ ShopperSprint is a Canadian price comparison platform that helps users find the 
       - [🎯 Best Practices](#-best-practices)
     - [📊 Reference Materials](#-reference-materials)
 - [Testing development environment deployment](#testing-development-environment-deployment)
+- [Deployment trigger Fri 22 Aug 2025 23:30:41 EDT](#deployment-trigger-fri-22-aug-2025-233041-edt)
+- [Deployment trigger Sat 23 Aug 2025 00:10:13 EDT](#deployment-trigger-sat-23-aug-2025-001013-edt)
+- [Deployment with Railway Project Token Sat 23 Aug 2025 00:18:15 EDT](#deployment-with-railway-project-token-sat-23-aug-2025-001815-edt)
+- [Deployment with corrected Railway link syntax Sat 23 Aug 2025 00:54:36 EDT](#deployment-with-corrected-railway-link-syntax-sat-23-aug-2025-005436-edt)
+- [Railway GitHub Integration Test](#railway-github-integration-test)
+- [Fresh deployment trigger](#fresh-deployment-trigger)
 
 ## ✨ Key Features
 
@@ -300,7 +308,7 @@ shoppersprint/
 │   ├── workflows/          # GitHub Actions workflows
 │   │   ├── ci.yml         # Continuous Integration
 │   │   ├── deploy-dev.yml # Development deployment  
-│   │   ├── deploy-prod.yml# Production deployment
+│   │   ├── deploy.sh# Local deployment script
 │   │   ├── deploy.yml     # General deployment
 │   │   ├── security-scan.yml # Security scanning
 │   │   └── monitoring.yml # Monitoring & alerts
@@ -437,7 +445,7 @@ npm run test            # Run all tests with coverage
 
 # 🚀 DEPLOYMENT
 npm run deploy          # Deploy to production
-npm run deploy:staging  # Deploy to staging environment
+npm run deploy  # Deploy to production environment
 npm run deploy:railway  # Deploy to Railway.com (interactive)
 npm run deploy:railway:single    # Single service deployment
 npm run deploy:railway:separate  # Separate services deployment  
@@ -1186,7 +1194,7 @@ Our CI/CD pipeline consists of several automated workflows:
 - 🚀 **Deploy**: Automated deployment to development environment
 - 🏥 **Health Check**: Post-deployment validation
 
-#### 3. **Production Deployment** ([`deploy-prod.yml`](.github/workflows/deploy-prod.yml))
+#### 3. **Production Deployment** (Local Deployment Script)
 
 **Triggers**: Manual approval on `main` branch  
 **Jobs**:

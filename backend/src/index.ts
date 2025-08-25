@@ -34,7 +34,7 @@ import { authRouter } from "./routes/auth";
 import notificationsRouter from "./routes/notifications";
 import { monitoringRouter } from "./routes/monitoring";
 import waitlistRouter from "./routes/waitlist";
-import frontendRouter from "./routes/frontend";
+
 import { webSocketService } from "./services/websocketService";
 
 const app = express();
@@ -77,32 +77,12 @@ app.use(
 );
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (like mobile apps or curl requests)
-      if (!origin) return callback(null, true);
-
-      const allowedOrigins = [
-        process.env["FRONTEND_URL"] || "http://localhost:5173",
-        "http://localhost:3000", // Additional dev origins
-        "http://localhost:5000",
-      ];
-
-      // In production, be more strict
-      if (process.env["NODE_ENV"] === "production") {
-        const isAllowed = allowedOrigins.includes(origin);
-        return callback(
-          isAllowed ? null : new Error("Not allowed by CORS"),
-          isAllowed
-        );
-      }
-
-      // In development, allow all localhost origins
-      if (origin.includes("localhost") || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-
-      return callback(new Error("Not allowed by CORS"), false);
-    },
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://localhost:5000",
+      ...(process.env["FRONTEND_URL"] ? [process.env["FRONTEND_URL"]] : []),
+    ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: [
@@ -176,7 +156,8 @@ const SERVE_FRONTEND =
   process.env["SERVE_FRONTEND"] === "true" ||
   process.env["RAILWAY_ENVIRONMENT"];
 if (SERVE_FRONTEND && IS_PRODUCTION) {
-  const frontendPath = path.join(__dirname, "public");
+  // Serve the built React app from frontend/dist
+  const frontendPath = path.join(__dirname, "../../frontend/dist");
 
   // Serve static files
   app.use(
@@ -212,8 +193,7 @@ if (SERVE_FRONTEND && IS_PRODUCTION) {
   });
 } else {
   // Frontend route for API-only mode
-  app.use("/", frontendRouter);
-  
+
   // API-only mode - 404 handler for remaining non-API routes
   app.use("*", (req, res) => {
     res.status(404).json({
