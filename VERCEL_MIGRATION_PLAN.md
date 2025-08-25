@@ -452,6 +452,7 @@ CREATE TABLE analytics (
 ### **Implementation Steps for Coming Soon Branch**
 
 1. **Create New Branch Structure**
+
    ```bash
    git checkout -b coming-soon
    ```
@@ -605,12 +606,15 @@ services:
       - key: REDIS_URL
         sync: false
 ```
+
 }
+
 ```
 
 ### **`.vercelignore`**
 
 ```
+
 node_modules
 .env.local
 .env.development.local
@@ -623,6 +627,7 @@ yarn-error.log*
 .gitignore
 README.md
 .vercel
+
 ```
 
 ## 🏗️ Phase 3: Backend Restructuring Strategy
@@ -630,16 +635,19 @@ README.md
 ### **Coming Soon Branch: Minimal Vercel API Structure**
 
 ```
+
 api/                        # Vercel API routes (minimal)
 ├── waitlist/
 │   └── index.ts           # Waitlist signup only
 └── health/
     └── index.ts           # Basic health check
+
 ```
 
 ### **Develop Branch: Keep Existing Express.js Structure**
 
 ```
+
 backend/                    # Keep existing structure
 ├── src/
 │   ├── index.ts           # Express.js server (for Render)
@@ -649,6 +657,7 @@ backend/                    # Keep existing structure
 │   └── middleware/        # Keep existing middleware
 ├── package.json           # Update for Render deployment
 └── render.yaml            # Render deployment config
+
 ```
 
 ### **Coming Soon Branch: Vercel Database Connection**
@@ -1498,6 +1507,7 @@ VERCEL_DEV=false
 #### **Step 1: Setup Coming Soon Branch (Day 1)**
 
 1. **Create and Switch to Coming Soon Branch:**
+
    ```bash
    git checkout -b coming-soon
    ```
@@ -1508,6 +1518,7 @@ VERCEL_DEV=false
    - Simplify database schema to minimal tables
 
 3. **Install Vercel CLI:**
+
    ```bash
    npm install -g vercel
    ```
@@ -1515,6 +1526,7 @@ VERCEL_DEV=false
 #### **Step 2: Coming Soon Backend Migration (Days 2-3)**
 
 1. **Create Simplified API Structure:**
+
    ```bash
    cd backend
    mkdir -p api/{waitlist,health}
@@ -1544,11 +1556,13 @@ VERCEL_DEV=false
 #### **Step 4: Coming Soon Vercel Deployment (Days 5-6)**
 
 1. **Local Vercel Testing:**
+
    ```bash
    vercel dev
    ```
 
 2. **Production Deployment:**
+
    ```bash
    vercel --prod
    ```
@@ -1564,16 +1578,19 @@ VERCEL_DEV=false
 ### **Step 1: Setup & Configuration (Day 1)**
 
 1. **Install Vercel CLI:**
+
    ```bash
    npm install -g vercel
    ```
 
 2. **Remove all Docker/Railway files:**
+
    ```bash
    # Execute the removal commands from Phase 1
    ```
 
 3. **🚂 IMPORTANT: Apply Railway Removal to ALL Branches:**
+
    ```bash
    # Railway removal must be applied to both branches:
    
@@ -1599,6 +1616,7 @@ VERCEL_DEV=false
    - Create `.vercelignore`
 
 4. **Initialize Vercel project:**
+
    ```bash
    vercel
    ```
@@ -1608,6 +1626,7 @@ VERCEL_DEV=false
 ### **Step 2: Backend Migration (Days 2-4)**
 
 1. **Restructure backend directory:**
+
    ```bash
    cd backend
    mkdir -p api/{auth,search,notifications,price-history,waitlist,health}
@@ -1658,6 +1677,7 @@ VERCEL_DEV=false
 ### **Step 5: Testing & Deployment (Days 8-9)**
 
 1. **Local testing:**
+
    ```bash
    vercel dev
    ```
@@ -1670,6 +1690,7 @@ VERCEL_DEV=false
    - Database operations
 
 3. **Deploy to Vercel:**
+
    ```bash
    vercel --prod
    ```
