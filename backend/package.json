@@ -58,7 +58,7 @@
     "@typescript-eslint/parser": "^6.15.0",
     "@vercel/node": "^3.0.21",
     "drizzle-kit": "^0.20.9",
-    "eslint": "^9.33.0",
+    "eslint": "^9.34.0",
     "jest": "^30.0.5",
     "supertest": "^6.3.3",
     "ts-jest": "^29.1.1",
