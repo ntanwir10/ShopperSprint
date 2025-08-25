@@ -10,6 +10,10 @@
         {
           "key": "Cache-Control",
           "value": "public, max-age=0, must-revalidate"
+        },
+        {
+          "key": "Vary",
+          "value": "Accept-Encoding"
         }
       ]
     },
@@ -22,5 +26,10 @@
         }
       ]
     }
-  ]
+  ],
+  "functions": {
+    "api/**/*.ts": {
+      "runtime": "@vercel/node"
+    }
+  }
 }

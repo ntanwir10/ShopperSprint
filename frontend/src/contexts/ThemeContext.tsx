@@ -23,19 +23,8 @@ interface ThemeProviderProps {
 }
 
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    // Check localStorage first, then system preference
-    const savedTheme = localStorage.getItem('theme') as Theme;
-    if (savedTheme) {
-      return savedTheme;
-    }
-    
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      return 'dark';
-    }
-    
-    return 'light';
-  });
+  const [theme, setThemeState] = useState<Theme>('light'); // Default to light to prevent flash
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
@@ -46,20 +35,38 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
+  // Prevent hydration mismatch by waiting for client-side hydration
   useEffect(() => {
+    setIsHydrated(true);
+
+    // Now safely check localStorage and system preference
+    const savedTheme = localStorage.getItem('theme') as Theme;
+    if (savedTheme) {
+      setThemeState(savedTheme);
+    } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      setThemeState('dark');
+    }
+  }, []);
+
+  // Only apply theme classes after hydration to prevent CSS mismatch
+  useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration
+
     const root = window.document.documentElement;
-    
+
     if (theme === 'dark') {
       root.classList.add('dark');
     } else {
       root.classList.remove('dark');
     }
-  }, [theme]);
+  }, [theme, isHydrated]);
 
-  // Listen for system theme changes
+  // Listen for system theme changes (only after hydration)
   useEffect(() => {
+    if (!isHydrated) return; // Wait for hydration
+
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
+
     const handleChange = (e: MediaQueryListEvent) => {
       if (!localStorage.getItem('theme')) {
         setTheme(e.matches ? 'dark' : 'light');
@@ -68,7 +75,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     mediaQuery.addEventListener('change', handleChange);
     return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
+  }, [isHydrated]);
 
   const value = {
     theme,
@@ -77,8 +84,6 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   };
 
   return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
   );
 };
