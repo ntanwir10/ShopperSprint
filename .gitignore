@@ -88,3 +88,4 @@ tasks.json
 tasks/ 
 
 .cursor/
+.vercel
